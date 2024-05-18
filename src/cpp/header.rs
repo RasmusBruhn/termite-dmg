@@ -8,6 +8,9 @@ pub fn header(name: &str, data_model: &DataModel) -> Result<String, HeaderError>
     output += formatdoc!("
         #ifndef {name}_H_INCLUDED
         #define {name}_H_INCLUDED
+
+        #include <optional>
+        #include <variant>
     ", name = name).as_str();
 
     // Add objects
@@ -62,9 +65,34 @@ fn header_struct(name: &str, fields: &Vec<(String, Instance)>, mut output: Strin
             ", "", indent = 2, desc = description).as_str();    
         }
 
+        // Create default value
+        let default_value = if let Some(default_value) = field_data.data.get("default") {
+            format!(" = {value}", value = default_value)
+        } else {
+            "".to_string()
+        };
+
+        // Create default value
+        let typename = if let Some(typename) = field_data.data.get("optional") {
+            let boolean: bool = if let Ok(boolean) = typename.parse() {
+                boolean
+            } else {
+                return Err(HeaderError::ParseBoolean(name.to_string(), field_name.clone(), "optional".to_string()));
+            };
+    
+            if boolean {
+                format!("std::optional<{data_type}>")
+            } else {
+                data_type.clone()
+            }
+        } else {
+            data_type.clone()
+        };
+        
+        // Write the field
         output += formatdoc!("
-            {0:indent$}{data_type} {name};
-        ", "", indent = 2, data_type = data_type, name = field_name).as_str();    
+            {0:indent$}{typename} {name}{default};
+        ", "", indent = 2, typename = typename, name = field_name, default = default_value).as_str();    
     };
 
     // End class
@@ -83,6 +111,9 @@ pub enum HeaderError {
     /// The data type is not supplied
     #[error("The data type must be supplied for {:?}.{:?}", .0, .1)]
     DataType(String, String),
+    /// The boolean could not be parsed
+    #[error("Unable to pass boolean for {:?}.{:?}.{:?}", .0, .1, .2)]
+    ParseBoolean(String, String, String),
 }
 
 #[cfg(test)]
@@ -114,6 +145,9 @@ mod tests {
         let expected = formatdoc!("
             #ifndef HEADER_H_INCLUDED
             #define HEADER_H_INCLUDED
+            
+            #include <optional>
+            #include <variant>
 
             struct CustomType {{
               int field1;
@@ -152,6 +186,9 @@ mod tests {
             #ifndef HEADER_H_INCLUDED
             #define HEADER_H_INCLUDED
 
+            #include <optional>
+            #include <variant>
+
             /**
              * \\brief CustomDescription
              * 
@@ -167,6 +204,86 @@ mod tests {
                * 
                */
               float field2;
+            }};
+
+            #endif
+        ");
+
+        assert_eq!(header_file, expected);
+    }
+
+    #[test]
+    fn struct_default() {
+        // Create the data model
+        let data_model = DataModel::from_vec(
+            vec![("CustomType".to_string(), DataType {
+                base_type: "struct".to_string(),
+                description: None,
+                fields: vec![
+                    ("field1".to_string(), Instance { data: HashMap::from([
+                        ("data_type".to_string(), "int".to_string()),
+                        ("default".to_string(), "42".to_string()),
+                    ])}),
+                    ("field2".to_string(), Instance { data: HashMap::from([
+                        ("data_type".to_string(), "float".to_string()),
+                        ("default".to_string(), "3.14159".to_string()),
+                    ])}),
+                ]
+        })]).expect("Dublicate key");
+        
+        // Create the header file
+        let header_file = header("HEADER", &data_model).unwrap();
+
+        let expected = formatdoc!("
+            #ifndef HEADER_H_INCLUDED
+            #define HEADER_H_INCLUDED
+
+            #include <optional>
+            #include <variant>
+
+            struct CustomType {{
+              int field1 = 42;
+              float field2 = 3.14159;
+            }};
+
+            #endif
+        ");
+
+        assert_eq!(header_file, expected);
+    }
+
+    #[test]
+    fn struct_optional() {
+        // Create the data model
+        let data_model = DataModel::from_vec(
+            vec![("CustomType".to_string(), DataType {
+                base_type: "struct".to_string(),
+                description: None,
+                fields: vec![
+                    ("field1".to_string(), Instance { data: HashMap::from([
+                        ("data_type".to_string(), "int".to_string()),
+                        ("optional".to_string(), "true".to_string()),
+                    ])}),
+                    ("field2".to_string(), Instance { data: HashMap::from([
+                        ("data_type".to_string(), "float".to_string()),
+                        ("optional".to_string(), "true".to_string()),
+                    ])}),
+                ]
+        })]).expect("Dublicate key");
+        
+        // Create the header file
+        let header_file = header("HEADER", &data_model).unwrap();
+
+        let expected = formatdoc!("
+            #ifndef HEADER_H_INCLUDED
+            #define HEADER_H_INCLUDED
+            
+            #include <optional>
+            #include <variant>
+
+            struct CustomType {{
+              std::optional<int> field1;
+              std::optional<float> field2;
             }};
 
             #endif
