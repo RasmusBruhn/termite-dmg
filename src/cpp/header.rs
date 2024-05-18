@@ -12,6 +12,20 @@ pub fn header(name: &str, data_model: &DataModel) -> Result<String, HeaderError>
 
     // Add objects
     for (type_name, type_data) in data_model.iter() {
+        // Add newline
+        output += "\n";
+
+        // Add description
+        if let Some(description) = &type_data.description {
+            output += formatdoc!("
+                /**
+                 * \\brief {desc}
+                 * 
+                 */
+            ", desc = description).as_str();    
+        }
+    
+        // Add code
         output = match type_data.base_type.as_str() {
             "struct" => header_struct(type_name, &type_data.fields, output)?,
             _ => return Err(HeaderError::UnknownType(type_data.base_type.clone())),
@@ -30,14 +44,23 @@ pub fn header(name: &str, data_model: &DataModel) -> Result<String, HeaderError>
 fn header_struct(name: &str, fields: &Vec<(String, Instance)>, mut output: String) -> Result<String, HeaderError> {
     // Create class name
     output += formatdoc!("
-
         struct {name} {{
     ", name = name).as_str();
 
     // Add fields
     for (field_name, field_data) in fields.iter() {
-        // Get the data type
+        // Get the data
         let data_type = field_data.data.get("data_type").ok_or(HeaderError::DataType(name.to_string(), field_name.to_string()))?;
+
+        // Add description
+        if let Some(description) = field_data.data.get("description") {
+            output += formatdoc!("
+                {0:indent$}/**
+                {0:indent$} * \\brief {desc}
+                {0:indent$} * 
+                {0:indent$} */
+            ", "", indent = 2, desc = description).as_str();    
+        }
 
         output += formatdoc!("
             {0:indent$}{data_type} {name};
@@ -69,21 +92,21 @@ mod tests {
     use std::collections::HashMap;
 
     #[test]
-    fn basic_struct() {
+    fn struct_basic() {
         // Create the data model
-        let mut data_model = DataModel::new();
-        data_model.add("CustomType", DataType {
-            base_type: "struct".to_string(),
-            description: None,
-            fields: vec![
-                ("field1".to_string(), Instance { data: HashMap::from([
-                    ("data_type".to_string(), "int".to_string()),
-                ])}),
-                ("field2".to_string(), Instance { data: HashMap::from([
-                    ("data_type".to_string(), "float".to_string()),
-                ])}),
-            ]
-        }).expect("Dublicate key");
+        let data_model = DataModel::from_vec(
+            vec![("CustomType".to_string(), DataType {
+                base_type: "struct".to_string(),
+                description: None,
+                fields: vec![
+                    ("field1".to_string(), Instance { data: HashMap::from([
+                        ("data_type".to_string(), "int".to_string()),
+                    ])}),
+                    ("field2".to_string(), Instance { data: HashMap::from([
+                        ("data_type".to_string(), "float".to_string()),
+                    ])}),
+                ]
+        })]).expect("Dublicate key");
         
         // Create the header file
         let header_file = header("HEADER", &data_model).unwrap();
@@ -94,6 +117,55 @@ mod tests {
 
             struct CustomType {{
               int field1;
+              float field2;
+            }};
+
+            #endif
+        ");
+
+        assert_eq!(header_file, expected);
+    }
+
+    #[test]
+    fn struct_description() {
+        // Create the data model
+        let data_model = DataModel::from_vec(
+            vec![("CustomType".to_string(), DataType {
+                base_type: "struct".to_string(),
+                description: Some("CustomDescription".to_string()),
+                fields: vec![
+                    ("field1".to_string(), Instance { data: HashMap::from([
+                        ("data_type".to_string(), "int".to_string()),
+                        ("description".to_string(), "FieldDescription1".to_string()),
+                    ])}),
+                    ("field2".to_string(), Instance { data: HashMap::from([
+                        ("data_type".to_string(), "float".to_string()),
+                        ("description".to_string(), "FieldDescription2".to_string()),
+                    ])}),
+                ]
+        })]).expect("Dublicate key");
+        
+        // Create the header file
+        let header_file = header("HEADER", &data_model).unwrap();
+
+        let expected = formatdoc!("
+            #ifndef HEADER_H_INCLUDED
+            #define HEADER_H_INCLUDED
+
+            /**
+             * \\brief CustomDescription
+             * 
+             */
+            struct CustomType {{
+              /**
+               * \\brief FieldDescription1
+               * 
+               */
+              int field1;
+              /**
+               * \\brief FieldDescription2
+               * 
+               */
               float field2;
             }};
 
