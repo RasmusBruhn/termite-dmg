@@ -2,6 +2,7 @@
 name = "termite-dmg"
 version = "0.1.0"
 edition = "2021"
+description = "Termite Data Model Generator is a crate meant to generate boiler plate code for data models. The purpose is to be able to define a data model in yaml or json and then Termite will generate the code for the data model including parsing, reading from/writing to files and documentation."
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

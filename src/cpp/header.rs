@@ -2,6 +2,18 @@ use crate::{DataModel, Instance};
 use indoc::{formatdoc, indoc};
 use thiserror::Error;
 
+/// This functions generates the header file including all structs, variants and enums used in the data model
+/// along with printing and comparison support
+/// 
+/// # Parameters
+/// 
+/// name: The name of the file, used in the header guard to bu {name}_H_INCLUDED
+/// 
+/// data_model: The data model to generate
+/// 
+/// # Errors
+/// 
+/// Returns a HeaderError if there are any errors
 pub fn header(name: &str, data_model: &DataModel) -> Result<String, HeaderError> {
     // Initialize the header file
     let mut output = String::new();
@@ -12,6 +24,12 @@ pub fn header(name: &str, data_model: &DataModel) -> Result<String, HeaderError>
         #include <optional>
         #include <variant>
     ", name = name).as_str();
+
+    let mut custom_header = data_model.get_header("header").to_string();
+    if !custom_header.is_empty() {
+        custom_header += "\n";
+    }
+    output += custom_header.as_str();
 
     // Add objects
     for (type_name, type_data) in data_model.iter() {
@@ -30,7 +48,7 @@ pub fn header(name: &str, data_model: &DataModel) -> Result<String, HeaderError>
     
         // Add code
         output = match type_data.base_type.as_str() {
-            "struct" => header_struct(type_name, &type_data.fields, output)?,
+            "struct" => header_struct(type_name, &type_data.data, output)?,
             _ => return Err(HeaderError::UnknownType(type_data.base_type.clone())),
         }
     };
@@ -44,6 +62,19 @@ pub fn header(name: &str, data_model: &DataModel) -> Result<String, HeaderError>
     return Ok(output);
 }
 
+/// Generates the code for a single struct, returns output with the struct appended
+/// 
+/// # Parameters
+/// 
+/// name: The name of the struct
+/// 
+/// fields: The data for all the struct fields
+/// 
+/// output: The outut string from before the struct
+/// 
+/// # Errors
+/// 
+/// Returns a HeaderError if any error occures
 fn header_struct(name: &str, fields: &Vec<(String, Instance)>, mut output: String) -> Result<String, HeaderError> {
     // Create class name
     output += formatdoc!("
@@ -103,6 +134,7 @@ fn header_struct(name: &str, fields: &Vec<(String, Instance)>, mut output: Strin
     return Ok(output);
 }
 
+/// Any error which may occur during generation of a header file
 #[derive(Error, Debug, Clone)]
 pub enum HeaderError {
     /// The data object type is not recognized
@@ -129,7 +161,7 @@ mod tests {
             vec![("CustomType".to_string(), DataType {
                 base_type: "struct".to_string(),
                 description: None,
-                fields: vec![
+                data: vec![
                     ("field1".to_string(), Instance { data: HashMap::from([
                         ("data_type".to_string(), "int".to_string()),
                     ])}),
@@ -161,13 +193,53 @@ mod tests {
     }
 
     #[test]
+    fn struct_header() {
+        // Create the data model
+        let mut data_model = DataModel::from_vec(
+            vec![("CustomType".to_string(), DataType {
+                base_type: "struct".to_string(),
+                description: None,
+                data: vec![
+                    ("field1".to_string(), Instance { data: HashMap::from([
+                        ("data_type".to_string(), "int".to_string()),
+                    ])}),
+                    ("field2".to_string(), Instance { data: HashMap::from([
+                        ("data_type".to_string(), "float".to_string()),
+                    ])}),
+                ]
+        })]).expect("Dublicate key");
+        data_model.add_header("header", "#include \"sample.h\"");
+        
+        // Create the header file
+        let header_file = header("HEADER", &data_model).unwrap();
+
+        let expected = formatdoc!("
+            #ifndef HEADER_H_INCLUDED
+            #define HEADER_H_INCLUDED
+            
+            #include <optional>
+            #include <variant>
+            #include \"sample.h\"
+
+            struct CustomType {{
+              int field1;
+              float field2;
+            }};
+
+            #endif
+        ");
+
+        assert_eq!(header_file, expected);
+    }
+
+    #[test]
     fn struct_description() {
         // Create the data model
         let data_model = DataModel::from_vec(
             vec![("CustomType".to_string(), DataType {
                 base_type: "struct".to_string(),
                 description: Some("CustomDescription".to_string()),
-                fields: vec![
+                data: vec![
                     ("field1".to_string(), Instance { data: HashMap::from([
                         ("data_type".to_string(), "int".to_string()),
                         ("description".to_string(), "FieldDescription1".to_string()),
@@ -219,7 +291,7 @@ mod tests {
             vec![("CustomType".to_string(), DataType {
                 base_type: "struct".to_string(),
                 description: None,
-                fields: vec![
+                data: vec![
                     ("field1".to_string(), Instance { data: HashMap::from([
                         ("data_type".to_string(), "int".to_string()),
                         ("default".to_string(), "42".to_string()),
@@ -259,7 +331,7 @@ mod tests {
             vec![("CustomType".to_string(), DataType {
                 base_type: "struct".to_string(),
                 description: None,
-                fields: vec![
+                data: vec![
                     ("field1".to_string(), Instance { data: HashMap::from([
                         ("data_type".to_string(), "int".to_string()),
                         ("optional".to_string(), "true".to_string()),
