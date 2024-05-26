@@ -6,7 +6,7 @@ use append_only_vec::AppendOnlyVec;
 #[derive(Debug)]
 pub struct DataModel {
     /// The vector of all the data types
-    data_types: AppendOnlyVec<(String, DataType)>,
+    data_types: AppendOnlyVec<DataType>,
     /// The map of all the header data
     headers: HashMap<String, String>,
 }
@@ -29,11 +29,11 @@ impl DataModel {
     /// # Errors
     /// 
     /// Returns ModelError::DublicateTypeName if two data types has the same name
-    pub fn from_vec(data: Vec<(String, DataType)>) -> Result<Self, ModelError> {
+    pub fn from_vec(data: Vec<DataType>) -> Result<Self, ModelError> {
         let mut data_model = Self::new();
         
-        for (name, data_type) in data.into_iter() {
-            data_model.add(name.as_str(), data_type)?;
+        for data_type in data.into_iter() {
+            data_model.add(data_type)?;
         }
 
         return Ok(data_model);
@@ -50,15 +50,15 @@ impl DataModel {
     /// # Errors
     /// 
     /// Returns ModelError if there is any errors
-    pub fn add(&mut self, name: &str, data: DataType) -> Result<(), ModelError> {
+    pub fn add(&mut self, data: DataType) -> Result<(), ModelError> {
         // Make sure the object is not a dublicate
-        if self.data_types.iter().any(|(type_name, _)| {
-            type_name == name
+        if self.data_types.iter().any(|data_type| {
+            data_type.base_type == data.base_type
         }) {
-            return Err(ModelError::DublicateTypeName(name.to_string()));
+            return Err(ModelError::DublicateTypeName(data.base_type.to_string()));
         };
 
-        self.data_types.push((name.to_string(), data));
+        self.data_types.push(data);
 
         return Ok(());
     }
@@ -89,8 +89,8 @@ impl DataModel {
     /// 
     /// name: The name of the data type
     pub fn get(&self, name: &str) -> Option<&DataType> {
-        return self.data_types.iter().filter_map(|(type_name, type_data)| {
-            return if type_name == name {
+        return self.data_types.iter().filter_map(|type_data| {
+            return if type_data.name == name {
                 Some(type_data)
             } else {
                 None
@@ -103,15 +103,15 @@ impl DataModel {
     /// # Parameters
     /// 
     /// base_type: The base type to filter for
-    pub fn get_group<'a>(&'a self, base_type: &'a str) -> impl Iterator<Item = &'a (String, DataType)> {
+    pub fn get_group<'a>(&'a self, base_type: &'a str) -> impl Iterator<Item = &'a DataType> {
         return self.data_types.iter()
             .filter(move |item| {
-                item.1.base_type == base_type
+                item.base_type == base_type
             });
     }
 
     /// Gets an iterator over all data types
-    pub fn iter<'a>(&'a self) -> impl Iterator<Item = &'a (String, DataType)> {
+    pub fn iter<'a>(&'a self) -> impl Iterator<Item = &'a DataType> {
         return self.data_types.iter();
     }
 }
@@ -119,10 +119,12 @@ impl DataModel {
 /// Holds the data for a single custom data type
 #[derive(Clone, Debug, PartialEq)]
 pub struct DataType {
+    /// The name of the data type
+    pub name: String,
     /// The base type (like struct or enum) of this data type
     pub base_type: String,
     /// The data for this data type (like struct fields of variant types)
-    pub data: Vec<(String, Instance)>,
+    pub data: Vec<Instance>,
     /// The description for this type, may be None if there is no description
     pub description: Option<String>,
 }
@@ -130,6 +132,8 @@ pub struct DataType {
 /// Data for a single struct field or variant type
 #[derive(Clone, Debug, PartialEq)]
 pub struct Instance {
+    /// The name of the instance
+    pub name: String,
     /// All of the data fields, keys may include data_type or description
     pub data: HashMap<String, String>,
 }
