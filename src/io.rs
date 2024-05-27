@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use thiserror::Error;
 
 /// A bridge structure between yaml/json and the data model
 #[derive(Clone, Debug, PartialEq)]

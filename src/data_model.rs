@@ -1,6 +1,11 @@
-use std::collections::HashMap;
+use std::{
+    collections::HashMap, 
+    iter,
+    fmt,
+};
 use thiserror::Error;
 use append_only_vec::AppendOnlyVec;
+use crate::io;
 
 /// A full data model with header information for generating code and a list of custom data types
 #[derive(Debug)]
@@ -114,6 +119,22 @@ impl DataModel {
     pub fn iter<'a>(&'a self) -> impl Iterator<Item = &'a DataType> {
         return self.data_types.iter();
     }
+
+    /// Converts the data model to an io bridge such that it can be exported to a file
+    pub fn to_iobridge(&self) -> io::Bridge {
+        let headers = io::Bridge::Struct(
+            self.headers.iter().map(|(key, value)| (key.clone(), io::Bridge::Value(value.clone()))).collect()
+        );
+
+        let types = io::Bridge::List(
+            self.data_types.iter().map(|value| value.to_iobridge()).collect()
+        );
+
+        return io::Bridge::Struct(HashMap::from([
+            ("types".to_string(), types),
+            ("headers".to_string(), headers),
+        ]))
+    }
 }
 
 /// Holds the data for a single custom data type
@@ -121,12 +142,31 @@ impl DataModel {
 pub struct DataType {
     /// The name of the data type
     pub name: String,
+    /// The description for this type, may be None if there is no description
+    pub description: Option<String>,
     /// The base type (like struct or enum) of this data type
     pub base_type: String,
     /// The data for this data type (like struct fields of variant types)
     pub data: Vec<Instance>,
-    /// The description for this type, may be None if there is no description
-    pub description: Option<String>,
+}
+
+impl DataType {
+    /// Converts the data type to an io bridge such that it can be exported to a file
+    pub fn to_iobridge(&self) -> io::Bridge {
+        let data = io::Bridge::List(self.data.iter().map(|instance| instance.to_iobridge()).collect());
+
+        return io::Bridge::Struct([
+            ("name".to_string(), io::Bridge::Value(self.name.clone())),
+            ("type".to_string(), io::Bridge::Value(self.base_type.clone())),
+            ("data".to_string(), data),
+        ].into_iter().chain(iter::once(self.description.clone()).filter_map(|description| {
+            return if let Some(description) = description {
+                Some(("description".to_string(), io::Bridge::Value(description)))
+            } else {
+                None
+            }
+        })).collect());
+    }
 }
 
 /// Data for a single struct field or variant type
@@ -138,10 +178,90 @@ pub struct Instance {
     pub data: HashMap<String, String>,
 }
 
+impl Instance {
+    /// Imports an instance from an io bridge
+    /*pub fn from_iobridge(bridge: io::Bridge) -> Result<Self, ParseError> {
+        // Extract the name
+        return if let io::Bridge::Struct(map) = bridge {
+            let name =  if let Some((_, name)) = map.remove_entry("name") {
+                if let io::Bridge::Value(name) = name {
+                    name
+                } else {
+                    return Err(ParseError { location: "name".to_string(), error: ParseErrorCore::TypeString });
+                }
+            } else {
+                return Err(ParseError { location: "".to_string(), error: ParseErrorCore::MissingName });
+            };
+
+            // Setup the data
+            map.into_iter().map(|(key, value)| {
+                if let io::Bridge::Value(value) = value
+            })
+        } else {
+            return Err(ParseError { location: "".to_string(), error: ParseErrorCore::TypeStruct });
+        };
+    }*/
+
+    /// Converts the instance to an io bridge such that it can be exported to a file
+    pub fn to_iobridge(&self) -> io::Bridge {
+        return io::Bridge::Struct(
+            iter::once(("name".to_string(), self.name.clone())).chain(
+                self.data.iter().map(|(key, value)| (key.clone(), value.clone()))
+            ).map(|(key, value)| (key, io::Bridge::Value(value))).collect()
+        );
+    }
+}
+
 /// Errors when working with data models
 #[derive(Error, Debug, Clone)]
 pub enum ModelError {
     /// An object already has the name which is being added
-    #[error("The data type \"{:?}\" cannot be added to the data model because it already exists", .0)]
+    #[error("The data type \"{}\" cannot be added to the data model because it already exists", .0)]
     DublicateTypeName(String),
+}
+
+/// Errors when parsing data models including the location of the error
+#[derive(Debug, Clone)]
+pub struct ParseError {
+    /// The location where the error occured
+    pub location: String,
+    /// The actual error that occured
+    pub error: ParseErrorCore,
+}
+
+impl ParseError {
+    /// Sets the current location to be the field of the given base
+    /// 
+    /// # Parameters
+    /// 
+    /// base: The base to set in the location
+    fn add_field(&mut self, base: &str) {
+        if !self.location.is_empty() {
+            self.location = format!(".{}", self.location);
+        }
+        self.location = format!("{}{}", base, self.location);
+    }
+}
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        return write!(f, "{}: {}", self.location, self.error);
+    }
+}
+
+/// Errors when parsing data models
+#[derive(Error, Debug, Clone)]
+pub enum ParseErrorCore {
+    /// Type must be a string
+    #[error("The type must be a string")]
+    TypeString,
+    /// Type must be a struct
+    #[error("The type must be a struct")]
+    TypeStruct,
+    /// Type must be a list
+    #[error("The type must be a list")]
+    TypeList,
+    /// The name field is required
+    #[error("The \"name\" field is required")]
+    MissingName,
 }
