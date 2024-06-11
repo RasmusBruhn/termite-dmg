@@ -22,6 +22,38 @@ pub struct DataModel {
     footers: Footers,
 }
 
+impl DataModel {
+    /// Constructs a new c++ data model from a generic data model
+    /// 
+    /// # Parameters
+    /// 
+    /// data: The generic data type to convert
+    pub fn new(data: crate::DataModel) -> Result<Self, Error> {
+        let data_types = data.data_types.into_iter()
+            .enumerate()
+            .map(|(i, data_type)| {
+                return match DataType::new(data_type) {
+                    Ok(result) => Ok(result),
+                    Err(error) => Err(error.add_element("data_types", i)),
+                };
+            }).collect::<Result<Vec<DataType>, Error>>()?;
+        let headers = match Headers::new(data.headers) {
+            Ok(result) => result,
+            Err(error) => return Err(error.add_field("headers")),
+        };
+        let footers = match Footers::new(data.footers) {
+            Ok(result) => result,
+            Err(error) => return Err(error.add_field("footers")),
+        };
+
+        return Ok(Self {
+            data_types,
+            headers,
+            footers,
+        })
+    }
+}
+
 /// All of the headers for the different files
 #[derive(Clone, Debug, PartialEq)]
 struct Headers {
@@ -29,6 +61,29 @@ struct Headers {
     header: String,
     /// For the source file
     source: String,
+}
+
+impl Headers {
+    /// Constructs a new c++ header from a generic header
+    /// 
+    /// # Parameters
+    /// 
+    /// data: The generic data type to convert
+    fn new(data: HashMap<String, String>) -> Result<Self, Error> {
+        let header = match data.get("header") {
+            Some(value) => format!("{}\n", value),
+            None => String::new(),
+        };
+        let source = match data.get("source") {
+            Some(value) => format!("{}\n", value),
+            None => String::new(),
+        };
+
+        return Ok(Self {
+            header,
+            source,
+        })
+    }
 }
 
 /// All of the footers for the different files
@@ -47,7 +102,19 @@ impl Footers {
     /// 
     /// data: The generic data type to convert
     fn new(data: HashMap<String, String>) -> Result<Self, Error> {
-        todo!()
+        let header = match data.get("header") {
+            Some(value) => format!("{}\n", value),
+            None => String::new(),
+        };
+        let source = match data.get("source") {
+            Some(value) => format!("{}\n", value),
+            None => String::new(),
+        };
+
+        return Ok(Self {
+            header,
+            source,
+        })
     }
 }
 
@@ -201,9 +268,29 @@ impl Error {
     /// base: The base to set in the location
     fn add_field(self, base: &str) -> Error {
         let location = if !self.location.is_empty() {
-            format!(".{}", self.location)
+            format!("{}.{}", base, self.location)
         } else {
-            format!("{}{}", base, self.location)
+            base.to_string()
+        };
+        
+        return Error {
+            location,
+            error: self.error,
+        }
+    }
+
+    /// Sets the current location to be the element of a field of the given base
+    /// 
+    /// # Parameters
+    /// 
+    /// base: The base to set in the location
+    /// 
+    /// index: The index of the field
+    fn add_element(self, base: &str, index: usize) -> Error {
+        let location = if !self.location.is_empty() {
+            format!("{}[{}].{}", base, index, self.location)
+        } else {
+            format!("{}[{}]", base, index)
         };
         
         return Error {
