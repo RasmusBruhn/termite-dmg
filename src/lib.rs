@@ -23,7 +23,6 @@
 //! 
 
 mod data_model;
-pub mod io;
 pub mod cpp;
 
-pub use data_model::{DataModel, DataType, Instance, ModelError};
+pub use data_model::{DataModel, DataType, DataTypeData, Struct, StructField, DefaultType};
