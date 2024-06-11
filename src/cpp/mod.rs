@@ -69,13 +69,13 @@ impl Headers {
     /// # Parameters
     /// 
     /// data: The generic data type to convert
-    fn new(data: HashMap<String, String>) -> Result<Self, Error> {
-        let header = match data.get("header") {
+    fn new(mut data: HashMap<String, String>) -> Result<Self, Error> {
+        let header = match data.remove("header") {
             Some(value) => format!("{}\n", value),
             None => String::new(),
         };
-        let source = match data.get("source") {
-            Some(value) => format!("{}\n", value),
+        let source = match data.remove("source") {
+            Some(value) => value,
             None => String::new(),
         };
 
@@ -101,13 +101,13 @@ impl Footers {
     /// # Parameters
     /// 
     /// data: The generic data type to convert
-    fn new(data: HashMap<String, String>) -> Result<Self, Error> {
-        let header = match data.get("header") {
+    fn new(mut data: HashMap<String, String>) -> Result<Self, Error> {
+        let header = match data.remove("header") {
             Some(value) => format!("{}\n", value),
             None => String::new(),
         };
-        let source = match data.get("source") {
-            Some(value) => format!("{}\n", value),
+        let source = match data.remove("source") {
+            Some(value) => value,
             None => String::new(),
         };
 

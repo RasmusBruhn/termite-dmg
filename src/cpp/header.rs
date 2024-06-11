@@ -1,3 +1,166 @@
+use indoc::formatdoc;
+use crate::DefaultType;
+use super::*;
+
+impl DataModel {
+    /// Generates the header file
+    /// 
+    /// # Parameters
+    /// 
+    /// name: The name of the header file (used for header guard so should be capslocked)
+    /// 
+    /// indent: The number of spaces to use for indentation
+    pub fn gen_header(&self, name: &str, indent: usize) -> String {
+        // Get header and footer
+        let header = self.headers.header.clone();
+        let footer = self.footers.header.clone();
+
+        // Get all structs
+        let data_types = self.data_types.iter()
+            .map(|data_type| data_type.gen_header(indent))
+            .collect::<Vec<String>>()
+            .join("\n\n");
+
+        return formatdoc!("
+            // Generated with the Termite Data Model Generator
+            #ifndef {name}_TERMITE_H_INCLUDED
+            #define {name}_TERMITE_H_INCLUDED
+
+            // User header
+            {header}
+
+            // User data types
+            {data_types}
+
+            // User footer
+            {footer}
+
+            #endif
+        ");
+    }
+}
+
+impl DataType {
+    /// Generates the description if it is supplied
+    fn gen_description(&self) -> String {
+        return match &self.description {
+            Some(description) => formatdoc!("
+                /**
+                 * \\brief {description}
+                 * 
+                 */
+            "),
+            None => "".to_string(),
+        };
+    }
+
+    /// Converts the data type to a string for use in the header file
+    /// 
+    /// # Parameters
+    /// 
+    /// indent: The number of spaces to use for indentation
+    fn gen_header(&self, indent: usize) -> String {
+        let description = self.gen_description();
+        let definition = self.data.gen_header(&self.name, indent);
+
+        return format!("{description}{definition}");
+    }
+}
+
+impl DataTypeData {
+    /// Converts the data type data to a string for use in the header file
+    /// 
+    /// # Parameters
+    /// 
+    /// name: The name of the data type
+    /// 
+    /// indent: The number of spaces to use for indentation
+    fn gen_header(&self, name: &str, indent: usize) -> String {
+        return match self {
+            DataTypeData::Struct(data) => data.gen_header(name, indent),
+        };
+    }
+}
+
+impl Struct {
+    /// Converts the struct to a string for use in the header file
+    /// 
+    /// # Parameters
+    /// 
+    /// name: The name of the struct
+    /// 
+    /// indent: The number of spaces to use for indentation
+    fn gen_header(&self, name: &str, indent: usize) -> String {
+        // Get the definitions of all the fields but without any initialization
+        let field_definitions = todo!();
+
+
+    }
+}
+
+impl StructField {
+    /// Constructs the c++ typename of this field
+    fn get_typename(&self) -> String {
+        return match &self.default {
+            DefaultType::Optional => format!(
+                "std::optional<{data_type}>",
+                data_type = self.data_type,
+            ),
+            _ => self.data_type.clone(),
+        };
+    }
+
+    /// Constructs the default value from the supplied default value or optional parameter
+    fn get_default_value(&self) -> String {
+        return match &self.default {
+            DefaultType::Required => "".to_string(),
+            DefaultType::Optional => " = std::nullopt".to_string(),
+            DefaultType::Default(value) => format!(" = {value}"),
+        };
+    }
+
+    /// Constructs the full definition of the field
+    fn get_definition(&self) -> String {
+        return format!(
+            "{typename} {name}{default_value}",
+            typename = self.get_typename(),
+            name = self.name,
+            default_value = self.get_default_value(),      
+        )
+    }
+
+    /// Generates the description if it is supplied
+    /// 
+    /// # Parameters
+    /// 
+    /// indent: The number of spaces to use for indentation
+    fn gen_description(&self, indent: usize) -> String {
+        return match &self.description {
+            Some(description) => formatdoc!("
+                {0:indent$}/**
+                {0:indent$} * \\brief {description}
+                {0:indent$} * 
+                {0:indent$} */
+            ", ""),
+            None => "".to_string(),
+        };
+    }
+
+    /// Generates the definition of the field
+    /// 
+    /// # Parameters
+    /// 
+    /// indent: The number of spaces to use for indentation
+    fn gen_definition(&self, indent: usize) -> String {
+        return format!(
+            "{desc}{0:indent$}{definition};\n",
+            "",
+            desc = self.gen_description(indent),
+            definition = self.get_definition(),
+        );
+    }
+}
+
 /*
 use crate::{DataModel, Instance};
 use indoc::{formatdoc, indoc};
