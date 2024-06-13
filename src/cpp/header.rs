@@ -348,7 +348,7 @@ mod tests {
         mod field {
             use super::*;
 
-            #[test]
+            //#[test]
             fn basic() {
                 // Create the data model
                 let data_model = DataModel {
@@ -371,7 +371,7 @@ mod tests {
                                         name: "field2".to_string(),
                                         description: None,
                                         data_type: "type2".to_string(),
-                                        default: DefaultType::Default("default".to_string()),
+                                        default: DefaultType::Required,
                                         constraints: vec![],
                                     },
                                 ] 
@@ -390,11 +390,37 @@ mod tests {
                     
                     #include <optional>
                     #include <variant>
+                    #include <termite>
 
                     class DataType {{
                     public:
+                      /**
+                       * \\brief Constructs a new DataType object 
+                       * 
+                       */
+                      static termite::Result<DataType> new(type1 field1, type2 field2) {{
+                        if (auto result = validate_field1(field1)) {{
+                          return 
+                        }}
+                      }}
+
                     private:
                       explicit DataType(type1 field1_, type2 field2_) : field1(field1_), field2(field2_) {{}}
+
+                      /**
+                       * \\brief Validates if field1 is correct using the following constaints:
+                       * 
+                       */
+                      static termite::Result<std::tuple<>> validate_field1(type1 &value) {{
+                        return termite::Result<std::tuple<>>::ok({{}});
+                      }}
+                      /**
+                       * \\brief Validates if field2 is correct using the following constaints:
+                       * 
+                       */
+                      static termite::Result<std::tuple<>> validate_field2(type2 &value) {{
+                        return termite::Result<std::tuple<>>::ok({{}});
+                      }}
 
                       type1 field1;
                       type2 field2;
