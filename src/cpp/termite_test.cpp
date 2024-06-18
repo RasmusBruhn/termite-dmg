@@ -51,20 +51,66 @@ std::optional<std::string> test_error_location() {
   }
 }
 
-class Test {
-public:
-  friend std::ostream &operator<<(std::ostream &stream, const Test &) {
-    return stream << "Test";
-  }
-};
-
 /**
- * @brief Test if the error location is set correctly
+ * @brief Test if results can print
  * 
  * @return An error string on error
  */
 std::optional<std::string> test_result_print() {
-  auto result = termite::Result<Test>::from_ok(Test());
+  auto result_ok = termite::Result<int>::from_ok(1);
+  std::cout << "test_result_print ok: " << result_ok << std::endl;
+  std::cout << "test_result_print ok: " << result_ok.to_string() << std::endl;
+
+  auto result_err = termite::Result<int>::from_err(termite::Error("Error"));
+  std::cout << "test_result_print err: " << result_err << std::endl;
+  std::cout << "test_result_print err: " << result_err.to_string() << std::endl;
+
+  return std::nullopt;
+}
+
+/**
+ * @brief Test if results can check if they are ok
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_result_is_ok()
+{
+  auto result_ok = termite::Result<int>::from_ok(1);
+  if (!result_ok.is_ok()) {
+    return "Not Ok";
+  }
+
+  auto result_err = termite::Result<int>::from_err(termite::Error("Error"));
+  if (result_err.is_ok()) {
+    return "Not Err";
+  }
+
+  return std::nullopt;
+}
+
+/**
+ * @brief Test if results can get values
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_result_get()
+{
+  int correct_ok = 1;
+  int result_ok = termite::Result<int>::from_ok(correct_ok).get_ok();
+  if (correct_ok != result_ok) {
+    std::stringstream ss;
+    ss << result_ok;
+    return ss.str();
+  }
+
+  termite::Error correct_err("Error");
+  termite::Error result_err = termite::Result<int>::from_err(correct_err).get_err();
+  if (correct_err != result_err)
+  {
+    std::stringstream ss;
+    ss << result_err;
+    return ss.str();
+  }
 
   return std::nullopt;
 }
@@ -73,12 +119,18 @@ int main() {
   auto names = {
     "test_error_message",
     "test_error_location_default",
-    "test_error_location"
+    "test_error_location",
+    "test_result_print",
+    "test_result_is_ok",
+    "test_result_get",
   };
   auto functions = {
     test_error_message,
     test_error_location_default,
     test_error_location,
+    test_result_print,
+    test_result_is_ok,
+    test_result_get,
   };
 
   int progress = 1;

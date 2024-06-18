@@ -12,6 +12,7 @@
 #include <string>
 #include <sstream>
 #include <iostream>
+#include <variant>
 
 namespace termite {
 
@@ -39,14 +40,14 @@ public:
    * @param location The location in the data model where the error occured
    */
   explicit Error(std::string message, std::string location = "") : 
-    message_(std::move(message)), location_(std::move(location)) {}
+    location_(std::move(location)),message_(std::move(message)) {}
 
   /**
    * @brief Gets the error message for this error
    * 
    * @return A reference to the error message
    */
-  const std::string &get_message() const {
+  [[nodiscard]] const std::string &get_message() const {
     return message_;
   }
 
@@ -55,7 +56,8 @@ public:
    * 
    * @return A reference to the location
    */
-  const std::string &get_location() const {
+  [[nodiscard]] const std::string &get_location() const
+  {
     return location_;
   }
 
@@ -65,7 +67,8 @@ public:
    * @param other The other error to compare with
    * @return true if they are identical, false otherwise 
    */
-  bool operator==(const Error &other) const {
+  [[nodiscard]] bool operator==(const Error &other) const
+  {
     return location_ == other.location_ && message_ == other.message_;
   }
 
@@ -75,7 +78,8 @@ public:
    * @param other The other error to compare with
    * @return true if they are not identical, false otherwise 
    */
-  bool operator!=(const Error &other) const {
+  [[nodiscard]] bool operator!=(const Error &other) const
+  {
     return !(*this == other);
   }
 
@@ -86,8 +90,11 @@ public:
    * @param error The error to print
    * @return The same stream object
    */
-  friend std::ostream &operator<<(std::ostream &stream, const Error &error) {
-    return stream << error.location_ << ": " << error.message_;
+  friend std::ostream &operator<<(std::ostream &os, const Error &error) {
+    if (error.location_.empty()) {
+      return os << error.message_;
+    }
+    return os << error.location_ << ": " << error.message_;
   }
 
   /**
@@ -95,7 +102,8 @@ public:
    * 
    * @return The string with the error
    */
-  std::string to_string() const {
+  [[nodiscard]] std::string to_string() const
+  {
     std::stringstream ss;
     ss << *this;
     return ss.str();
@@ -123,24 +131,15 @@ private:
 template <class T>
 class Result {
 public:
-  ~Result() {
-    if (is_ok_) {
-        value_.ok.~T();
-    } else {
-        value_.err.~Error();
-    }
-  }
-
   /**
    * @brief Constructs an ok result
    * 
    * @param value The value of the ok
    * @return The resulting Result object
    */
-  static Result<T> from_ok(T value) {
-    OkOrErr new_value;
-    new_value.ok = std::move(value);
-    return Result<T>(new_value, true);
+  [[nodiscard]] static Result from_ok(T value)
+  {
+    return Result(value);
   }
   /**
    * @brief Constructs an error result
@@ -148,71 +147,51 @@ public:
    * @param error The error value
    * @return The resulting Result object
    */
-  static Result<T> from_err(Error error) {
-    OkOrErr new_value;
-    new_value.err = std::move(error);
-    return Result<T>(new_value, true);
+  [[nodiscard]] static Result from_err(Error error)
+  {
+    return Result(error);
   }
 
   bool is_ok() const {
-    return is_ok_;
+    return std::holds_alternative<T>(value_);
+  }
+  [[nodiscard]] T get_ok() {
+    return std::move(std::get<T>(value_));
+  }
+  [[nodiscard]] Error get_err() {
+    return std::move(std::get<Error>(value_));
   }
 
-  template <typename U = T>
-  typename std::enable_if<has_insertion_operator<U>::value, std::ostream &>::type
-  friend operator<<(std::ostream &stream, const Result<U> &result) {
-    if (result.is_ok_) {
-      return stream << "Ok ( " << result.value_.ok << " )";
+  typename std::enable_if<has_insertion_operator<T>::value, std::ostream &>::type
+  friend operator<<(std::ostream &stream, const Result &result) {
+    if (result.is_ok()) {
+      return stream << "Ok ( " << std::get<T>(result.value_) << " )";
     } else {
-      return stream << "Err ( " << result.value_.err << " )";
+      return stream << "Err ( " << std::get<Error>(result.value_) << " )";
     }
   }
-/*
-  typename std::enable_if<has_insertion_operator<T>::value, std::ostream &>::type
-  std::string to_string() const {
+
+  [[nodiscard]] typename std::enable_if<has_insertion_operator<T>::value, std::string>::type
+  to_string() const {
     std::stringstream ss;
     ss << *this;
     return ss.str();
-  }*/
+  }
 
 private:
-  /**
-   * @brief The value type which is either ok or err
-   * 
-   */
-  union OkOrErr {
-    ~OkOrErr() = delete;
-
-    /**
-     * @brief The ok value of type T
-     * 
-     */
-    T ok;
-    /**
-     * @brief The err type containing an Error
-     * 
-     */
-    Error err;
-  };
-
   /**
    * @brief Construct a new Result object
    * 
    * @param value The value of the result
    * @param is_ok true if the value is ok, false if it is err
    */
-  Result(OkOrErr value, bool is_ok) : is_ok_(is_ok), value_(std::move(value)) {}
+  Result(std::variant<T, Error> value) : value_(value) {}
 
-  /**
-   * @brief If true the the result if ok otherwise it is err
-   * 
-   */
-  bool is_ok_;
   /**
    * @brief The value of the result, is_ok_ describes how to interpret it
    * 
    */
-  OkOrErr value_;
+  std::variant<T, Error> value_;
 };
 
 }
