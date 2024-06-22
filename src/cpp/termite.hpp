@@ -60,7 +60,6 @@ public:
   [[nodiscard]] const std::string &get_message() const {
     return message_;
   }
-
   /**
    * @brief Gets the location in the data model this error occured at
    * 
@@ -69,6 +68,34 @@ public:
   [[nodiscard]] const std::string &get_location() const
   {
     return location_;
+  }
+
+  /**
+   * @brief Adds a field to the location such that the old location is a field
+   * of the new location
+   *
+   * @param name The name of the new base
+   */
+  void add_field(const std::string &name) {
+    if (location_.empty()) {
+      location_ = name;
+    } else {
+      location_ = name + "." + location_;
+    }
+  }
+  /**
+   * @brief Adds a list element to the locations such that the old location is a
+   * field of the new list element
+   *
+   * @param name The name of the base list
+   * @param index The index of the list
+   */
+  void add_list(const std::string &name, const std::string &index) {
+    if (location_.empty()) {
+      location_ = name + "[" + index + "]";
+    } else {
+      location_ = name + "[" + index + "]." + location_;
+    }
   }
 
   /**
@@ -81,7 +108,6 @@ public:
   {
     return location_ == other.location_ && message_ == other.message_;
   }
-
   /**
    * @brief Checks if this error is not identical to another error
    * 
@@ -106,7 +132,6 @@ public:
     }
     return os << error.location_ << ": " << error.message_;
   }
-
   /**
    * @brief Converts this error with its location to a string
    * 
@@ -162,33 +187,78 @@ public:
     return Result(error);
   }
 
+  /**
+   * @brief Checks if this result is Ok or Err
+   * 
+   * @return true if it is ok, false if it is err
+   */
   bool is_ok() const {
     return std::holds_alternative<T>(value_);
   }
+  /**
+   * @brief Retrieves the ok value, causes an exception if it is err. This
+   * result is invalid after running this function
+   *
+   * @return The ok value
+   */
   [[nodiscard]] T get_ok() {
     return std::move(std::get<T>(value_));
   }
+  /**
+   * @brief Retrieves the err value, causes an exception if it is ok. This
+   * result is invalid after running this function
+   *
+   * @return The err value
+   */
   [[nodiscard]] Error get_err() {
     return std::move(std::get<Error>(value_));
   }
 
+  /**
+   * @brief Checks equality with another result, only enabled if T has the
+   * equality operator
+   *
+   * @param result The other result to compare with
+   * @return true if they are identical, false otherwise
+   */
   [[nodiscard]] typename std::enable_if<has_insertion_operator<T>::value, bool>::type 
   operator==(const Result &result) const {
     return value_ == result.value_;
   }
+  /**
+   * @brief Checks inequality with another result, only enabled if T has the
+   * equality operator
+   *
+   * @param result The other result to compare with
+   * @return true if they are not identical, false otherwise
+   */
   [[nodiscard]] typename std::enable_if<has_insertion_operator<T>::value, bool>::type 
   operator!=(const Result &result) const {
     return !(value_ == result.value_);
   }
 
+  /**
+   * @brief Prints the result to a stream, only enabled if the stream print
+   * operator exists for T
+   *
+   * @param os The output stream to print to 
+   * @param result The result to print
+   * @return The same output stream
+   */
   typename std::enable_if<has_insertion_operator<T>::value, std::ostream &>::type
-  friend operator<<(std::ostream &stream, const Result &result) {
+  friend operator<<(std::ostream &os, const Result &result) {
     if (result.is_ok()) {
-      return stream << "Ok ( " << std::get<T>(result.value_) << " )";
+      return os << "Ok ( " << std::get<T>(result.value_) << " )";
     } else {
-      return stream << "Err ( " << std::get<Error>(result.value_) << " )";
+      return os << "Err ( " << std::get<Error>(result.value_) << " )";
     }
   }
+  /**
+   * @brief Converts this result to a string, only enabled if the stream print
+   * operator exists for T
+   *
+   * @return The string with this result in
+   */
   [[nodiscard]] typename std::enable_if<has_insertion_operator<T>::value, std::string>::type
   to_string() const {
     std::stringstream ss;

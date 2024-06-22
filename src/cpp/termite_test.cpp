@@ -52,6 +52,58 @@ std::optional<std::string> test_error_location() {
 }
 
 /**
+ * @brief Test adding a field to an error
+ * 
+ * @return An error string on error
+ */
+std::optional<std::string> test_error_add_field() {
+  std::string correct = "field1";
+  termite::Error error("Message");
+  error.add_field("field1");
+  std::string result = error.get_location();
+
+  if (correct != result) {
+    return result;
+  }
+
+  correct = "field2.field1";
+  error.add_field("field2");
+  result = error.get_location();
+
+  if (correct != result) {
+    return result;
+  }
+
+  return std::nullopt;
+}
+
+/**
+ * @brief Test adding a list to an error
+ * 
+ * @return An error string on error
+ */
+std::optional<std::string> test_error_add_list() {
+  std::string correct = "list1[1]";
+  termite::Error error("Message");
+  error.add_list("list1", "1");
+  std::string result = error.get_location();
+
+  if (correct != result) {
+    return result;
+  }
+
+  correct = "list2[2].list1[1]";
+  error.add_list("list2", "2");
+  result = error.get_location();
+
+  if (correct != result) {
+    return result;
+  }
+
+  return std::nullopt;
+}
+
+/**
  * @brief Test if results can print
  * 
  * @return An error string on error
@@ -80,6 +132,21 @@ std::optional<std::string> test_result_equality()
   
   if (result_ok == termite::Result<int>::from_ok(0)) {
     return "1 != 0";
+  }
+  if (result_ok != termite::Result<int>::from_ok(1)) {
+    return "1 == 1";
+  }
+  if (result_ok == termite::Result<int>::from_err(termite::Error("Error"))) {
+    return "1 != Error";
+  }
+  if (result_err == termite::Result<int>::from_err(termite::Error("Error2"))) {
+    return "Error != Error2";
+  }
+  if (result_err != termite::Result<int>::from_err(termite::Error("Error"))) {
+    return "Error == Error";
+  }
+  if (result_err == termite::Result<int>::from_ok(1)) {
+    return "Error != 1";
   }
 
   return std::nullopt;
@@ -137,7 +204,10 @@ int main() {
     "test_error_message",
     "test_error_location_default",
     "test_error_location",
+    "test_error_add_field",
+    "test_error_add_list",
     "test_result_print",
+    "test_result_equality",
     "test_result_is_ok",
     "test_result_get",
   };
@@ -145,7 +215,10 @@ int main() {
     test_error_message,
     test_error_location_default,
     test_error_location,
+    test_error_add_field,
+    test_error_add_list,
     test_result_print,
+    test_result_equality,
     test_result_is_ok,
     test_result_get,
   };
