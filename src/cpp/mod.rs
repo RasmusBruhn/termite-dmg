@@ -1,6 +1,11 @@
 //! 
-//! This module handles generation of c++ code to support a data model, it includes the ability to create
-//! a header file, (de)serialization and documentation.
+//! This module handles generation of c++ code to support a data model, it
+//! includes the ability to create a header file, (de)serialization and
+//! documentation.
+//! 
+//! For any data model to work the termite dependency must be generatred from
+//! get_termite_dependency() and be saved as "termite.hpp" at a location where
+//! it can be included as "#include <termite.hpp>"
 //! 
 
 use std::{
@@ -9,6 +14,12 @@ use std::{
 };
 
 mod header;
+
+/// Obtains the base termite c++ dependency required for all generated data
+/// models
+pub fn get_termite_dependency() -> &'static str {
+    return include_str!("termite.hpp");
+}
 
 /// An entire data model
 #[derive(Clone, Debug, PartialEq)]
@@ -312,4 +323,46 @@ pub enum ErrorCore {
     /// A required field was found after an optional one
     #[error("The required field \"{}\" was placed after an optional field", .0)]
     StructFieldOrder(String),
+}
+
+#[cfg(test)]
+mod tests {
+    use std::process;
+
+    #[test]
+    fn termite_result_type() {
+        let compile_output = if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .arg("/C")
+                .arg("g++ src/cpp/termite_test.cpp -Wall -std=c++17 -o target/debug/build/test_cpp_termite_dependency.exe")
+                .output()
+                .expect("failed to compile")
+        } else {
+            process::Command::new("sh")
+                .arg("-c")
+                .arg("g++ src/cpp/termite_test.cpp -Wall -std=c++17 -o target/debug/build/test_cpp_termite_dependency")
+                .output()
+                .expect("failed to compile")
+        };
+
+        assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
+        assert_eq!(compile_output.stdout.len(), 0);
+        assert_eq!(compile_output.stderr.len(), 0);
+
+        let test_output = if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .arg("/C")
+                .arg(".\\target\\debug\\build\\test_cpp_termite_dependency.exe")
+                .output()
+                .expect("failed to test")
+        } else {
+            process::Command::new("sh")
+                .arg("-c")
+                .arg("./target/debug/build/test_cpp_termite_dependency")
+                .output()
+                .expect("failed to test")
+        };
+
+        assert_eq!(test_output.status.code().expect("Unable to compile"), 0);
+    }
 }

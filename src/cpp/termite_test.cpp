@@ -109,11 +109,11 @@ std::optional<std::string> test_error_add_list() {
  * @return An error string on error
  */
 std::optional<std::string> test_result_print() {
-  auto result_ok = termite::Result<int>::from_ok(1);
+  auto result_ok = termite::Result<int>::ok(1);
   std::cout << "test_result_print ok: " << result_ok << std::endl;
   std::cout << "test_result_print ok: " << result_ok.to_string() << std::endl;
 
-  auto result_err = termite::Result<int>::from_err(termite::Error("Error"));
+  auto result_err = termite::Result<int>::err(termite::Error("Error"));
   std::cout << "test_result_print err: " << result_err << std::endl;
   std::cout << "test_result_print err: " << result_err.to_string() << std::endl;
 
@@ -127,25 +127,25 @@ std::optional<std::string> test_result_print() {
  */
 std::optional<std::string> test_result_equality()
 {
-  auto result_ok = termite::Result<int>::from_ok(1);
-  auto result_err = termite::Result<int>::from_err(termite::Error("Error"));
+  auto result_ok = termite::Result<int>::ok(1);
+  auto result_err = termite::Result<int>::err(termite::Error("Error"));
   
-  if (result_ok == termite::Result<int>::from_ok(0)) {
+  if (result_ok == termite::Result<int>::ok(0)) {
     return "1 != 0";
   }
-  if (result_ok != termite::Result<int>::from_ok(1)) {
+  if (result_ok != termite::Result<int>::ok(1)) {
     return "1 == 1";
   }
-  if (result_ok == termite::Result<int>::from_err(termite::Error("Error"))) {
+  if (result_ok == termite::Result<int>::err(termite::Error("Error"))) {
     return "1 != Error";
   }
-  if (result_err == termite::Result<int>::from_err(termite::Error("Error2"))) {
+  if (result_err == termite::Result<int>::err(termite::Error("Error2"))) {
     return "Error != Error2";
   }
-  if (result_err != termite::Result<int>::from_err(termite::Error("Error"))) {
+  if (result_err != termite::Result<int>::err(termite::Error("Error"))) {
     return "Error == Error";
   }
-  if (result_err == termite::Result<int>::from_ok(1)) {
+  if (result_err == termite::Result<int>::ok(1)) {
     return "Error != 1";
   }
 
@@ -159,12 +159,12 @@ std::optional<std::string> test_result_equality()
  */
 std::optional<std::string> test_result_is_ok()
 {
-  auto result_ok = termite::Result<int>::from_ok(1);
+  auto result_ok = termite::Result<int>::ok(1);
   if (!result_ok.is_ok()) {
     return "Not Ok";
   }
 
-  auto result_err = termite::Result<int>::from_err(termite::Error("Error"));
+  auto result_err = termite::Result<int>::err(termite::Error("Error"));
   if (result_err.is_ok()) {
     return "Not Err";
   }
@@ -180,7 +180,7 @@ std::optional<std::string> test_result_is_ok()
 std::optional<std::string> test_result_get()
 {
   int correct_ok = 1;
-  int result_ok = termite::Result<int>::from_ok(correct_ok).get_ok();
+  int result_ok = termite::Result<int>::ok(correct_ok).get_ok();
   if (correct_ok != result_ok) {
     std::stringstream ss;
     ss << result_ok;
@@ -188,7 +188,7 @@ std::optional<std::string> test_result_get()
   }
 
   termite::Error correct_err("Error");
-  termite::Error result_err = termite::Result<int>::from_err(correct_err).get_err();
+  termite::Error result_err = termite::Result<int>::err(correct_err).get_err();
   if (correct_err != result_err)
   {
     std::stringstream ss;

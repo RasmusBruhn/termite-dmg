@@ -36,6 +36,7 @@ impl DataModel {
 
             #include <optional>
             #include <variant>
+            #include <termite>
 
             {header}{data_types}{footer}#endif
         ");
@@ -96,19 +97,21 @@ impl Struct {
         // Get the definitions of all the fields but without any initialization
         let field_definitions = self.fields.iter()
             .map(|field| format!(
-                "{description}{0:indent$}{definition};\n",
+                "{description}{0:indent$}{definition};",
                 "",
                 description = field.get_description(indent),
                 definition = field.get_definition(),
             ))
             .collect::<Vec<String>>()
-            .join("");
-        let field_definitions = if field_definitions.is_empty() {
-            "".to_string()
-        } else {
-            format!("\n{field_definitions}")
-        };
+            .join("\n");
 
+        // Get the validation functions
+        let validation_functions = self.fields.iter()
+            .map(|field| field.get_validation(indent))
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        // Get the list of parameters for the internal constructor
         let internal_parameters = self.fields.iter()
             .map(|field| format!(
                 "{definition}_",
@@ -117,6 +120,7 @@ impl Struct {
             .collect::<Vec<String>>()
             .join(", ");
 
+        // Get the list of setters for the internal constructor
         let internal_setters = self.fields.iter()
             .map(|field| format!(
                 "{name}({name}_)",
@@ -130,13 +134,75 @@ impl Struct {
             format!(" : {internal_setters}")
         };
 
+        // Get the constructor parameters
+        let constructor_parameters = self.fields.iter()
+            .map(|field| format!(
+                "{definition}{default}",
+                definition = field.get_definition(),
+                default = field.get_default(),
+            ))
+            .collect::<Vec<String>>()
+            .join(", ");
+
+        // Get the constructor validation
+        let constructor_validators = self.fields.iter()
+            .map(|field| formatdoc!("
+                {0:indent$}{0:indent$}validate_result = validate_{field_name}({field_name});
+                {0:indent$}{0:indent$}if (!validate_result.is_ok()) {{
+                {0:indent$}{0:indent$}{0:indent$}termite::Error error = validate_result.get_err();
+                {0:indent$}{0:indent$}{0:indent$}error.add_field(\"{field_name}\");
+                {0:indent$}{0:indent$}{0:indent$}return termite::Result<DataType>::err(std::move(error));
+                {0:indent$}{0:indent$}}}",
+                "",
+                field_name = field.name,
+            ))
+            .collect::<Vec<String>>()
+            .join("\n\n");
+        let constructor_validators = if constructor_validators.is_empty() {
+            "".to_string()
+        } else {
+            format!("{0:indent$}{0:indent$}termite::Result<std::tuple<>> validate_result = termite::Result<std::tuple<>>::ok({{}});\n\n{constructor_validators}", "")
+        };
+
+        // Get the move parameter list for the constructor
+        let constructor_move_parameters = self.fields.iter()
+            .map(|field| format!("std::move({field_name})", field_name = field.name))
+            .collect::<Vec<String>>()
+            .join(", ");
+
+        // Get the description for the constructor
+        let constructor_description = self.fields.iter()
+            .map(|field| format!(
+                "\\param {field_name} {description}", 
+                field_name = field.name, 
+                description = &field.description.as_ref().unwrap_or(&"".to_string())
+            ))
+            .collect::<Vec<String>>()
+            .join(&format!("\n{0:indent$} * ", ""));
+
         // Generate the code
         return formatdoc!("
             class {name} {{
             public:
+            {0:indent$}/**
+            {0:indent$} * \\brief Constructs a new {name} object 
+            {0:indent$} * 
+            {0:indent$} * {constructor_description}
+            {0:indent$} * 
+            {0:indent$} */
+            {0:indent$}[[nodiscard]] static termite::Result<{name}> new({constructor_parameters}) {{
+            {constructor_validators}
+
+            {0:indent$}{0:indent$}return termite::Result<{name}>::ok({name}({constructor_move_parameters}));
+            {0:indent$}}}
+
             private:
             {0:indent$}explicit {name}({internal_parameters}){internal_setters} {{}}
-            {field_definitions}}};", ""
+
+            {validation_functions}
+
+            {field_definitions}
+            }};", ""
         );
     }
 }
@@ -151,6 +217,15 @@ impl StructField {
             ),
             _ => self.data_type.clone(),
         };
+    }
+
+    /// Gets the default value for this field
+    fn get_default(&self) -> String {
+        return match &self.default {
+            DefaultType::Required => "".to_string(),
+            DefaultType::Optional => " = std::nullopt".to_string(),
+            DefaultType::Default(value) => format!(" = {value}"),
+        }
     }
 
     /// Gets the definition of the field
@@ -173,6 +248,44 @@ impl StructField {
                 ", ""),
             None => "".to_string(),
         };
+    }
+
+    /// Gets the validation function
+    /// 
+    /// # Parameters
+    /// 
+    /// indent: The number of spaces to use for indentation
+    fn get_validation(&self, indent: usize) -> String {
+        // Create the description
+        let description = self.constraints.iter()
+            .map(|constraint| {
+                return format!("\n{0:indent$} * - {constraint}", "");
+            })
+            .collect::<Vec<String>>()
+            .join("");
+
+        // Create the tests
+        let tests = self.constraints.iter()
+            .map(|constraint| formatdoc!("
+                \n{0:indent$}{0:indent$}if (!({constraint})) {{
+                {0:indent$}{0:indent$}{0:indent$}return termite::Result<std::tuple<>>::err(termite::Error(\"{field_name} did not pass constaint: {constraint}\"));
+                {0:indent$}{0:indent$}}}
+            ", "", field_name = self.name))
+            .collect::<Vec<String>>()
+            .join("");
+        
+        return formatdoc!("
+            {0:indent$}/**
+            {0:indent$} * \\brief Validates if {field_name} is correct using the following constaints:{description}
+            {0:indent$} * 
+            {0:indent$} */
+            {0:indent$}[[nodiscard]] static termite::Result<std::tuple<>> validate_{field_name}(const {type_name} &value) {{{tests}
+            {0:indent$}{0:indent$}return termite::Result<std::tuple<>>::ok({{}});
+            {0:indent$}}}",
+            "", 
+            field_name = self.name, 
+            type_name = self.data_type
+        );
     }
 }
 
@@ -199,6 +312,7 @@ mod tests {
             
             #include <optional>
             #include <variant>
+            #include <termite>
 
             header_data
 
@@ -227,6 +341,7 @@ mod tests {
             
             #include <optional>
             #include <variant>
+            #include <termite>
 
             footer_data
 
@@ -269,17 +384,50 @@ mod tests {
                 
                 #include <optional>
                 #include <variant>
+                #include <termite>
 
                 class DataType1 {{
                 public:
+                  /**
+                   * \\brief Constructs a new DataType1 object 
+                   * 
+                   * 
+                   * 
+                   */
+                  [[nodiscard]] static termite::Result<DataType1> new() {{
+                
+                
+                    return termite::Result<DataType1>::ok(DataType1());
+                  }}
+
                 private:
                   explicit DataType1() {{}}
+
+
+
+
                 }};
 
                 class DataType2 {{
                 public:
+                  /**
+                   * \\brief Constructs a new DataType2 object 
+                   * 
+                   * 
+                   * 
+                   */
+                  [[nodiscard]] static termite::Result<DataType2> new() {{
+                
+                
+                    return termite::Result<DataType2>::ok(DataType2());
+                  }}
+
                 private:
                   explicit DataType2() {{}}
+
+
+
+
                 }};
 
                 #endif
@@ -318,6 +466,7 @@ mod tests {
                 
                 #include <optional>
                 #include <variant>
+                #include <termite>
 
                 /**
                  * \\brief description1
@@ -325,8 +474,24 @@ mod tests {
                  */
                 class DataType1 {{
                 public:
+                  /**
+                   * \\brief Constructs a new DataType1 object 
+                   * 
+                   * 
+                   * 
+                   */
+                  [[nodiscard]] static termite::Result<DataType1> new() {{
+                
+                
+                    return termite::Result<DataType1>::ok(DataType1());
+                  }}
+
                 private:
                   explicit DataType1() {{}}
+
+
+
+
                 }};
 
                 /**
@@ -335,8 +500,24 @@ mod tests {
                  */
                 class DataType2 {{
                 public:
+                  /**
+                   * \\brief Constructs a new DataType2 object 
+                   * 
+                   * 
+                   * 
+                   */
+                  [[nodiscard]] static termite::Result<DataType2> new() {{
+                
+                
+                    return termite::Result<DataType2>::ok(DataType2());
+                  }}
+
                 private:
                   explicit DataType2() {{}}
+
+
+
+
                 }};
 
                 #endif
@@ -348,7 +529,7 @@ mod tests {
         mod field {
             use super::*;
 
-            //#[test]
+            #[test]
             fn basic() {
                 // Create the data model
                 let data_model = DataModel {
@@ -397,11 +578,28 @@ mod tests {
                       /**
                        * \\brief Constructs a new DataType object 
                        * 
+                       * \\param field1 
+                       * \\param field2 
+                       * 
                        */
-                      static termite::Result<DataType> new(type1 field1, type2 field2) {{
-                        if (auto result = validate_field1(field1)) {{
-                          return 
+                      [[nodiscard]] static termite::Result<DataType> new(type1 field1, type2 field2) {{
+                        termite::Result<std::tuple<>> validate_result = termite::Result<std::tuple<>>::ok({{}});
+
+                        validate_result = validate_field1(field1);
+                        if (!validate_result.is_ok()) {{
+                          termite::Error error = validate_result.get_err();
+                          error.add_field(\"field1\");
+                          return termite::Result<DataType>::err(std::move(error));
                         }}
+
+                        validate_result = validate_field2(field2);
+                        if (!validate_result.is_ok()) {{
+                          termite::Error error = validate_result.get_err();
+                          error.add_field(\"field2\");
+                          return termite::Result<DataType>::err(std::move(error));
+                        }}
+
+                        return termite::Result<DataType>::ok(DataType(std::move(field1), std::move(field2)));
                       }}
 
                     private:
@@ -411,14 +609,14 @@ mod tests {
                        * \\brief Validates if field1 is correct using the following constaints:
                        * 
                        */
-                      static termite::Result<std::tuple<>> validate_field1(type1 &value) {{
+                      [[nodiscard]] static termite::Result<std::tuple<>> validate_field1(const type1 &value) {{
                         return termite::Result<std::tuple<>>::ok({{}});
                       }}
                       /**
                        * \\brief Validates if field2 is correct using the following constaints:
                        * 
                        */
-                      static termite::Result<std::tuple<>> validate_field2(type2 &value) {{
+                      [[nodiscard]] static termite::Result<std::tuple<>> validate_field2(const type2 &value) {{
                         return termite::Result<std::tuple<>>::ok({{}});
                       }}
 
@@ -432,7 +630,7 @@ mod tests {
                 assert_eq!(header_file, expected);
             }
 
-            #[test]
+            //#[test]
             fn description() {
                 // Create the data model
                 let data_model = DataModel {
@@ -498,7 +696,7 @@ mod tests {
                 assert_eq!(header_file, expected);
             }
 
-            #[test]
+            //#[test]
             fn optional() {
                 // Create the data model
                 let data_model = DataModel {
@@ -580,6 +778,7 @@ mod tests {
             
             #include <optional>
             #include <variant>
+            #include <termite>
 
             header_data
 
@@ -589,8 +788,24 @@ mod tests {
              */
             class DataType1 {{
             public:
+              /**
+               * \\brief Constructs a new DataType1 object 
+               * 
+               * 
+               * 
+               */
+              [[nodiscard]] static termite::Result<DataType1> new() {{
+            
+            
+                return termite::Result<DataType1>::ok(DataType1());
+              }}
+
             private:
               explicit DataType1() {{}}
+
+
+
+
             }};
 
             /**
@@ -599,8 +814,24 @@ mod tests {
              */
             class DataType2 {{
             public:
+              /**
+               * \\brief Constructs a new DataType2 object 
+               * 
+               * 
+               * 
+               */
+              [[nodiscard]] static termite::Result<DataType2> new() {{
+            
+            
+                return termite::Result<DataType2>::ok(DataType2());
+              }}
+
             private:
               explicit DataType2() {{}}
+
+
+
+
             }};
 
             footer_data

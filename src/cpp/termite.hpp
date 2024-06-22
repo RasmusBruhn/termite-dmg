@@ -172,7 +172,7 @@ public:
    * @param value The value of the ok
    * @return The resulting Result object
    */
-  [[nodiscard]] static Result from_ok(T value)
+  [[nodiscard]] static Result ok(T value)
   {
     return Result(value);
   }
@@ -182,7 +182,7 @@ public:
    * @param error The error value
    * @return The resulting Result object
    */
-  [[nodiscard]] static Result from_err(Error error)
+  [[nodiscard]] static Result err(Error error)
   {
     return Result(error);
   }
