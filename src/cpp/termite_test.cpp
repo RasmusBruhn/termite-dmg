@@ -69,6 +69,23 @@ std::optional<std::string> test_result_print() {
 }
 
 /**
+ * @brief Test if equality operator works for results
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_result_equality()
+{
+  auto result_ok = termite::Result<int>::from_ok(1);
+  auto result_err = termite::Result<int>::from_err(termite::Error("Error"));
+  
+  if (result_ok == termite::Result<int>::from_ok(0)) {
+    return "1 != 0";
+  }
+
+  return std::nullopt;
+}
+
+/**
  * @brief Test if results can check if they are ok
  *
  * @return An error string on error

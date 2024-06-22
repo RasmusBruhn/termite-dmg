@@ -25,6 +25,16 @@ struct has_insertion_operator : std::false_type {};
 template <typename T>
 struct has_insertion_operator<T, std::void_t<decltype(std::declval<std::ostream&>() << std::declval<T>())>> : std::true_type {};
 
+// Helper trait to detect if T has operator==
+template <typename T, typename = void>
+struct has_equality_operator : std::false_type
+{
+};
+
+template <typename T>
+struct has_equality_operator<T, std::void_t<decltype(std::declval<bool>() == std::declval<T>())>> : std::true_type
+{
+};
 }
 
 /**
@@ -162,6 +172,15 @@ public:
     return std::move(std::get<Error>(value_));
   }
 
+  [[nodiscard]] typename std::enable_if<has_insertion_operator<T>::value, bool>::type 
+  operator==(const Result &result) const {
+    return value_ == result.value_;
+  }
+  [[nodiscard]] typename std::enable_if<has_insertion_operator<T>::value, bool>::type 
+  operator!=(const Result &result) const {
+    return !(value_ == result.value_);
+  }
+
   typename std::enable_if<has_insertion_operator<T>::value, std::ostream &>::type
   friend operator<<(std::ostream &stream, const Result &result) {
     if (result.is_ok()) {
@@ -170,7 +189,6 @@ public:
       return stream << "Err ( " << std::get<Error>(result.value_) << " )";
     }
   }
-
   [[nodiscard]] typename std::enable_if<has_insertion_operator<T>::value, std::string>::type
   to_string() const {
     std::stringstream ss;
