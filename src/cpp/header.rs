@@ -180,6 +180,12 @@ impl Struct {
             .collect::<Vec<String>>()
             .join(&format!("\n{0:indent$} * ", ""));
 
+        // Get the setter methods
+        let setter_methods = self.fields.iter()
+            .map(|field| field.get_setter(indent))
+            .collect::<Vec<String>>()
+            .join("\n");
+
         // Generate the code
         return formatdoc!("
             class {name} {{
@@ -195,6 +201,8 @@ impl Struct {
 
             {0:indent$}{0:indent$}return termite::Result<{name}>::ok({name}({constructor_move_parameters}));
             {0:indent$}}}
+
+            {setter_methods}
 
             private:
             {0:indent$}explicit {name}({internal_parameters}){internal_setters} {{}}
@@ -280,6 +288,43 @@ impl StructField {
             {0:indent$} * 
             {0:indent$} */
             {0:indent$}[[nodiscard]] static termite::Result<std::tuple<>> validate_{field_name}(const {type_name} &value) {{{tests}
+            {0:indent$}{0:indent$}return termite::Result<std::tuple<>>::ok({{}});
+            {0:indent$}}}",
+            "", 
+            field_name = self.name, 
+            type_name = self.data_type
+        );
+    }
+
+    /// Gets the setter function
+    /// 
+    /// # Parameters
+    /// 
+    /// indent: The number of spaces to use for indentation
+    fn get_setter(&self, indent: usize) -> String {
+        // Create the description
+        let description = self.constraints.iter()
+            .map(|constraint| {
+                return format!("\n{0:indent$} * - {constraint}", "");
+            })
+            .collect::<Vec<String>>()
+            .join("");
+        
+        return formatdoc!("
+            {0:indent$}/**
+            {0:indent$} * \\brief Sets the value of {field_name} if it fulfills the constraints:{description}
+            {0:indent$} * 
+            {0:indent$} * \\param value The value of {field_name}
+            {0:indent$} * \\return An error if one of the constraints were not fulfilled
+            {0:indent$} * 
+            {0:indent$} */
+            {0:indent$}[[nodiscard]] termite::Result<std::tuple<>> set_{field_name}({type_name} value) {{
+            {0:indent$}{0:indent$}termite::Result<std::tuple<>> validate_result = validate_{field_name}(value);
+            {0:indent$}{0:indent$}if (!validate_result.is_ok()) {{
+            {0:indent$}{0:indent$}{0:indent$}return termite::Result<DataType>::err(std::move(error));
+            {0:indent$}{0:indent$}}}
+
+            {0:indent$}{0:indent$}{field_name}_ = std::move(value);
             {0:indent$}{0:indent$}return termite::Result<std::tuple<>>::ok({{}});
             {0:indent$}}}",
             "", 
@@ -414,6 +459,8 @@ mod tests {
                     return termite::Result<DataType1>::ok(DataType1());
                   }}
 
+                
+
                 private:
                   explicit DataType1() {{}}
 
@@ -435,6 +482,8 @@ mod tests {
                 
                     return termite::Result<DataType2>::ok(DataType2());
                   }}
+
+                
 
                 private:
                   explicit DataType2() {{}}
@@ -500,6 +549,8 @@ mod tests {
                     return termite::Result<DataType1>::ok(DataType1());
                   }}
 
+                
+
                 private:
                   explicit DataType1() {{}}
 
@@ -525,6 +576,8 @@ mod tests {
                 
                     return termite::Result<DataType2>::ok(DataType2());
                   }}
+
+                
 
                 private:
                   explicit DataType2() {{}}
@@ -614,6 +667,39 @@ mod tests {
                         }}
 
                         return termite::Result<DataType>::ok(DataType(std::move(field1), std::move(field2)));
+                      }}
+
+                      /**
+                       * \\brief Sets the value of field1 if it fulfills the constraints:
+                       * 
+                       * \\param value The value of field1
+                       * \\return An error if one of the constraints were not fulfilled
+                       * 
+                       */
+                      [[nodiscard]] termite::Result<std::tuple<>> set_field1(type1 value) {{
+                        termite::Result<std::tuple<>> validate_result = validate_field1(value);
+                        if (!validate_result.is_ok()) {{
+                          return termite::Result<DataType>::err(std::move(error));
+                        }}
+
+                        field1_ = std::move(value);
+                        return termite::Result<std::tuple<>>::ok({{}});
+                      }}
+                      /**
+                       * \\brief Sets the value of field2 if it fulfills the constraints:
+                       * 
+                       * \\param value The value of field2
+                       * \\return An error if one of the constraints were not fulfilled
+                       * 
+                       */
+                      [[nodiscard]] termite::Result<std::tuple<>> set_field2(type2 value) {{
+                        termite::Result<std::tuple<>> validate_result = validate_field2(value);
+                        if (!validate_result.is_ok()) {{
+                          return termite::Result<DataType>::err(std::move(error));
+                        }}
+
+                        field2_ = std::move(value);
+                        return termite::Result<std::tuple<>>::ok({{}});
                       }}
 
                     private:
@@ -814,6 +900,8 @@ mod tests {
                 return termite::Result<DataType1>::ok(DataType1());
               }}
 
+
+            
             private:
               explicit DataType1() {{}}
 
@@ -840,6 +928,8 @@ mod tests {
                 return termite::Result<DataType2>::ok(DataType2());
               }}
 
+
+            
             private:
               explicit DataType2() {{}}
 
