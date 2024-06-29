@@ -97,7 +97,7 @@ impl Struct {
         // Get the definitions of all the fields but without any initialization
         let field_definitions = self.fields.iter()
             .map(|field| format!(
-                "{description}{0:indent$}{definition};",
+                "{description}{0:indent$}{definition}_;",
                 "",
                 description = field.get_description(indent),
                 definition = field.get_definition(),
@@ -114,7 +114,7 @@ impl Struct {
         // Get the list of parameters for the internal constructor
         let internal_parameters = self.fields.iter()
             .map(|field| format!(
-                "{definition}_",
+                "{definition}",
                 definition = field.get_definition(),
             ))
             .collect::<Vec<String>>()
@@ -123,7 +123,7 @@ impl Struct {
         // Get the list of setters for the internal constructor
         let internal_setters = self.fields.iter()
             .map(|field| format!(
-                "{name}({name}_)",
+                "{name}_({name})",
                 name = field.name,
             ))
             .collect::<Vec<String>>()
@@ -293,6 +293,20 @@ impl StructField {
 mod tests {
     use super::*;
 
+    fn str_diff(lhs: &str, rhs: &str) -> Option<(usize, String, String)> {
+        return lhs.lines()
+            .zip(rhs.lines())
+            .enumerate()
+            .filter_map(|(index, (lhs, rhs))| {
+                return if lhs == rhs {
+                    None
+                } else {
+                    Some((index, lhs.to_string(), rhs.to_string()))
+                };
+            })
+            .next();
+    }
+
     #[test]
     fn header() {
         // Create the data model
@@ -319,7 +333,7 @@ mod tests {
             #endif
         ");
 
-        assert_eq!(header_file, expected);
+        assert_eq!(str_diff(&header_file, &expected), None);
     }
 
     #[test]
@@ -348,7 +362,7 @@ mod tests {
             #endif
         ");
 
-        assert_eq!(header_file, expected);
+        assert_eq!(str_diff(&header_file, &expected), None);
     }
 
     mod type_struct {
@@ -433,7 +447,7 @@ mod tests {
                 #endif
             ");
 
-            assert_eq!(header_file, expected);
+            assert_eq!(str_diff(&header_file, &expected), None);
         }
 
         #[test]
@@ -523,7 +537,7 @@ mod tests {
                 #endif
             ");
 
-            assert_eq!(header_file, expected);
+            assert_eq!(str_diff(&header_file, &expected), None);
         }
 
         mod field {
@@ -603,7 +617,7 @@ mod tests {
                       }}
 
                     private:
-                      explicit DataType(type1 field1_, type2 field2_) : field1(field1_), field2(field2_) {{}}
+                      explicit DataType(type1 field1, type2 field2) : field1_(field1), field2_(field2) {{}}
 
                       /**
                        * \\brief Validates if field1 is correct using the following constaints:
@@ -620,14 +634,14 @@ mod tests {
                         return termite::Result<std::tuple<>>::ok({{}});
                       }}
 
-                      type1 field1;
-                      type2 field2;
+                      type1 field1_;
+                      type2 field2_;
                     }};
 
                     #endif
                 ");
 
-                assert_eq!(header_file, expected);
+                assert_eq!(str_diff(&header_file, &expected), None);
             }
 
             //#[test]
@@ -839,6 +853,6 @@ mod tests {
             #endif
         ");
 
-        assert_eq!(header_file, expected);
+        assert_eq!(str_diff(&header_file, &expected), None);
     }
 }
