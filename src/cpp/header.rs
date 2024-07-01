@@ -124,7 +124,7 @@ impl Struct {
         // Get the list of setters for the internal constructor
         let internal_setters = self.fields.iter()
             .map(|field| format!(
-                "{name}_({name})",
+                "{name}_(std::move({name}))",
                 name = field.name,
             ))
             .collect::<Vec<String>>()
@@ -350,12 +350,12 @@ impl StructField {
             {0:indent$} * \\brief Validates if {field_name} is correct using the following constaints:{description}
             {0:indent$} * 
             {0:indent$} */
-            {0:indent$}[[nodiscard]] static termite::Result<std::tuple<>> validate_{field_name}(const {type_name} &value) {{{tests}
+            {0:indent$}[[nodiscard]] static termite::Result<std::tuple<>> validate_{field_name}(const {type_name} &x) {{{tests}
             {0:indent$}{0:indent$}return termite::Result<std::tuple<>>::ok({{}});
             {0:indent$}}}",
             "", 
             field_name = self.name, 
-            type_name = self.data_type
+            type_name = self.get_typename(),
         );
     }
 
@@ -392,7 +392,7 @@ impl StructField {
             {0:indent$}}}",
             "", 
             field_name = self.name, 
-            type_name = self.data_type
+            type_name = self.get_typename(),
         );
     }
 
@@ -414,7 +414,7 @@ impl StructField {
             {0:indent$}}}",
             "", 
             field_name = self.name, 
-            type_name = self.data_type
+            type_name = self.get_typename(),
         );
     }
 }
@@ -980,20 +980,20 @@ mod tests {
                       }}
 
                     private:
-                      explicit DataType(int field1, float field2) : field1_(field1), field2_(field2) {{}}
+                      explicit DataType(int field1, float field2) : field1_(std::move(field1)), field2_(std::move(field2)) {{}}
 
                       /**
                        * \\brief Validates if field1 is correct using the following constaints:
                        * 
                        */
-                      [[nodiscard]] static termite::Result<std::tuple<>> validate_field1(const int &value) {{
+                      [[nodiscard]] static termite::Result<std::tuple<>> validate_field1(const int &x) {{
                         return termite::Result<std::tuple<>>::ok({{}});
                       }}
                       /**
                        * \\brief Validates if field2 is correct using the following constaints:
                        * 
                        */
-                      [[nodiscard]] static termite::Result<std::tuple<>> validate_field2(const float &value) {{
+                      [[nodiscard]] static termite::Result<std::tuple<>> validate_field2(const float &x) {{
                         return termite::Result<std::tuple<>>::ok({{}});
                       }}
 
@@ -1007,7 +1007,7 @@ mod tests {
                 assert_eq!(str_diff(&header_file, &expected), None);
             }
 
-            //#[test]
+            #[test]
             fn description() {
                 // Create the data model
                 let data_model = DataModel {
@@ -1022,15 +1022,15 @@ mod tests {
                                     StructField {
                                         name: "field1".to_string(),
                                         description: Some("description1".to_string()),
-                                        data_type: "type1".to_string(),
+                                        data_type: "int".to_string(),
                                         default: DefaultType::Required,
                                         constraints: vec![],
                                     },
                                     StructField {
                                         name: "field2".to_string(),
                                         description: Some("description2".to_string()),
-                                        data_type: "type2".to_string(),
-                                        default: DefaultType::Default("default".to_string()),
+                                        data_type: "float".to_string(),
+                                        default: DefaultType::Required,
                                         constraints: vec![],
                                     },
                                 ] 
@@ -1047,33 +1047,161 @@ mod tests {
                     #ifndef HEADER_TERMITE_H_INCLUDED
                     #define HEADER_TERMITE_H_INCLUDED
                     
+                    #include <iostream>
                     #include <optional>
                     #include <variant>
+                    #include <termite>
 
                     class DataType {{
                     public:
+                      /**
+                       * \\brief Constructs a new DataType object 
+                       * 
+                       * \\param field1 description1
+                       * \\param field2 description2
+                       * 
+                       */
+                      [[nodiscard]] static termite::Result<DataType> from_values(int field1, float field2) {{
+                        termite::Result<std::tuple<>> validate_result = termite::Result<std::tuple<>>::ok({{}});
+
+                        validate_result = validate_field1(field1);
+                        if (!validate_result.is_ok()) {{
+                          termite::Error error = validate_result.get_err();
+                          error.add_field(\"field1\");
+                          return termite::Result<DataType>::err(std::move(error));
+                        }}
+
+                        validate_result = validate_field2(field2);
+                        if (!validate_result.is_ok()) {{
+                          termite::Error error = validate_result.get_err();
+                          error.add_field(\"field2\");
+                          return termite::Result<DataType>::err(std::move(error));
+                        }}
+
+                        return termite::Result<DataType>::ok(DataType(std::move(field1), std::move(field2)));
+                      }}
+
+                      /**
+                       * \\brief Sets the value of field1 if it fulfills the constraints:
+                       * 
+                       * \\param value The value of field1
+                       * \\return An error if one of the constraints were not fulfilled
+                       * 
+                       */
+                      [[nodiscard]] termite::Result<std::tuple<>> set_field1(int value) {{
+                        termite::Result<std::tuple<>> validate_result = validate_field1(value);
+                        if (!validate_result.is_ok()) {{
+                          return termite::Result<DataType>::err(std::move(error));
+                        }}
+
+                        field1_ = std::move(value);
+                        return termite::Result<std::tuple<>>::ok({{}});
+                      }}
+                      /**
+                       * \\brief Sets the value of field2 if it fulfills the constraints:
+                       * 
+                       * \\param value The value of field2
+                       * \\return An error if one of the constraints were not fulfilled
+                       * 
+                       */
+                      [[nodiscard]] termite::Result<std::tuple<>> set_field2(float value) {{
+                        termite::Result<std::tuple<>> validate_result = validate_field2(value);
+                        if (!validate_result.is_ok()) {{
+                          return termite::Result<DataType>::err(std::move(error));
+                        }}
+
+                        field2_ = std::move(value);
+                        return termite::Result<std::tuple<>>::ok({{}});
+                      }}
+
+                      /**
+                       * \\brief Retrieves a reference to the value of field1
+                       * 
+                       * \\return The reference 
+                       * 
+                       */
+                      [[nodiscard]] const int &get_field1() const {{
+                        return field1_;
+                      }}
+                      /**
+                       * \\brief Retrieves a reference to the value of field2
+                       * 
+                       * \\return The reference 
+                       * 
+                       */
+                      [[nodiscard]] const float &get_field2() const {{
+                        return field2_;
+                      }}
+
+                      /**
+                       * \\brief Checks if this object the the other object are identical
+                       * 
+                       * \\param other The other object to compare with
+                       * \\return true if they are identical, false if not
+                       * 
+                       */
+                      [[nodiscard]] bool operator==(const DataType &other) {{
+                        return field1_ == other.field1_ && field2_ == other.field2_;
+                      }}
+                      /**
+                       * \\brief Checks if this object the the other object are different
+                       * 
+                       * \\param other The other object to compare with
+                       * \\return true if they are different, false if not
+                       * 
+                       */
+                      [[nodiscard]] bool operator!=(const DataType &other) {{
+                        return !(*this == other);
+                      }}
+                      /**
+                       * \\brief Prints the object onto the output stream
+                       * 
+                       * \\param os The output stream to print to
+                       * \\param value The object to print
+                       * \\return The output stream
+                       * 
+                       */
+                      friend std::ostream &operator<<(std::ostream &os, const DataType &value) {{
+                        return os << \"{{ \" << \"field1: \" << value.field1_ << \", \" << \"field2: \" << value.field2_ << \" }}\";
+                      }}
+
                     private:
-                      explicit DataType(type1 field1_, type2 field2_) : field1(field1_), field2(field2_) {{}}
+                      explicit DataType(int field1, float field2) : field1_(std::move(field1)), field2_(std::move(field2)) {{}}
+
+                      /**
+                       * \\brief Validates if field1 is correct using the following constaints:
+                       * 
+                       */
+                      [[nodiscard]] static termite::Result<std::tuple<>> validate_field1(const int &x) {{
+                        return termite::Result<std::tuple<>>::ok({{}});
+                      }}
+                      /**
+                       * \\brief Validates if field2 is correct using the following constaints:
+                       * 
+                       */
+                      [[nodiscard]] static termite::Result<std::tuple<>> validate_field2(const float &x) {{
+                        return termite::Result<std::tuple<>>::ok({{}});
+                      }}
 
                       /**
                        * \\brief description1
                        * 
                        */
-                      type1 field1;
+                      int field1_;
                       /**
                        * \\brief description2
                        * 
                        */
-                      type2 field2;
+                      float field2_;
                     }};
 
                     #endif
                 ");
 
-                assert_eq!(header_file, expected);
+                assert_eq!(str_diff(&header_file, &expected), None);
             }
 
-            //#[test]
+            #[test]
             fn optional() {
                 // Create the data model
                 let data_model = DataModel {
@@ -1088,7 +1216,14 @@ mod tests {
                                     StructField {
                                         name: "field1".to_string(),
                                         description: None,
-                                        data_type: "type1".to_string(),
+                                        data_type: "int".to_string(),
+                                        default: DefaultType::Default("1".to_string()),
+                                        constraints: vec![],
+                                    },
+                                    StructField {
+                                        name: "field2".to_string(),
+                                        description: None,
+                                        data_type: "float".to_string(),
                                         default: DefaultType::Optional,
                                         constraints: vec![],
                                     },
@@ -1106,21 +1241,359 @@ mod tests {
                     #ifndef HEADER_TERMITE_H_INCLUDED
                     #define HEADER_TERMITE_H_INCLUDED
                     
+                    #include <iostream>
                     #include <optional>
                     #include <variant>
+                    #include <termite>
 
                     class DataType {{
                     public:
-                    private:
-                      explicit DataType(std::optional<type1> field1_) : field1(field1_) {{}}
+                      /**
+                       * \\brief Constructs a new DataType object 
+                       * 
+                       * \\param field1 
+                       * \\param field2 
+                       * 
+                       */
+                      [[nodiscard]] static termite::Result<DataType> from_values(int field1 = 1, std::optional<float> field2 = std::nullopt) {{
+                        termite::Result<std::tuple<>> validate_result = termite::Result<std::tuple<>>::ok({{}});
 
-                      std::optional<type1> field1;
+                        validate_result = validate_field1(field1);
+                        if (!validate_result.is_ok()) {{
+                          termite::Error error = validate_result.get_err();
+                          error.add_field(\"field1\");
+                          return termite::Result<DataType>::err(std::move(error));
+                        }}
+
+                        validate_result = validate_field2(field2);
+                        if (!validate_result.is_ok()) {{
+                          termite::Error error = validate_result.get_err();
+                          error.add_field(\"field2\");
+                          return termite::Result<DataType>::err(std::move(error));
+                        }}
+
+                        return termite::Result<DataType>::ok(DataType(std::move(field1), std::move(field2)));
+                      }}
+
+                      /**
+                       * \\brief Sets the value of field1 if it fulfills the constraints:
+                       * 
+                       * \\param value The value of field1
+                       * \\return An error if one of the constraints were not fulfilled
+                       * 
+                       */
+                      [[nodiscard]] termite::Result<std::tuple<>> set_field1(int value) {{
+                        termite::Result<std::tuple<>> validate_result = validate_field1(value);
+                        if (!validate_result.is_ok()) {{
+                          return termite::Result<DataType>::err(std::move(error));
+                        }}
+
+                        field1_ = std::move(value);
+                        return termite::Result<std::tuple<>>::ok({{}});
+                      }}
+                      /**
+                       * \\brief Sets the value of field2 if it fulfills the constraints:
+                       * 
+                       * \\param value The value of field2
+                       * \\return An error if one of the constraints were not fulfilled
+                       * 
+                       */
+                      [[nodiscard]] termite::Result<std::tuple<>> set_field2(std::optional<float> value) {{
+                        termite::Result<std::tuple<>> validate_result = validate_field2(value);
+                        if (!validate_result.is_ok()) {{
+                          return termite::Result<DataType>::err(std::move(error));
+                        }}
+
+                        field2_ = std::move(value);
+                        return termite::Result<std::tuple<>>::ok({{}});
+                      }}
+
+                      /**
+                       * \\brief Retrieves a reference to the value of field1
+                       * 
+                       * \\return The reference 
+                       * 
+                       */
+                      [[nodiscard]] const int &get_field1() const {{
+                        return field1_;
+                      }}
+                      /**
+                       * \\brief Retrieves a reference to the value of field2
+                       * 
+                       * \\return The reference 
+                       * 
+                       */
+                      [[nodiscard]] const std::optional<float> &get_field2() const {{
+                        return field2_;
+                      }}
+
+                      /**
+                       * \\brief Checks if this object the the other object are identical
+                       * 
+                       * \\param other The other object to compare with
+                       * \\return true if they are identical, false if not
+                       * 
+                       */
+                      [[nodiscard]] bool operator==(const DataType &other) {{
+                        return field1_ == other.field1_ && field2_ == other.field2_;
+                      }}
+                      /**
+                       * \\brief Checks if this object the the other object are different
+                       * 
+                       * \\param other The other object to compare with
+                       * \\return true if they are different, false if not
+                       * 
+                       */
+                      [[nodiscard]] bool operator!=(const DataType &other) {{
+                        return !(*this == other);
+                      }}
+                      /**
+                       * \\brief Prints the object onto the output stream
+                       * 
+                       * \\param os The output stream to print to
+                       * \\param value The object to print
+                       * \\return The output stream
+                       * 
+                       */
+                      friend std::ostream &operator<<(std::ostream &os, const DataType &value) {{
+                        return os << \"{{ \" << \"field1: \" << value.field1_ << \", \" << \"field2: \" << value.field2_ << \" }}\";
+                      }}
+
+                    private:
+                      explicit DataType(int field1, std::optional<float> field2) : field1_(std::move(field1)), field2_(std::move(field2)) {{}}
+
+                      /**
+                       * \\brief Validates if field1 is correct using the following constaints:
+                       * 
+                       */
+                      [[nodiscard]] static termite::Result<std::tuple<>> validate_field1(const int &x) {{
+                        return termite::Result<std::tuple<>>::ok({{}});
+                      }}
+                      /**
+                       * \\brief Validates if field2 is correct using the following constaints:
+                       * 
+                       */
+                      [[nodiscard]] static termite::Result<std::tuple<>> validate_field2(const std::optional<float> &x) {{
+                        return termite::Result<std::tuple<>>::ok({{}});
+                      }}
+
+                      int field1_;
+                      std::optional<float> field2_;
                     }};
 
                     #endif
                 ");
 
-                assert_eq!(header_file, expected);
+                assert_eq!(str_diff(&header_file, &expected), None);
+            }
+
+            #[test]
+            fn constraints() {
+                // Create the data model
+                let data_model = DataModel {
+                    headers: Headers { header: "".to_string(), source: "".to_string() },
+                    footers: Footers { header: "".to_string(), source: "".to_string() },
+                    data_types: vec![
+                        DataType {
+                            name: "DataType".to_string(),
+                            description: None,
+                            data: DataTypeData::Struct(Struct {
+                                fields: vec![
+                                    StructField {
+                                        name: "field1".to_string(),
+                                        description: None,
+                                        data_type: "int".to_string(),
+                                        default: DefaultType::Required,
+                                        constraints: vec![
+                                            "x > 0".to_string(),
+                                            "x % 2 == 0".to_string(),
+                                        ],
+                                    },
+                                    StructField {
+                                        name: "field2".to_string(),
+                                        description: None,
+                                        data_type: "float".to_string(),
+                                        default: DefaultType::Required,
+                                        constraints: vec![
+                                            "std::abs(x) < 1e-9".to_string(),
+                                        ],
+                                    },
+                                ] 
+                            }),
+                        },
+                    ],
+                };
+                
+                // Create the header file
+                let header_file = data_model.gen_header("HEADER", 2);
+
+                let expected = formatdoc!("
+                    // Generated with the Termite Data Model Generator
+                    #ifndef HEADER_TERMITE_H_INCLUDED
+                    #define HEADER_TERMITE_H_INCLUDED
+                    
+                    #include <iostream>
+                    #include <optional>
+                    #include <variant>
+                    #include <termite>
+
+                    class DataType {{
+                    public:
+                      /**
+                       * \\brief Constructs a new DataType object 
+                       * 
+                       * \\param field1 
+                       * \\param field2 
+                       * 
+                       */
+                      [[nodiscard]] static termite::Result<DataType> from_values(int field1, float field2) {{
+                        termite::Result<std::tuple<>> validate_result = termite::Result<std::tuple<>>::ok({{}});
+
+                        validate_result = validate_field1(field1);
+                        if (!validate_result.is_ok()) {{
+                          termite::Error error = validate_result.get_err();
+                          error.add_field(\"field1\");
+                          return termite::Result<DataType>::err(std::move(error));
+                        }}
+
+                        validate_result = validate_field2(field2);
+                        if (!validate_result.is_ok()) {{
+                          termite::Error error = validate_result.get_err();
+                          error.add_field(\"field2\");
+                          return termite::Result<DataType>::err(std::move(error));
+                        }}
+
+                        return termite::Result<DataType>::ok(DataType(std::move(field1), std::move(field2)));
+                      }}
+
+                      /**
+                       * \\brief Sets the value of field1 if it fulfills the constraints:
+                       * - x > 0
+                       * - x % 2 == 0
+                       * 
+                       * \\param value The value of field1
+                       * \\return An error if one of the constraints were not fulfilled
+                       * 
+                       */
+                      [[nodiscard]] termite::Result<std::tuple<>> set_field1(int value) {{
+                        termite::Result<std::tuple<>> validate_result = validate_field1(value);
+                        if (!validate_result.is_ok()) {{
+                          return termite::Result<DataType>::err(std::move(error));
+                        }}
+
+                        field1_ = std::move(value);
+                        return termite::Result<std::tuple<>>::ok({{}});
+                      }}
+                      /**
+                       * \\brief Sets the value of field2 if it fulfills the constraints:
+                       * - std::abs(x) < 1e-9
+                       * 
+                       * \\param value The value of field2
+                       * \\return An error if one of the constraints were not fulfilled
+                       * 
+                       */
+                      [[nodiscard]] termite::Result<std::tuple<>> set_field2(float value) {{
+                        termite::Result<std::tuple<>> validate_result = validate_field2(value);
+                        if (!validate_result.is_ok()) {{
+                          return termite::Result<DataType>::err(std::move(error));
+                        }}
+
+                        field2_ = std::move(value);
+                        return termite::Result<std::tuple<>>::ok({{}});
+                      }}
+
+                      /**
+                       * \\brief Retrieves a reference to the value of field1
+                       * 
+                       * \\return The reference 
+                       * 
+                       */
+                      [[nodiscard]] const int &get_field1() const {{
+                        return field1_;
+                      }}
+                      /**
+                       * \\brief Retrieves a reference to the value of field2
+                       * 
+                       * \\return The reference 
+                       * 
+                       */
+                      [[nodiscard]] const float &get_field2() const {{
+                        return field2_;
+                      }}
+
+                      /**
+                       * \\brief Checks if this object the the other object are identical
+                       * 
+                       * \\param other The other object to compare with
+                       * \\return true if they are identical, false if not
+                       * 
+                       */
+                      [[nodiscard]] bool operator==(const DataType &other) {{
+                        return field1_ == other.field1_ && field2_ == other.field2_;
+                      }}
+                      /**
+                       * \\brief Checks if this object the the other object are different
+                       * 
+                       * \\param other The other object to compare with
+                       * \\return true if they are different, false if not
+                       * 
+                       */
+                      [[nodiscard]] bool operator!=(const DataType &other) {{
+                        return !(*this == other);
+                      }}
+                      /**
+                       * \\brief Prints the object onto the output stream
+                       * 
+                       * \\param os The output stream to print to
+                       * \\param value The object to print
+                       * \\return The output stream
+                       * 
+                       */
+                      friend std::ostream &operator<<(std::ostream &os, const DataType &value) {{
+                        return os << \"{{ \" << \"field1: \" << value.field1_ << \", \" << \"field2: \" << value.field2_ << \" }}\";
+                      }}
+
+                    private:
+                      explicit DataType(int field1, float field2) : field1_(std::move(field1)), field2_(std::move(field2)) {{}}
+
+                      /**
+                       * \\brief Validates if field1 is correct using the following constaints:
+                       * - x > 0
+                       * - x % 2 == 0
+                       * 
+                       */
+                      [[nodiscard]] static termite::Result<std::tuple<>> validate_field1(const int &x) {{
+                        if (!(x > 0)) {{
+                          return termite::Result<std::tuple<>>::err(termite::Error(\"field1 did not pass constaint: x > 0\"));
+                        }}
+                    
+                        if (!(x % 2 == 0)) {{
+                          return termite::Result<std::tuple<>>::err(termite::Error(\"field1 did not pass constaint: x % 2 == 0\"));
+                        }}
+
+                        return termite::Result<std::tuple<>>::ok({{}});
+                      }}
+                      /**
+                       * \\brief Validates if field2 is correct using the following constaints:
+                       * - std::abs(x) < 1e-9
+                       * 
+                       */
+                      [[nodiscard]] static termite::Result<std::tuple<>> validate_field2(const float &x) {{
+                        if (!(std::abs(x) < 1e-9)) {{
+                          return termite::Result<std::tuple<>>::err(termite::Error(\"field2 did not pass constaint: std::abs(x) < 1e-9\"));
+                        }}
+
+                        return termite::Result<std::tuple<>>::ok({{}});
+                      }}
+
+                      int field1_;
+                      float field2_;
+                    }};
+
+                    #endif
+                ");
+
+                assert_eq!(str_diff(&header_file, &expected), None);
             }
         }
     }

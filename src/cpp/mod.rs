@@ -327,7 +327,11 @@ pub enum ErrorCore {
 
 #[cfg(test)]
 mod tests {
-    use std::process;
+    use super::*;
+    use std::{
+        collections::HashMap,
+        process
+    };
 
     #[test]
     fn termite_result_type() {
@@ -364,5 +368,73 @@ mod tests {
         };
 
         assert_eq!(test_output.status.code().expect("Unable to compile"), 0);
+    }
+
+    #[test]
+    fn default_order() {
+        let data = crate::DataModel {
+            headers: HashMap::new(),
+            footers: HashMap::new(),
+            data_types: vec![
+                crate::DataType {
+                    name: "DataType".to_string(),
+                    description: None,
+                    data: crate::DataTypeData::Struct(crate::Struct {
+                        fields: vec![
+                            crate::StructField {
+                                name: "field1".to_string(),
+                                description: None,
+                                data_type: "int".to_string(),
+                                default: crate::DefaultType::Default("1".to_string()),
+                                constraints: vec![],
+                            },
+                            crate::StructField {
+                                name: "field1".to_string(),
+                                description: None,
+                                data_type: "int".to_string(),
+                                default: crate::DefaultType::Required,
+                                constraints: vec![],
+                            },
+                        ],
+                    }),
+                }
+            ],
+        };
+
+        assert!(DataModel::new(data).is_err());
+    }
+
+    #[test]
+    fn optional_order() {
+        let data = crate::DataModel {
+            headers: HashMap::new(),
+            footers: HashMap::new(),
+            data_types: vec![
+                crate::DataType {
+                    name: "DataType".to_string(),
+                    description: None,
+                    data: crate::DataTypeData::Struct(crate::Struct {
+                        fields: vec![
+                            crate::StructField {
+                                name: "field1".to_string(),
+                                description: None,
+                                data_type: "int".to_string(),
+                                default: crate::DefaultType::Optional,
+                                constraints: vec![],
+                            },
+                            crate::StructField {
+                                name: "field1".to_string(),
+                                description: None,
+                                data_type: "int".to_string(),
+                                default: crate::DefaultType::Required,
+                                constraints: vec![],
+                            },
+                        ],
+                    }),
+                }
+            ],
+        };
+
+        assert!(DataModel::new(data).is_err());
     }
 }
