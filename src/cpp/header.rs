@@ -34,6 +34,7 @@ impl DataModel {
             #ifndef {name}_TERMITE_H_INCLUDED
             #define {name}_TERMITE_H_INCLUDED
 
+            #include <iostream>
             #include <optional>
             #include <variant>
             #include <termite>
@@ -186,6 +187,34 @@ impl Struct {
             .collect::<Vec<String>>()
             .join("\n");
 
+        // Get the getter methods
+        let getter_methods = self.fields.iter()
+            .map(|field| field.get_getter(indent))
+            .collect::<Vec<String>>()
+            .join("\n");
+
+        // Get the equality test
+        let equality_test = self.fields.iter()
+            .map(|field| format!("{field_name}_ == other.{field_name}_", field_name = field.name))
+            .collect::<Vec<String>>()
+            .join(" && ");
+        let equality_test = if equality_test.is_empty() {
+            "true".to_string()
+        } else {
+            equality_test
+        };
+
+        // Get the printout for the operator<< function
+        let printout = self.fields.iter()
+            .map(|field| format!("\"{field_name}: \" << value.{field_name}_", field_name = field.name))
+            .collect::<Vec<String>>()
+            .join(" << \", \" << ");
+        let printout = if printout.is_empty() {
+            "\"\"".to_string()
+        } else {
+            printout
+        };
+
         // Generate the code
         return formatdoc!("
             class {name} {{
@@ -196,13 +225,47 @@ impl Struct {
             {0:indent$} * {constructor_description}
             {0:indent$} * 
             {0:indent$} */
-            {0:indent$}[[nodiscard]] static termite::Result<{name}> new({constructor_parameters}) {{
+            {0:indent$}[[nodiscard]] static termite::Result<{name}> from_values({constructor_parameters}) {{
             {constructor_validators}
 
             {0:indent$}{0:indent$}return termite::Result<{name}>::ok({name}({constructor_move_parameters}));
             {0:indent$}}}
 
             {setter_methods}
+
+            {getter_methods}
+
+            {0:indent$}/**
+            {0:indent$} * \\brief Checks if this object the the other object are identical
+            {0:indent$} * 
+            {0:indent$} * \\param other The other object to compare with
+            {0:indent$} * \\return true if they are identical, false if not
+            {0:indent$} * 
+            {0:indent$} */
+            {0:indent$}[[nodiscard]] bool operator==(const {name} &other) {{
+            {0:indent$}{0:indent$}return {equality_test};
+            {0:indent$}}}
+            {0:indent$}/**
+            {0:indent$} * \\brief Checks if this object the the other object are different
+            {0:indent$} * 
+            {0:indent$} * \\param other The other object to compare with
+            {0:indent$} * \\return true if they are different, false if not
+            {0:indent$} * 
+            {0:indent$} */
+            {0:indent$}[[nodiscard]] bool operator!=(const {name} &other) {{
+            {0:indent$}{0:indent$}return !(*this == other);
+            {0:indent$}}}
+            {0:indent$}/**
+            {0:indent$} * \\brief Prints the object onto the output stream
+            {0:indent$} * 
+            {0:indent$} * \\param os The output stream to print to
+            {0:indent$} * \\param value The object to print
+            {0:indent$} * \\return The output stream
+            {0:indent$} * 
+            {0:indent$} */
+            {0:indent$}friend std::ostream &operator<<(std::ostream &os, const {name} &value) {{
+            {0:indent$}{0:indent$}return os << \"{{ \" << {printout} << \" }}\";
+            {0:indent$}}}
 
             private:
             {0:indent$}explicit {name}({internal_parameters}){internal_setters} {{}}
@@ -332,6 +395,28 @@ impl StructField {
             type_name = self.data_type
         );
     }
+
+    /// Gets the getter function
+    /// 
+    /// # Parameters
+    /// 
+    /// indent: The number of spaces to use for indentation
+    fn get_getter(&self, indent: usize) -> String {
+        return formatdoc!("
+            {0:indent$}/**
+            {0:indent$} * \\brief Retrieves a reference to the value of {field_name}
+            {0:indent$} * 
+            {0:indent$} * \\return The reference 
+            {0:indent$} * 
+            {0:indent$} */
+            {0:indent$}[[nodiscard]] const {type_name} &get_{field_name}() const {{
+            {0:indent$}{0:indent$}return {field_name}_;
+            {0:indent$}}}",
+            "", 
+            field_name = self.name, 
+            type_name = self.data_type
+        );
+    }
 }
 
 #[cfg(test)]
@@ -356,7 +441,7 @@ mod tests {
     fn header() {
         // Create the data model
         let data_model = DataModel {
-            headers: Headers { header: "header_data".to_string(), source: "".to_string() },
+            headers: Headers { header: "// header data".to_string(), source: "".to_string() },
             footers: Footers { header: "".to_string(), source: "".to_string() },
             data_types: vec![],
         };
@@ -369,11 +454,12 @@ mod tests {
             #ifndef HEADER_TERMITE_H_INCLUDED
             #define HEADER_TERMITE_H_INCLUDED
             
+            #include <iostream>
             #include <optional>
             #include <variant>
             #include <termite>
 
-            header_data
+            // header data
 
             #endif
         ");
@@ -386,7 +472,7 @@ mod tests {
         // Create the data model
         let data_model = DataModel {
             headers: Headers { header: "".to_string(), source: "".to_string() },
-            footers: Footers { header: "footer_data".to_string(), source: "".to_string() },
+            footers: Footers { header: "// footer data".to_string(), source: "".to_string() },
             data_types: vec![],
         };
         
@@ -398,11 +484,12 @@ mod tests {
             #ifndef HEADER_TERMITE_H_INCLUDED
             #define HEADER_TERMITE_H_INCLUDED
             
+            #include <iostream>
             #include <optional>
             #include <variant>
             #include <termite>
 
-            footer_data
+            // footer data
 
             #endif
         ");
@@ -441,6 +528,7 @@ mod tests {
                 #ifndef HEADER_TERMITE_H_INCLUDED
                 #define HEADER_TERMITE_H_INCLUDED
                 
+                #include <iostream>
                 #include <optional>
                 #include <variant>
                 #include <termite>
@@ -453,13 +541,47 @@ mod tests {
                    * 
                    * 
                    */
-                  [[nodiscard]] static termite::Result<DataType1> new() {{
+                  [[nodiscard]] static termite::Result<DataType1> from_values() {{
                 
                 
                     return termite::Result<DataType1>::ok(DataType1());
                   }}
 
                 
+
+
+
+                  /**
+                   * \\brief Checks if this object the the other object are identical
+                   * 
+                   * \\param other The other object to compare with
+                   * \\return true if they are identical, false if not
+                   * 
+                   */
+                  [[nodiscard]] bool operator==(const DataType1 &other) {{
+                    return true;
+                  }}
+                  /**
+                   * \\brief Checks if this object the the other object are different
+                   * 
+                   * \\param other The other object to compare with
+                   * \\return true if they are different, false if not
+                   * 
+                   */
+                  [[nodiscard]] bool operator!=(const DataType1 &other) {{
+                    return !(*this == other);
+                  }}
+                  /**
+                   * \\brief Prints the object onto the output stream
+                   * 
+                   * \\param os The output stream to print to
+                   * \\param value The object to print
+                   * \\return The output stream
+                   * 
+                   */
+                  friend std::ostream &operator<<(std::ostream &os, const DataType1 &value) {{
+                    return os << \"{{ \" << \"\" << \" }}\";
+                  }}
 
                 private:
                   explicit DataType1() {{}}
@@ -477,13 +599,47 @@ mod tests {
                    * 
                    * 
                    */
-                  [[nodiscard]] static termite::Result<DataType2> new() {{
+                  [[nodiscard]] static termite::Result<DataType2> from_values() {{
                 
                 
                     return termite::Result<DataType2>::ok(DataType2());
                   }}
 
                 
+
+                
+
+                  /**
+                   * \\brief Checks if this object the the other object are identical
+                   * 
+                   * \\param other The other object to compare with
+                   * \\return true if they are identical, false if not
+                   * 
+                   */
+                  [[nodiscard]] bool operator==(const DataType2 &other) {{
+                    return true;
+                  }}
+                  /**
+                   * \\brief Checks if this object the the other object are different
+                   * 
+                   * \\param other The other object to compare with
+                   * \\return true if they are different, false if not
+                   * 
+                   */
+                  [[nodiscard]] bool operator!=(const DataType2 &other) {{
+                    return !(*this == other);
+                  }}
+                  /**
+                   * \\brief Prints the object onto the output stream
+                   * 
+                   * \\param os The output stream to print to
+                   * \\param value The object to print
+                   * \\return The output stream
+                   * 
+                   */
+                  friend std::ostream &operator<<(std::ostream &os, const DataType2 &value) {{
+                    return os << \"{{ \" << \"\" << \" }}\";
+                  }}
 
                 private:
                   explicit DataType2() {{}}
@@ -527,6 +683,7 @@ mod tests {
                 #ifndef HEADER_TERMITE_H_INCLUDED
                 #define HEADER_TERMITE_H_INCLUDED
                 
+                #include <iostream>
                 #include <optional>
                 #include <variant>
                 #include <termite>
@@ -543,13 +700,47 @@ mod tests {
                    * 
                    * 
                    */
-                  [[nodiscard]] static termite::Result<DataType1> new() {{
+                  [[nodiscard]] static termite::Result<DataType1> from_values() {{
                 
                 
                     return termite::Result<DataType1>::ok(DataType1());
                   }}
 
                 
+
+
+
+                  /**
+                   * \\brief Checks if this object the the other object are identical
+                   * 
+                   * \\param other The other object to compare with
+                   * \\return true if they are identical, false if not
+                   * 
+                   */
+                  [[nodiscard]] bool operator==(const DataType1 &other) {{
+                    return true;
+                  }}
+                  /**
+                   * \\brief Checks if this object the the other object are different
+                   * 
+                   * \\param other The other object to compare with
+                   * \\return true if they are different, false if not
+                   * 
+                   */
+                  [[nodiscard]] bool operator!=(const DataType1 &other) {{
+                    return !(*this == other);
+                  }}
+                  /**
+                   * \\brief Prints the object onto the output stream
+                   * 
+                   * \\param os The output stream to print to
+                   * \\param value The object to print
+                   * \\return The output stream
+                   * 
+                   */
+                  friend std::ostream &operator<<(std::ostream &os, const DataType1 &value) {{
+                    return os << \"{{ \" << \"\" << \" }}\";
+                  }}
 
                 private:
                   explicit DataType1() {{}}
@@ -571,13 +762,47 @@ mod tests {
                    * 
                    * 
                    */
-                  [[nodiscard]] static termite::Result<DataType2> new() {{
+                  [[nodiscard]] static termite::Result<DataType2> from_values() {{
                 
                 
                     return termite::Result<DataType2>::ok(DataType2());
                   }}
 
                 
+
+
+                
+                  /**
+                   * \\brief Checks if this object the the other object are identical
+                   * 
+                   * \\param other The other object to compare with
+                   * \\return true if they are identical, false if not
+                   * 
+                   */
+                  [[nodiscard]] bool operator==(const DataType2 &other) {{
+                    return true;
+                  }}
+                  /**
+                   * \\brief Checks if this object the the other object are different
+                   * 
+                   * \\param other The other object to compare with
+                   * \\return true if they are different, false if not
+                   * 
+                   */
+                  [[nodiscard]] bool operator!=(const DataType2 &other) {{
+                    return !(*this == other);
+                  }}
+                  /**
+                   * \\brief Prints the object onto the output stream
+                   * 
+                   * \\param os The output stream to print to
+                   * \\param value The object to print
+                   * \\return The output stream
+                   * 
+                   */
+                  friend std::ostream &operator<<(std::ostream &os, const DataType2 &value) {{
+                    return os << \"{{ \" << \"\" << \" }}\";
+                  }}
 
                 private:
                   explicit DataType2() {{}}
@@ -611,14 +836,14 @@ mod tests {
                                     StructField {
                                         name: "field1".to_string(),
                                         description: None,
-                                        data_type: "type1".to_string(),
+                                        data_type: "int".to_string(),
                                         default: DefaultType::Required,
                                         constraints: vec![],
                                     },
                                     StructField {
                                         name: "field2".to_string(),
                                         description: None,
-                                        data_type: "type2".to_string(),
+                                        data_type: "float".to_string(),
                                         default: DefaultType::Required,
                                         constraints: vec![],
                                     },
@@ -636,6 +861,7 @@ mod tests {
                     #ifndef HEADER_TERMITE_H_INCLUDED
                     #define HEADER_TERMITE_H_INCLUDED
                     
+                    #include <iostream>
                     #include <optional>
                     #include <variant>
                     #include <termite>
@@ -649,7 +875,7 @@ mod tests {
                        * \\param field2 
                        * 
                        */
-                      [[nodiscard]] static termite::Result<DataType> new(type1 field1, type2 field2) {{
+                      [[nodiscard]] static termite::Result<DataType> from_values(int field1, float field2) {{
                         termite::Result<std::tuple<>> validate_result = termite::Result<std::tuple<>>::ok({{}});
 
                         validate_result = validate_field1(field1);
@@ -676,7 +902,7 @@ mod tests {
                        * \\return An error if one of the constraints were not fulfilled
                        * 
                        */
-                      [[nodiscard]] termite::Result<std::tuple<>> set_field1(type1 value) {{
+                      [[nodiscard]] termite::Result<std::tuple<>> set_field1(int value) {{
                         termite::Result<std::tuple<>> validate_result = validate_field1(value);
                         if (!validate_result.is_ok()) {{
                           return termite::Result<DataType>::err(std::move(error));
@@ -692,7 +918,7 @@ mod tests {
                        * \\return An error if one of the constraints were not fulfilled
                        * 
                        */
-                      [[nodiscard]] termite::Result<std::tuple<>> set_field2(type2 value) {{
+                      [[nodiscard]] termite::Result<std::tuple<>> set_field2(float value) {{
                         termite::Result<std::tuple<>> validate_result = validate_field2(value);
                         if (!validate_result.is_ok()) {{
                           return termite::Result<DataType>::err(std::move(error));
@@ -702,26 +928,77 @@ mod tests {
                         return termite::Result<std::tuple<>>::ok({{}});
                       }}
 
+                      /**
+                       * \\brief Retrieves a reference to the value of field1
+                       * 
+                       * \\return The reference 
+                       * 
+                       */
+                      [[nodiscard]] const int &get_field1() const {{
+                        return field1_;
+                      }}
+                      /**
+                       * \\brief Retrieves a reference to the value of field2
+                       * 
+                       * \\return The reference 
+                       * 
+                       */
+                      [[nodiscard]] const float &get_field2() const {{
+                        return field2_;
+                      }}
+
+                      /**
+                       * \\brief Checks if this object the the other object are identical
+                       * 
+                       * \\param other The other object to compare with
+                       * \\return true if they are identical, false if not
+                       * 
+                       */
+                      [[nodiscard]] bool operator==(const DataType &other) {{
+                        return field1_ == other.field1_ && field2_ == other.field2_;
+                      }}
+                      /**
+                       * \\brief Checks if this object the the other object are different
+                       * 
+                       * \\param other The other object to compare with
+                       * \\return true if they are different, false if not
+                       * 
+                       */
+                      [[nodiscard]] bool operator!=(const DataType &other) {{
+                        return !(*this == other);
+                      }}
+                      /**
+                       * \\brief Prints the object onto the output stream
+                       * 
+                       * \\param os The output stream to print to
+                       * \\param value The object to print
+                       * \\return The output stream
+                       * 
+                       */
+                      friend std::ostream &operator<<(std::ostream &os, const DataType &value) {{
+                        return os << \"{{ \" << \"field1: \" << value.field1_ << \", \" << \"field2: \" << value.field2_ << \" }}\";
+                      }}
+
                     private:
-                      explicit DataType(type1 field1, type2 field2) : field1_(field1), field2_(field2) {{}}
+                      explicit DataType(int field1, float field2) : field1_(field1), field2_(field2) {{}}
 
                       /**
                        * \\brief Validates if field1 is correct using the following constaints:
                        * 
                        */
-                      [[nodiscard]] static termite::Result<std::tuple<>> validate_field1(const type1 &value) {{
+                      [[nodiscard]] static termite::Result<std::tuple<>> validate_field1(const int &value) {{
                         return termite::Result<std::tuple<>>::ok({{}});
                       }}
                       /**
                        * \\brief Validates if field2 is correct using the following constaints:
                        * 
                        */
-                      [[nodiscard]] static termite::Result<std::tuple<>> validate_field2(const type2 &value) {{
+                      [[nodiscard]] static termite::Result<std::tuple<>> validate_field2(const float &value) {{
                         return termite::Result<std::tuple<>>::ok({{}});
                       }}
 
-                      type1 field1_;
-                      type2 field2_;
+                      int field1_;
+                      float field2_;
                     }};
 
                     #endif
@@ -852,8 +1129,8 @@ mod tests {
     fn outline() {
         // Create the data model
         let data_model = DataModel {
-            headers: Headers { header: "header_data".to_string(), source: "".to_string() },
-            footers: Footers { header: "footer_data".to_string(), source: "".to_string() },
+            headers: Headers { header: "namespace test {".to_string(), source: "".to_string() },
+            footers: Footers { header: "} // namespace test".to_string(), source: "".to_string() },
             data_types: vec![
                 DataType {
                     name: "DataType1".to_string(),
@@ -876,11 +1153,12 @@ mod tests {
             #ifndef HEADER_TERMITE_H_INCLUDED
             #define HEADER_TERMITE_H_INCLUDED
             
+            #include <iostream>
             #include <optional>
             #include <variant>
             #include <termite>
 
-            header_data
+            namespace test {{
 
             /**
              * \\brief description1
@@ -894,7 +1172,7 @@ mod tests {
                * 
                * 
                */
-              [[nodiscard]] static termite::Result<DataType1> new() {{
+              [[nodiscard]] static termite::Result<DataType1> from_values() {{
             
             
                 return termite::Result<DataType1>::ok(DataType1());
@@ -902,6 +1180,40 @@ mod tests {
 
 
             
+
+
+              /**
+               * \\brief Checks if this object the the other object are identical
+               * 
+               * \\param other The other object to compare with
+               * \\return true if they are identical, false if not
+               * 
+               */
+              [[nodiscard]] bool operator==(const DataType1 &other) {{
+                return true;
+              }}
+              /**
+               * \\brief Checks if this object the the other object are different
+               * 
+               * \\param other The other object to compare with
+               * \\return true if they are different, false if not
+               * 
+               */
+              [[nodiscard]] bool operator!=(const DataType1 &other) {{
+                return !(*this == other);
+              }}
+              /**
+               * \\brief Prints the object onto the output stream
+               * 
+               * \\param os The output stream to print to
+               * \\param value The object to print
+               * \\return The output stream
+               * 
+               */
+              friend std::ostream &operator<<(std::ostream &os, const DataType1 &value) {{
+                return os << \"{{ \" << \"\" << \" }}\";
+              }}
+
             private:
               explicit DataType1() {{}}
 
@@ -922,14 +1234,48 @@ mod tests {
                * 
                * 
                */
-              [[nodiscard]] static termite::Result<DataType2> new() {{
+              [[nodiscard]] static termite::Result<DataType2> from_values() {{
             
             
                 return termite::Result<DataType2>::ok(DataType2());
               }}
 
 
+
             
+
+              /**
+               * \\brief Checks if this object the the other object are identical
+               * 
+               * \\param other The other object to compare with
+               * \\return true if they are identical, false if not
+               * 
+               */
+              [[nodiscard]] bool operator==(const DataType2 &other) {{
+                return true;
+              }}
+              /**
+               * \\brief Checks if this object the the other object are different
+               * 
+               * \\param other The other object to compare with
+               * \\return true if they are different, false if not
+               * 
+               */
+              [[nodiscard]] bool operator!=(const DataType2 &other) {{
+                return !(*this == other);
+              }}
+              /**
+               * \\brief Prints the object onto the output stream
+               * 
+               * \\param os The output stream to print to
+               * \\param value The object to print
+               * \\return The output stream
+               * 
+               */
+              friend std::ostream &operator<<(std::ostream &os, const DataType2 &value) {{
+                return os << \"{{ \" << \"\" << \" }}\";
+              }}
+
             private:
               explicit DataType2() {{}}
 
@@ -938,7 +1284,7 @@ mod tests {
 
             }};
 
-            footer_data
+            }} // namespace test
 
             #endif
         ");

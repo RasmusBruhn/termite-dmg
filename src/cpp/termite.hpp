@@ -30,9 +30,9 @@ template <typename T, typename = void>
 struct has_equality_operator : std::false_type
 {
 };
-
+// T, std::enable_if_t<std::is_same_v<decltype(std::declval<T>() == std::declval<T>()), bool>>
 template <typename T>
-struct has_equality_operator<T, std::void_t<decltype(std::declval<bool>() == std::declval<T>())>> : std::true_type
+struct has_equality_operator<T, std::void_t<decltype(std::declval<T>() == std::declval<T>())>> : std::true_type
 {
 };
 }
@@ -221,7 +221,7 @@ public:
    * @param result The other result to compare with
    * @return true if they are identical, false otherwise
    */
-  [[nodiscard]] typename std::enable_if<has_insertion_operator<T>::value, bool>::type 
+  [[nodiscard]] typename std::enable_if<has_equality_operator<T>::value, bool>::type 
   operator==(const Result &result) const {
     return value_ == result.value_;
   }
@@ -232,8 +232,7 @@ public:
    * @param result The other result to compare with
    * @return true if they are not identical, false otherwise
    */
-  [[nodiscard]] typename std::enable_if<has_insertion_operator<T>::value, bool>::type 
-  operator!=(const Result &result) const {
+  [[nodiscard]] bool operator!=(const Result &result) const {
     return !(value_ == result.value_);
   }
 
@@ -259,8 +258,7 @@ public:
    *
    * @return The string with this result in
    */
-  [[nodiscard]] typename std::enable_if<has_insertion_operator<T>::value, std::string>::type
-  to_string() const {
+  [[nodiscard]] std::string to_string() const {
     std::stringstream ss;
     ss << *this;
     return ss.str();
