@@ -68,8 +68,6 @@ impl DataModel {
 /// All of the headers for the different files
 #[derive(Clone, Debug, PartialEq)]
 struct Headers {
-    /// For the header fiel
-    header: String,
     /// For the source file
     source: String,
 }
@@ -81,17 +79,12 @@ impl Headers {
     /// 
     /// data: The generic data type to convert
     fn new(mut data: HashMap<String, String>) -> Result<Self, Error> {
-        let header = match data.remove("header") {
-            Some(value) => format!("{}\n", value),
-            None => String::new(),
-        };
         let source = match data.remove("source") {
             Some(value) => value,
             None => String::new(),
         };
 
         return Ok(Self {
-            header,
             source,
         })
     }
@@ -100,8 +93,6 @@ impl Headers {
 /// All of the footers for the different files
 #[derive(Clone, Debug, PartialEq)]
 struct Footers {
-    /// For the header fiel
-    header: String,
     /// For the source file
     source: String,
 }
@@ -113,17 +104,12 @@ impl Footers {
     /// 
     /// data: The generic data type to convert
     fn new(mut data: HashMap<String, String>) -> Result<Self, Error> {
-        let header = match data.remove("header") {
-            Some(value) => format!("{}\n", value),
-            None => String::new(),
-        };
         let source = match data.remove("source") {
             Some(value) => value,
             None => String::new(),
         };
 
         return Ok(Self {
-            header,
             source,
         })
     }
