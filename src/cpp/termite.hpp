@@ -1,18 +1,20 @@
 /**
  * @file termite.hpp
- * @brief The c++ Termite Data Model Generator code which implements errors and input output to yaml and json
+ * @brief The c++ Termite Data Model Generator code which implements errors and
+ * input output to yaml and json
  * @version 0.1
  * @date 2024-06-15
- * 
+ *
  */
 
 #ifndef TERMITE_H_INCLUDED
 #define TERMITE_H_INCLUDED
 
-#include <string>
-#include <sstream>
 #include <iostream>
+#include <sstream>
+#include <string>
 #include <variant>
+#include <optional>
 
 namespace termite {
 
@@ -23,52 +25,84 @@ template <typename T, typename = void>
 struct has_insertion_operator : std::false_type {};
 
 template <typename T>
-struct has_insertion_operator<T, std::void_t<decltype(std::declval<std::ostream&>() << std::declval<T>())>> : std::true_type {};
+struct has_insertion_operator<
+    T,
+    std::void_t<decltype(std::declval<std::ostream &>() << std::declval<T>())>>
+    : std::true_type {};
 
 // Helper trait to detect if T has operator==
 template <typename T, typename = void>
-struct has_equality_operator : std::false_type
-{
-};
-// T, std::enable_if_t<std::is_same_v<decltype(std::declval<T>() == std::declval<T>()), bool>>
+struct has_equality_operator : std::false_type {};
+// T, std::enable_if_t<std::is_same_v<decltype(std::declval<T>() ==
+// std::declval<T>()), bool>>
 template <typename T>
-struct has_equality_operator<T, std::void_t<decltype(std::declval<T>() == std::declval<T>())>> : std::true_type
-{
+struct has_equality_operator<
+    T, std::void_t<decltype(std::declval<T>() == std::declval<T>())>>
+    : std::true_type {};
+}  // namespace
+
+/**
+ * @brief An empty class used as the ok value of a result if only the error
+ * matters
+ *
+ */
+class Empty {
+public:
+  /**
+   * @brief Checks if this value and the other value are identical
+   *
+   * @param other The other value to compare with
+   * @return true if they are identical, false if not
+   */
+  [[nodiscard]] bool operator==(const Empty &other) const { return true; }
+  /**
+   * @brief Checks if this value and the other value are different
+   *
+   * @param other The other value to compare with
+   * @return true if they are different, false if not
+   */
+  [[nodiscard]] bool operator!=(const Empty &other) const {
+    return !(*this == other);
+  }
+  /**
+   * @brief Prints the value to an ostream
+   *
+   * @param os The stream to print to
+   * @param value The value to print
+   * @return The same ostream
+   */
+  friend std::ostream &operator<<(std::ostream &os, const Empty &value) {
+    return os << "{  }";
+  }
 };
-}
 
 /**
  * @brief Describes any error within a data model
- * 
+ *
  */
 class Error {
 public:
   /**
    * @brief Construct a new Error object
-   * 
+   *
    * @param message The message describing what is wrong
    * @param location The location in the data model where the error occured
    */
-  explicit Error(std::string message, std::string location = "") : 
-    location_(std::move(location)),message_(std::move(message)) {}
+  explicit Error(std::string message, std::string location = "")
+      : location_(std::move(location)), message_(std::move(message)) {}
 
   /**
    * @brief Gets the error message for this error
-   * 
+   *
    * @return A reference to the error message
    */
-  [[nodiscard]] const std::string &get_message() const {
-    return message_;
-  }
+  [[nodiscard]] const std::string &get_message() const { return message_; }
   /**
    * @brief Gets the location in the data model this error occured at
-   * 
+   *
    * @return A reference to the location
    */
-  [[nodiscard]] const std::string &get_location() const
-  {
-    return location_;
-  }
+  [[nodiscard]] const std::string &get_location() const { return location_; }
 
   /**
    * @brief Adds a field to the location such that the old location is a field
@@ -100,28 +134,26 @@ public:
 
   /**
    * @brief Checks if this error is identical to another error
-   * 
+   *
    * @param other The other error to compare with
-   * @return true if they are identical, false otherwise 
+   * @return true if they are identical, false otherwise
    */
-  [[nodiscard]] bool operator==(const Error &other) const
-  {
+  [[nodiscard]] bool operator==(const Error &other) const {
     return location_ == other.location_ && message_ == other.message_;
   }
   /**
    * @brief Checks if this error is not identical to another error
-   * 
+   *
    * @param other The other error to compare with
-   * @return true if they are not identical, false otherwise 
+   * @return true if they are not identical, false otherwise
    */
-  [[nodiscard]] bool operator!=(const Error &other) const
-  {
+  [[nodiscard]] bool operator!=(const Error &other) const {
     return !(*this == other);
   }
 
   /**
    * @brief Prints this error with the location to the output stream
-   * 
+   *
    * @param stream The stream to print to
    * @param error The error to print
    * @return The same stream object
@@ -134,11 +166,10 @@ public:
   }
   /**
    * @brief Converts this error with its location to a string
-   * 
+   *
    * @return The string with the error
    */
-  [[nodiscard]] std::string to_string() const
-  {
+  [[nodiscard]] std::string to_string() const {
     std::stringstream ss;
     ss << *this;
     return ss.str();
@@ -147,12 +178,12 @@ public:
 private:
   /**
    * @brief The location in the data model where the error occured
-   * 
+   *
    */
   std::string location_;
   /**
    * @brief The message describing what the error is
-   * 
+   *
    */
   std::string message_;
 };
@@ -168,51 +199,39 @@ class Result {
 public:
   /**
    * @brief Constructs an ok result
-   * 
+   *
    * @param value The value of the ok
    * @return The resulting Result object
    */
-  [[nodiscard]] static Result ok(T value)
-  {
-    return Result(value);
-  }
+  [[nodiscard]] static Result ok(T value) { return Result(value); }
   /**
    * @brief Constructs an error result
-   * 
+   *
    * @param error The error value
    * @return The resulting Result object
    */
-  [[nodiscard]] static Result err(Error error)
-  {
-    return Result(error);
-  }
+  [[nodiscard]] static Result err(Error error) { return Result(error); }
 
   /**
    * @brief Checks if this result is Ok or Err
-   * 
+   *
    * @return true if it is ok, false if it is err
    */
-  bool is_ok() const {
-    return std::holds_alternative<T>(value_);
-  }
+  bool is_ok() const { return std::holds_alternative<T>(value_); }
   /**
    * @brief Retrieves the ok value, causes an exception if it is err. This
    * result is invalid after running this function
    *
    * @return The ok value
    */
-  [[nodiscard]] T get_ok() {
-    return std::move(std::get<T>(value_));
-  }
+  [[nodiscard]] T get_ok() { return std::move(std::get<T>(value_)); }
   /**
    * @brief Retrieves the err value, causes an exception if it is ok. This
    * result is invalid after running this function
    *
    * @return The err value
    */
-  [[nodiscard]] Error get_err() {
-    return std::move(std::get<Error>(value_));
-  }
+  [[nodiscard]] Error get_err() { return std::move(std::get<Error>(value_)); }
 
   /**
    * @brief Checks equality with another result, only enabled if T has the
@@ -221,7 +240,8 @@ public:
    * @param result The other result to compare with
    * @return true if they are identical, false otherwise
    */
-  [[nodiscard]] typename std::enable_if<has_equality_operator<T>::value, bool>::type 
+  [[nodiscard]]
+  typename std::enable_if<has_equality_operator<T>::value, bool>::type
   operator==(const Result &result) const {
     return value_ == result.value_;
   }
@@ -240,12 +260,13 @@ public:
    * @brief Prints the result to a stream, only enabled if the stream print
    * operator exists for T
    *
-   * @param os The output stream to print to 
+   * @param os The output stream to print to
    * @param result The result to print
    * @return The same output stream
    */
-  typename std::enable_if<has_insertion_operator<T>::value, std::ostream &>::type
-  friend operator<<(std::ostream &os, const Result &result) {
+  typename std::enable_if<has_insertion_operator<T>::value,
+                          std::ostream &>::type friend
+  operator<<(std::ostream &os, const Result &result) {
     if (result.is_ok()) {
       return os << "Ok ( " << std::get<T>(result.value_) << " )";
     } else {
@@ -267,7 +288,7 @@ public:
 private:
   /**
    * @brief Construct a new Result object
-   * 
+   *
    * @param value The value of the result
    * @param is_ok true if the value is ok, false if it is err
    */
@@ -275,11 +296,22 @@ private:
 
   /**
    * @brief The value of the result, is_ok_ describes how to interpret it
-   * 
+   *
    */
   std::variant<T, Error> value_;
 };
 
+}  // namespace termite
+
+template <class T>
+typename std::enable_if<termite::has_insertion_operator<T>::value,
+                        std::ostream &>::type
+operator<<(std::ostream &os, const std::optional<T> &value) {
+  if (value) {
+    return os << *value;
+  } else {
+    return os << "nullopt";
+  }
 }
 
 #endif

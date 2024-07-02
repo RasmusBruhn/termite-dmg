@@ -8,419 +8,646 @@
 //! it can be included as "#include <termite.hpp>"
 //! 
 
+use indoc::formatdoc;
 use std::{
-    fmt,
-    collections::HashMap,
+  fmt,
+  collections::HashMap,
 };
 
-mod header;
+mod type_struct;
 
 /// Obtains the base termite c++ dependency required for all generated data
 /// models
 pub fn get_termite_dependency() -> &'static str {
-    return include_str!("termite.hpp");
+  return include_str!("termite.hpp");
 }
 
 /// An entire data model
 #[derive(Clone, Debug, PartialEq)]
 pub struct DataModel {
-    /// List of the the data types to implement
-    data_types: Vec<DataType>,
-    /// List of all header data used to include external packages and start
-    /// namespaces
-    headers: Headers,
-    /// List of all footer data used to end namespaces
-    footers: Footers,
+  /// List of the the data types to implement
+  data_types: Vec<DataType>,
+  /// List of all header data used to include external packages and start
+  /// namespaces
+  headers: Headers,
+  /// List of all footer data used to end namespaces
+  footers: Footers,
 }
 
 impl DataModel {
-    /// Constructs a new c++ data model from a generic data model
-    /// 
-    /// # Parameters
-    /// 
-    /// data: The generic data type to convert
-    pub fn new(data: crate::DataModel) -> Result<Self, Error> {
-        let data_types = data.data_types.into_iter()
-            .enumerate()
-            .map(|(i, data_type)| {
-                return match DataType::new(data_type) {
-                    Ok(result) => Ok(result),
-                    Err(error) => Err(error.add_element("data_types", i)),
-                };
-            }).collect::<Result<Vec<DataType>, Error>>()?;
-        let headers = match Headers::new(data.headers) {
-            Ok(result) => result,
-            Err(error) => return Err(error.add_field("headers")),
+  /// Constructs a new c++ data model from a generic data model
+  /// 
+  /// # Parameters
+  /// 
+  /// data: The generic data type to convert
+  pub fn new(data: crate::DataModel) -> Result<Self, Error> {
+    let data_types = data.data_types.into_iter()
+      .enumerate()
+      .map(|(i, data_type)| {
+        return match DataType::new(data_type) {
+          Ok(result) => Ok(result),
+          Err(error) => Err(error.add_element("data_types", i)),
         };
-        let footers = match Footers::new(data.footers) {
-            Ok(result) => result,
-            Err(error) => return Err(error.add_field("footers")),
-        };
+      }).collect::<Result<Vec<DataType>, Error>>()?;
+    let headers = match Headers::new(data.headers) {
+      Ok(result) => result,
+      Err(error) => return Err(error.add_field("headers")),
+    };
+    let footers = match Footers::new(data.footers) {
+      Ok(result) => result,
+      Err(error) => return Err(error.add_field("footers")),
+    };
 
-        return Ok(Self {
-            data_types,
-            headers,
-            footers,
-        })
-    }
+    return Ok(Self {
+      data_types,
+      headers,
+      footers,
+    })
+  }
+
+  /// Generates the header file
+  /// 
+  /// # Parameters
+  /// 
+  /// name: The name of the header file (used for header guard so should be capslocked)
+  /// 
+  /// indent: The number of spaces to use for indentation
+  pub fn get_source(&self, name: &str, indent: usize) -> String {
+    // Get all structs
+    let data_types = self.data_types.iter()
+      .map(|data_type| data_type.get_source(indent))
+      .collect::<Vec<String>>()
+      .join("\n\n");
+
+    return formatdoc!("
+      // Generated with the Termite Data Model Generator
+      #ifndef {name}_TERMITE_H_INCLUDED
+      #define {name}_TERMITE_H_INCLUDED
+
+      #include <iostream>
+      #include <optional>
+      #include <variant>
+      #include <termite.hpp>
+
+      {header}
+      
+      {data_types}
+      
+      {footer}
+      
+      #endif
+      ",
+      header = self.headers.source,
+      footer = self.footers.source,
+    );
+  }
 }
 
 /// All of the headers for the different files
 #[derive(Clone, Debug, PartialEq)]
 struct Headers {
-    /// For the source file
-    source: String,
+  /// For the source file
+  source: String,
 }
 
 impl Headers {
-    /// Constructs a new c++ header from a generic header
-    /// 
-    /// # Parameters
-    /// 
-    /// data: The generic data type to convert
-    fn new(mut data: HashMap<String, String>) -> Result<Self, Error> {
-        let source = match data.remove("source") {
-            Some(value) => value,
-            None => String::new(),
-        };
+  /// Constructs a new c++ header from a generic header
+  /// 
+  /// # Parameters
+  /// 
+  /// data: The generic data type to convert
+  fn new(mut data: HashMap<String, String>) -> Result<Self, Error> {
+    let source = match data.remove("source") {
+      Some(value) => value,
+      None => String::new(),
+    };
 
-        return Ok(Self {
-            source,
-        })
-    }
+    return Ok(Self {
+      source,
+    })
+  }
 }
 
 /// All of the footers for the different files
 #[derive(Clone, Debug, PartialEq)]
 struct Footers {
-    /// For the source file
-    source: String,
+  /// For the source file
+  source: String,
 }
 
 impl Footers {
-    /// Constructs a new c++ footer from a generic footer
-    /// 
-    /// # Parameters
-    /// 
-    /// data: The generic data type to convert
-    fn new(mut data: HashMap<String, String>) -> Result<Self, Error> {
-        let source = match data.remove("source") {
-            Some(value) => value,
-            None => String::new(),
-        };
+  /// Constructs a new c++ footer from a generic footer
+  /// 
+  /// # Parameters
+  /// 
+  /// data: The generic data type to convert
+  fn new(mut data: HashMap<String, String>) -> Result<Self, Error> {
+    let source = match data.remove("source") {
+      Some(value) => value,
+      None => String::new(),
+    };
 
-        return Ok(Self {
-            source,
-        })
-    }
+    return Ok(Self {
+      source,
+    })
+  }
 }
 
 /// Any data type (struct, variant, ect.)
 #[derive(Clone, Debug, PartialEq)]
 struct DataType {
-    /// The name of the type
-    name: String,
-    /// The description of the type
-    description: Option<String>,
-    /// The type specific data
-    data: DataTypeData,
+  /// The name of the type
+  name: String,
+  /// The description of the type
+  description: Option<String>,
+  /// The type specific data
+  data: DataTypeData,
 }
 
 impl DataType {
-    /// Constructs a new c++ data type from a generic data type
-    /// 
-    /// # Parameters
-    /// 
-    /// data: The generic data type to convert
-    fn new(data: crate::DataType) -> Result<Self, Error> {
-        // Convert the data
-        let processed_data = match DataTypeData::new(data.data) {
-            Ok(data) => data,
-            Err(error) => return Err(error.add_field(&data.name)),
-        };
+  /// Constructs a new c++ data type from a generic data type
+  /// 
+  /// # Parameters
+  /// 
+  /// data: The generic data type to convert
+  fn new(data: crate::DataType) -> Result<Self, Error> {
+    // Convert the data
+    let processed_data = match DataTypeData::new(data.data) {
+      Ok(data) => data,
+      Err(error) => return Err(error.add_field(&data.name)),
+    };
 
-        return Ok(Self {
-            name: data.name,
-            description: data.description,
-            data: processed_data,
-        });
-    }
+    return Ok(Self {
+      name: data.name,
+      description: data.description,
+      data: processed_data,
+    });
+  }
+
+  /// Generates the description if it is supplied
+  fn get_description(&self) -> String {
+    return match &self.description {
+      Some(description) => description.clone(),
+      None => "".to_string(),
+    };
+  }
+
+  /// Converts the data type to a string for use in the header file
+  /// 
+  /// # Parameters
+  /// 
+  /// indent: The number of spaces to use for indentation
+  fn get_source(&self, indent: usize) -> String {
+    return formatdoc!("
+      /**
+       * @brief {description}
+       * 
+       */
+      {definition}",
+      description = self.get_description(),
+      definition = self.data.get_source(&self.name, indent),
+    );
+  }
 }
 
 /// Supplies the type sepcific information for a data type
 #[derive(Clone, Debug, PartialEq)]
 enum DataTypeData {
-    /// Describes a struct
-    Struct(Struct),
+  /// Describes a struct
+  Struct(Struct),
 }
 
 impl DataTypeData {
-    /// Constructs a new c++ data type data from a generic data type data
-    /// 
-    /// # Parameters
-    /// 
-    /// data: The generic data type data to convert
-    fn new(data: crate::DataTypeData) -> Result<Self, Error> {
-        let result = match data {
-            crate::DataTypeData::Struct(data) => DataTypeData::Struct(Struct::new(data)?),
-        };
+  /// Constructs a new c++ data type data from a generic data type data
+  /// 
+  /// # Parameters
+  /// 
+  /// data: The generic data type data to convert
+  fn new(data: crate::DataTypeData) -> Result<Self, Error> {
+    let result = match data {
+      crate::DataTypeData::Struct(data) => DataTypeData::Struct(Struct::new(data)?),
+    };
 
-        return Ok(result);
-    }
+    return Ok(result);
+  }
+
+  /// Converts the data type data to a string for use in the header file
+  /// 
+  /// # Parameters
+  /// 
+  /// name: The name of the data type
+  /// 
+  /// indent: The number of spaces to use for indentation
+  fn get_source(&self, name: &str, indent: usize) -> String {
+    return match self {
+      DataTypeData::Struct(data) => data.get_source(name, indent),
+    };
+  }
 }
 
 /// The type specific information for a struct
 #[derive(Clone, Debug, PartialEq)]
 struct Struct {
-    /// A list of all the fields of the struct
-    fields: Vec<StructField>,
+  /// A list of all the fields of the struct
+  fields: Vec<StructField>,
 }
 
 impl Struct {
-    /// Constructs a new c++ struct from a generic struct
-    /// 
-    /// # Parameters
-    /// 
-    /// data: The generic struct to convert
-    fn new(data: crate::Struct) -> Result<Self, Error> {
-        // Make sure the required fields are first
-        if let Some(name) = data.fields.iter()
-            .scan(false, |found_optional, field| {
-                if let crate::DefaultType::Required = field.default {
-                    if *found_optional {
-                        return Some(Some(&field.name));
-                    }
-                } else {
-                    *found_optional = true;
-                }
-
-                return Some(None);
-            })
-            .filter_map(|value| value)
-            .next() {
-            return Err(Error {
-                location: "".to_string(),
-                error: ErrorCore::StructFieldOrder(name.clone()),
-            })
+  /// Constructs a new c++ struct from a generic struct
+  /// 
+  /// # Parameters
+  /// 
+  /// data: The generic struct to convert
+  fn new(data: crate::Struct) -> Result<Self, Error> {
+    // Make sure the required fields are first
+    if let Some(name) = data.fields.iter()
+      .scan(false, |found_optional, field| {
+        if let crate::DefaultType::Required = field.default {
+          if *found_optional {
+            return Some(Some(&field.name));
+          }
+        } else {
+          *found_optional = true;
         }
 
-        // Convert the fields
-        let fields = data.fields.into_iter().map(|data| StructField::new(data)).collect::<Result<Vec<StructField>, Error>>()?;
-
-        // Move data
-        return Ok(Self {
-            fields
-        })
+        return Some(None);
+      })
+      .filter_map(|value| value)
+      .next() {
+      return Err(Error {
+        location: "".to_string(),
+        error: ErrorCore::StructFieldOrder(name.clone()),
+      })
     }
+
+    // Convert the fields
+    let fields = data.fields.into_iter().map(|data| StructField::new(data)).collect::<Result<Vec<StructField>, Error>>()?;
+
+    // Move data
+    return Ok(Self {
+      fields
+    })
+  }
 }
 
 /// A single field for a struct
 #[derive(Clone, Debug, PartialEq)]
 struct StructField {
-    /// The name of the field
-    name: String,
-    /// A description of the field
-    description: Option<String>,
-    /// The data type of the field
-    data_type: String,
-    /// Describes if the field is required or not, if optional it gives the
-    /// default value
-    default: crate::DefaultType,
-    /// A list of all the constraints the field must uphold
-    constraints: Vec<String>,
+  /// The name of the field
+  name: String,
+  /// A description of the field
+  description: Option<String>,
+  /// The data type of the field
+  data_type: String,
+  /// Describes if the field is required or not, if optional it gives the
+  /// default value
+  default: crate::DefaultType,
+  /// A list of all the constraints the field must uphold
+  constraints: Vec<String>,
 }
 
 impl StructField {
-    /// Constructs a new c++ struct field from a generic struct field
-    /// 
-    /// # Parameters
-    /// 
-    /// data: The generic struct field to convert
-    fn new(data: crate::StructField) -> Result<Self, Error> {
-        return Ok(Self {
-            name: data.name,
-            description: data.description,
-            data_type: data.data_type,
-            default: data.default,
-            constraints: data.constraints,
-        })
-    }
+  /// Constructs a new c++ struct field from a generic struct field
+  /// 
+  /// # Parameters
+  /// 
+  /// data: The generic struct field to convert
+  fn new(data: crate::StructField) -> Result<Self, Error> {
+    return Ok(Self {
+      name: data.name,
+      description: data.description,
+      data_type: data.data_type,
+      default: data.default,
+      constraints: data.constraints,
+    })
+  }
 }
 
 /// Errors for when converting generic data models into c++ data models
 /// including location
 #[derive(Debug, Clone)]
 pub struct Error {
-    /// The location where the error occured
-    pub location: String,
-    /// The actual error that occured
-    pub error: ErrorCore,
+  /// The location where the error occured
+  pub location: String,
+  /// The actual error that occured
+  pub error: ErrorCore,
 }
 
 impl Error {
-    /// Sets the current location to be the field of the given base
-    /// 
-    /// # Parameters
-    /// 
-    /// base: The base to set in the location
-    fn add_field(self, base: &str) -> Error {
-        let location = if !self.location.is_empty() {
-            format!("{}.{}", base, self.location)
-        } else {
-            base.to_string()
-        };
-        
-        return Error {
-            location,
-            error: self.error,
-        }
+  /// Sets the current location to be the field of the given base
+  /// 
+  /// # Parameters
+  /// 
+  /// base: The base to set in the location
+  fn add_field(self, base: &str) -> Error {
+    let location = if !self.location.is_empty() {
+      format!("{}.{}", base, self.location)
+    } else {
+      base.to_string()
+    };
+    
+    return Error {
+      location,
+      error: self.error,
     }
+  }
 
-    /// Sets the current location to be the element of a field of the given base
-    /// 
-    /// # Parameters
-    /// 
-    /// base: The base to set in the location
-    /// 
-    /// index: The index of the field
-    fn add_element(self, base: &str, index: usize) -> Error {
-        let location = if !self.location.is_empty() {
-            format!("{}[{}].{}", base, index, self.location)
-        } else {
-            format!("{}[{}]", base, index)
-        };
-        
-        return Error {
-            location,
-            error: self.error,
-        }
+  /// Sets the current location to be the element of a field of the given base
+  /// 
+  /// # Parameters
+  /// 
+  /// base: The base to set in the location
+  /// 
+  /// index: The index of the field
+  fn add_element(self, base: &str, index: usize) -> Error {
+    let location = if !self.location.is_empty() {
+      format!("{}[{}].{}", base, index, self.location)
+    } else {
+      format!("{}[{}]", base, index)
+    };
+    
+    return Error {
+      location,
+      error: self.error,
     }
+  }
 }
 
 impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        return write!(f, "{}: {}", self.location, self.error);
-    }
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    return write!(f, "{}: {}", self.location, self.error);
+  }
 }
 
 /// Errors for when converting generic data models into c++ data models
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum ErrorCore {
-    /// A required field was found after an optional one
-    #[error("The required field \"{}\" was placed after an optional field", .0)]
-    StructFieldOrder(String),
+  /// A required field was found after an optional one
+  #[error("The required field \"{}\" was placed after an optional field", .0)]
+  StructFieldOrder(String),
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-    use std::{
-        collections::HashMap,
-        process
+  use super::*;
+  use std::{
+    collections::HashMap,
+    process,
+    fs,
+    path,
+  };
+
+  fn str_diff(lhs: &str, rhs: &str) -> Option<(usize, String, String)> {
+    return lhs.lines()
+      .zip(rhs.lines())
+      .enumerate()
+      .filter_map(|(index, (lhs, rhs))| {
+        return if lhs == rhs {
+          None
+        } else {
+          Some((index, lhs.to_string(), rhs.to_string()))
+        };
+      })
+      .next();
+  }
+
+  fn get_source_path(name: &str) -> path::PathBuf {
+    // Get the filename
+    let filename = path::Path::new(name).file_name().unwrap().to_str().unwrap();
+
+    return path::Path::new("tests/cpp")
+      .join(format!("{name}"))
+      .join(format!("{filename}_test.cpp"));
+  }
+
+  fn get_exe_path(name: &str) -> path::PathBuf {
+    // Get the filename
+    let filename = path::Path::new(name).file_name().unwrap().to_str().unwrap();
+
+    return path::Path::new("target/tests/cpp")
+      .join(format!("{name}"))
+      .join(filename);
+  }
+
+  fn compile_and_test(name: &str) {
+    // Get the paths
+    let source_path = get_source_path(name);
+    let exe_path = get_exe_path(name);
+
+    // Create the output directory
+    fs::create_dir_all(exe_path.parent().unwrap()).unwrap();
+
+    // Compile code
+    let compile_output = if cfg!(target_os = "windows") {
+      process::Command::new("cmd")
+        .arg("/C")
+        .arg(format!("g++ {} -Isrc/cpp -Wall -std=c++17 -o {}.exe", source_path.to_str().unwrap(), exe_path.to_str().unwrap()))
+        .output()
+        .expect("failed to compile")
+    } else {
+      process::Command::new("sh")
+        .arg("-c")
+        .arg(format!("g++ {} -Isrc/cpp -Wall -std=c++17 -o {}", source_path.to_str().unwrap(), exe_path.to_str().unwrap()))
+        .output()
+        .expect("failed to compile")
     };
 
-    #[test]
-    fn termite_result_type() {
-        let compile_output = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .arg("/C")
-                .arg("g++ src/cpp/termite_test.cpp -Wall -std=c++17 -o target/debug/build/test_cpp_termite_dependency.exe")
-                .output()
-                .expect("failed to compile")
-        } else {
-            process::Command::new("sh")
-                .arg("-c")
-                .arg("g++ src/cpp/termite_test.cpp -Wall -std=c++17 -o target/debug/build/test_cpp_termite_dependency")
-                .output()
-                .expect("failed to compile")
-        };
+    // Make sure it comiled without any warnings
+    assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
+    assert_eq!(compile_output.stdout.len(), 0);
+    assert_eq!(compile_output.stderr.len(), 0);
 
-        assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
-        assert_eq!(compile_output.stdout.len(), 0);
-        assert_eq!(compile_output.stderr.len(), 0);
+    // Run the test executable
+    let test_output = if cfg!(target_os = "windows") {
+      process::Command::new("cmd")
+        .arg("/C")
+        .arg(format!(".\\{}.exe", exe_path.to_str().unwrap().replace('/', "\\")))
+        .output()
+        .expect("failed to test")
+    } else {
+      process::Command::new("sh")
+        .arg("-c")
+        .arg(format!("./{}", exe_path.to_str().unwrap()))
+        .output()
+        .expect("failed to test")
+    };
 
-        let test_output = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .arg("/C")
-                .arg(".\\target\\debug\\build\\test_cpp_termite_dependency.exe")
-                .output()
-                .expect("failed to test")
-        } else {
-            process::Command::new("sh")
-                .arg("-c")
-                .arg("./target/debug/build/test_cpp_termite_dependency")
-                .output()
-                .expect("failed to test")
-        };
+    assert_eq!(test_output.status.code().expect("Unable to run test"), 0);
+  }
 
-        assert_eq!(test_output.status.code().expect("Unable to compile"), 0);
-    }
+  #[test]
+  fn termite_result_type() {
+    let compile_output = if cfg!(target_os = "windows") {
+      process::Command::new("cmd")
+        .arg("/C")
+        .arg("g++ src/cpp/termite_test.cpp -Wall -std=c++17 -o target/debug/build/test_cpp_termite_dependency.exe")
+        .output()
+        .expect("failed to compile")
+    } else {
+      process::Command::new("sh")
+        .arg("-c")
+        .arg("g++ src/cpp/termite_test.cpp -Wall -std=c++17 -o target/debug/build/test_cpp_termite_dependency")
+        .output()
+        .expect("failed to compile")
+    };
 
-    #[test]
-    fn default_order() {
-        let data = crate::DataModel {
-            headers: HashMap::new(),
-            footers: HashMap::new(),
-            data_types: vec![
-                crate::DataType {
-                    name: "DataType".to_string(),
-                    description: None,
-                    data: crate::DataTypeData::Struct(crate::Struct {
-                        fields: vec![
-                            crate::StructField {
-                                name: "field1".to_string(),
-                                description: None,
-                                data_type: "int".to_string(),
-                                default: crate::DefaultType::Default("1".to_string()),
-                                constraints: vec![],
-                            },
-                            crate::StructField {
-                                name: "field1".to_string(),
-                                description: None,
-                                data_type: "int".to_string(),
-                                default: crate::DefaultType::Required,
-                                constraints: vec![],
-                            },
-                        ],
-                    }),
-                }
+    assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
+    assert_eq!(compile_output.stdout.len(), 0);
+    assert_eq!(compile_output.stderr.len(), 0);
+
+    let test_output = if cfg!(target_os = "windows") {
+      process::Command::new("cmd")
+        .arg("/C")
+        .arg(".\\target\\debug\\build\\test_cpp_termite_dependency.exe")
+        .output()
+        .expect("failed to test")
+    } else {
+      process::Command::new("sh")
+        .arg("-c")
+        .arg("./target/debug/build/test_cpp_termite_dependency")
+        .output()
+        .expect("failed to test")
+    };
+
+    assert_eq!(test_output.status.code().expect("Unable to compile"), 0);
+  }
+
+  #[test]
+  fn default_order() {
+    let data = crate::DataModel {
+      headers: HashMap::new(),
+      footers: HashMap::new(),
+      data_types: vec![
+        crate::DataType {
+          name: "DataType".to_string(),
+          description: None,
+          data: crate::DataTypeData::Struct(crate::Struct {
+            fields: vec![
+              crate::StructField {
+                name: "field1".to_string(),
+                description: None,
+                data_type: "int".to_string(),
+                default: crate::DefaultType::Default("1".to_string()),
+                constraints: vec![],
+              },
+              crate::StructField {
+                name: "field1".to_string(),
+                description: None,
+                data_type: "int".to_string(),
+                default: crate::DefaultType::Required,
+                constraints: vec![],
+              },
             ],
-        };
+          }),
+        }
+      ],
+    };
 
-        assert!(DataModel::new(data).is_err());
-    }
+    assert!(DataModel::new(data).is_err());
+  }
 
-    #[test]
-    fn optional_order() {
-        let data = crate::DataModel {
-            headers: HashMap::new(),
-            footers: HashMap::new(),
-            data_types: vec![
-                crate::DataType {
-                    name: "DataType".to_string(),
-                    description: None,
-                    data: crate::DataTypeData::Struct(crate::Struct {
-                        fields: vec![
-                            crate::StructField {
-                                name: "field1".to_string(),
-                                description: None,
-                                data_type: "int".to_string(),
-                                default: crate::DefaultType::Optional,
-                                constraints: vec![],
-                            },
-                            crate::StructField {
-                                name: "field1".to_string(),
-                                description: None,
-                                data_type: "int".to_string(),
-                                default: crate::DefaultType::Required,
-                                constraints: vec![],
-                            },
-                        ],
-                    }),
-                }
+  #[test]
+  fn optional_order() {
+    let data = crate::DataModel {
+      headers: HashMap::new(),
+      footers: HashMap::new(),
+      data_types: vec![
+        crate::DataType {
+          name: "DataType".to_string(),
+          description: None,
+          data: crate::DataTypeData::Struct(crate::Struct {
+            fields: vec![
+              crate::StructField {
+                name: "field1".to_string(),
+                description: None,
+                data_type: "int".to_string(),
+                default: crate::DefaultType::Optional,
+                constraints: vec![],
+              },
+              crate::StructField {
+                name: "field1".to_string(),
+                description: None,
+                data_type: "int".to_string(),
+                default: crate::DefaultType::Required,
+                constraints: vec![],
+              },
             ],
-        };
+          }),
+        }
+      ],
+    };
 
-        assert!(DataModel::new(data).is_err());
-    }
+    assert!(DataModel::new(data).is_err());
+  }
+
+  #[test]
+  fn header() {
+    // Check c++ code
+    compile_and_test("header");
+
+    // Make sure it generates the correct code
+    let data_model = DataModel {
+      headers: Headers { source: "// header data".to_string() },
+      footers: Footers { source: "".to_string() },
+      data_types: vec![],
+    };
+    
+    // Create the header file
+    let header_file = data_model.get_source("HEADER", 2);
+    let expected = include_str!("../../tests/cpp/header/header.hpp");
+
+    // Check that they are the same
+    assert_eq!(str_diff(&header_file, &expected), None);
+  }
+
+  #[test]
+  fn footer() {
+    // Check c++ code
+    compile_and_test("footer");
+
+    // Make sure it generates the correct code
+    let data_model = DataModel {
+      headers: Headers { source: "".to_string() },
+      footers: Footers { source: "// footer data".to_string() },
+      data_types: vec![],
+    };
+    
+    // Create the header file
+    let header_file = data_model.get_source("HEADER", 2);
+    let expected = include_str!("../../tests/cpp/footer/footer.hpp");
+
+    // Check that they are the same
+    assert_eq!(str_diff(&header_file, &expected), None);
+  }
+
+  #[test]
+  fn outline() {
+    // Check c++ code
+    compile_and_test("outline");
+
+    // Make sure it generates the correct code
+    let data_model = DataModel {
+      headers: Headers { source: "namespace test {".to_string() },
+      footers: Footers { source: "} // namespace test".to_string() },
+      data_types: vec![
+        DataType {
+          name: "DataType1".to_string(),
+          description: Some("description1".to_string()),
+          data: DataTypeData::Struct(Struct { fields: vec![] }),
+        },
+        DataType {
+          name: "DataType2".to_string(),
+          description: Some("description2".to_string()),
+          data: DataTypeData::Struct(Struct { fields: vec![] }),
+        },
+      ],
+    };
+    
+    // Create the header file
+    let header_file = data_model.get_source("HEADER", 2);
+    let expected = include_str!("../../tests/cpp/outline/outline.hpp");
+
+    // Check that they are the same
+    assert_eq!(str_diff(&header_file, &expected), None);
+  }
 }

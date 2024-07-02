@@ -7,7 +7,7 @@
 #include <variant>
 #include <termite.hpp>
 
-namespace test {
+
 
 /**
  * @brief description1
@@ -125,6 +125,6 @@ private:
 
 };
 
-} // namespace test
+
 
 #endif

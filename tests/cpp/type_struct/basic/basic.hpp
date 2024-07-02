@@ -7,10 +7,10 @@
 #include <variant>
 #include <termite.hpp>
 
-namespace test {
+
 
 /**
- * @brief description1
+ * @brief 
  * 
  */
 class DataType1 {
@@ -68,7 +68,7 @@ private:
 };
 
 /**
- * @brief description2
+ * @brief 
  * 
  */
 class DataType2 {
@@ -125,6 +125,6 @@ private:
 
 };
 
-} // namespace test
+
 
 #endif
