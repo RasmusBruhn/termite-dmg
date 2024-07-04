@@ -199,6 +199,104 @@ std::optional<std::string> test_result_get()
   return std::nullopt;
 }
 
+/**
+ * @brief Test if NodeValue can get read an integer
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_node_value_parse_simple()
+{
+  termite::Node node(termite::NodeValue("123"));
+
+  auto value = node.to_value<int>();
+  if (!value.is_ok()) {
+    return value.get_err().to_string();
+  }
+
+  if (value.get_ok() != 123) {
+    return "Wrong value";
+  }
+
+  return std::nullopt;
+}
+
+/**
+ * @brief Test if NodeValue can get read an integer with spaces
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_node_value_parse_spaces()
+{
+  termite::Node node(termite::NodeValue(" 123 "));
+
+  auto value = node.to_value<int>();
+  if (!value.is_ok()) {
+    return value.get_err().to_string();
+  }
+
+  if (value.get_ok() != 123) {
+    return "Wrong value";
+  }
+
+  return std::nullopt;
+}
+
+/**
+ * @brief Test if NodeValue gets an error with wrong input
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_node_value_parse_error_begin()
+{
+  termite::Node node(termite::NodeValue(".123"));
+
+  auto value = node.to_value<int>();
+  if (value.is_ok()) {
+    std::stringstream ss;
+    ss << "Should not parse: " << value.get_ok();
+    return ss.str();
+  }
+
+  return std::nullopt;
+}
+
+/**
+ * @brief Test if NodeValue gets an error with wrong input
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_node_value_parse_error_end()
+{
+  termite::Node node(termite::NodeValue("123."));
+
+  auto value = node.to_value<int>();
+  if (value.is_ok()) {
+    std::stringstream ss;
+    ss << "Should not parse: " << value.get_ok();
+    return ss.str();
+  }
+
+  return std::nullopt;
+}
+
+/**
+ * @brief Test if NodeValue gets an error with wrong type
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_node_value_parse_error_class()
+{
+  termite::Node node(termite::NodeValue("123"));
+
+  auto value = node.to_value<termite::Empty>();
+  if (value.is_ok()) {
+    return "Should not parse";
+  }
+
+  return std::nullopt;
+}
+
+
 int main() {
   auto names = {
     "test_error_message",
@@ -210,6 +308,11 @@ int main() {
     "test_result_equality",
     "test_result_is_ok",
     "test_result_get",
+    "test_node_value_parse_simple",
+    "test_node_value_parse_spaces",
+    "test_node_value_parse_error_begin",
+    "test_node_value_parse_error_end",
+    "test_node_value_parse_error_class",
   };
   auto functions = {
     test_error_message,
@@ -221,6 +324,11 @@ int main() {
     test_result_equality,
     test_result_is_ok,
     test_result_get,
+    test_node_value_parse_simple,
+    test_node_value_parse_spaces,
+    test_node_value_parse_error_begin,
+    test_node_value_parse_error_end,
+    test_node_value_parse_error_class,
   };
 
   int progress = 1;
