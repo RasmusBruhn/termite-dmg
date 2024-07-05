@@ -6,11 +6,12 @@ use std::collections::HashMap;
 pub struct DataModel {
   /// List of the the data types to implement
   pub data_types: Vec<DataType>,
-  /// List of all header data used to include external packages and start
-  /// namespaces
+  /// List of all header data used to include external packages
   pub headers: HashMap<String, String>,
-  /// List of all footer data used to end namespaces
+  /// List of all footer data
   pub footers: HashMap<String, String>,
+  /// The nested namespace to put the data model into
+  pub namespace: Vec<String>,
 }
 
 impl DataModel {

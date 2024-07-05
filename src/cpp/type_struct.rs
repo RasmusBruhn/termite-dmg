@@ -115,7 +115,7 @@ impl Struct {
       class {name} {{
       public:
       {0:indent$}/**
-      {0:indent$} * @brief Constructs a new {name} object 
+      {0:indent$} * @brief Constructs a new {name} object
       {0:indent$} * 
       {0:indent$} * {constructor_description}
       {0:indent$} */
@@ -167,6 +167,69 @@ impl Struct {
       }};", "",
     );
   }
+
+  /// Gets the source code for the parser for this struct allowing it to be read from a file
+  /// 
+  /// # Parameters
+  /// 
+  /// name: The name of the struct
+  /// 
+  /// indent: The number of spaces to use for indentation
+  /// 
+  /// namespace: The namespace of the struct
+  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String]) -> String {
+    // Get the namespace name
+    let namespace = namespace.iter()
+      .map(|single_name| format!("{single_name}::"))
+      .collect::<Vec<String>>()
+      .join("");
+    let typename = format!("{namespace}{name}");
+
+    // Get the parameter parsing
+    let parsing = self.fields.iter()
+      .map(|field| field.get_parsing(&typename, indent))
+      .collect::<Vec<String>>()
+      .join("\n\n");
+
+    // Get this list of the names of all fields as strings
+    let field_names = self.fields.iter()
+      .map(|field| field.get_name_string())
+      .collect::<Vec<String>>()
+      .join(", ");
+
+    // Get the parameter list for when retrieving them to return at the end
+    let parameter_retrievals = self.fields.iter()
+      .map(|field| field.get_parameter_retrieval())
+      .collect::<Vec<String>>()
+      .join(", ");
+
+    return formatdoc!("
+      template<>
+      [[nodiscard]] Result<{typename}> NodeMap::to_value(bool allow_skipping) const {{
+      {parsing}
+
+      {0:indent$}if (!allow_skipping) {{
+      {0:indent$}{0:indent$}std::vector<std::string> keys;
+      {0:indent$}{0:indent$}std::transform(map_.cbegin(), map_.cend(), std::back_inserter(keys), [](const std::pair<const std::string, std::unique_ptr<Node>> &key_value) {{
+      {0:indent$}{0:indent$}{0:indent$}return key_value.first;
+      {0:indent$}{0:indent$}}});
+      {0:indent$}{0:indent$}std::vector<std::string> leftovers;
+      {0:indent$}{0:indent$}std::copy_if(keys.cbegin(), keys.cend(), std::back_inserter(leftovers), [](const std::string &value) {{
+      {0:indent$}{0:indent$}{0:indent$}std::vector<std::string> correct = {{{field_names}}};
+      {0:indent$}{0:indent$}{0:indent$}return std::find(correct.cbegin(), correct.cend(), value) == correct.cend();
+      {0:indent$}{0:indent$}}});
+      {0:indent$}{0:indent$}if (!leftovers.empty()) {{
+      {0:indent$}{0:indent$}{0:indent$}std::ostringstream ss;
+      {0:indent$}{0:indent$}{0:indent$}ss << \"Found unused fields: \" << leftovers;
+      {0:indent$}{0:indent$}{0:indent$}return Result<{typename}>::err(Error(ss.str()));
+      {0:indent$}{0:indent$}}}
+      {0:indent$}}}
+
+      {0:indent$}return {typename}::from_values({parameter_retrievals});
+      }}",
+      "",
+    )
+  }
 }
 
 impl StructField {
@@ -180,7 +243,7 @@ impl StructField {
       _ => self.data_type.clone(),
     };
   }
-
+  
   /// Gets the default value for this field
   fn get_default(&self) -> String {
     return match &self.default {
@@ -289,7 +352,7 @@ impl StructField {
       {0:indent$}/**
       {0:indent$} * @brief Retrieves a reference to the value of {name}
       {0:indent$} * 
-      {0:indent$} * @return The reference 
+      {0:indent$} * @return The reference
       {0:indent$} */
       {0:indent$}[[nodiscard]] const {typename} &get_{name}() const {{
       {0:indent$}{0:indent$}return {name}_;
@@ -400,6 +463,84 @@ impl StructField {
       description = self.get_description(),
     )
   }
+  
+  /// Gets the parsing for this field if it is required
+  /// 
+  /// # Parameters
+  /// 
+  /// main_name: The name of the type which holds this field including namespace
+  /// 
+  /// indent: The indentation to use
+  fn get_parsing_required(&self, main_name: &str, indent: usize) -> String {
+    return formatdoc!("
+      {0:indent$}auto location_{name} = map_.find(\"{name}\");
+      {0:indent$}if (location_{name} == map_.end()) {{
+      {0:indent$}{0:indent$}return Result<{main_name}>::err(Error(\"Missing {name}\"));
+      {0:indent$}}}
+      {0:indent$}Result<{typename}> raw_value_{name} = location_{name}->second->to_value<{typename}>(allow_skipping);
+      {0:indent$}if (!raw_value_{name}.is_ok()) {{
+      {0:indent$}{0:indent$}Error error = raw_value_{name}.get_err();
+      {0:indent$}{0:indent$}error.add_field(\"{name}\");
+      {0:indent$}{0:indent$}return Result<{main_name}>::err(std::move(error));
+      {0:indent$}}}
+      {0:indent$}{typename} value_{name} = raw_value_{name}.get_ok();",
+      "",
+      name = self.name,
+      typename = self.data_type,
+    );
+  }
+
+  /// Gets the parsing for this field if it is optional
+  /// 
+  /// # Parameters
+  /// 
+  /// main_name: The name of the type which holds this field including namespace
+  /// 
+  /// indent: The indentation to use
+  fn get_parsing_optional(&self, main_name: &str, indent: usize) -> String {
+    return formatdoc!("
+      {0:indent$}auto location_{name} = map_.find(\"{name}\");
+      {0:indent$}{typename} value_{name}{default};
+      {0:indent$}if (location_{name} != map_.end()) {{
+      {0:indent$}{0:indent$}Result<{base_typename}> raw_value_{name} = location_{name}->second->to_value<{base_typename}>(allow_skipping);
+      {0:indent$}{0:indent$}if (!raw_value_{name}.is_ok()) {{
+      {0:indent$}{0:indent$}{0:indent$}Error error = raw_value_{name}.get_err();
+      {0:indent$}{0:indent$}{0:indent$}error.add_field(\"{name}\");
+      {0:indent$}{0:indent$}{0:indent$}return Result<{main_name}>::err(std::move(error));
+      {0:indent$}{0:indent$}}}
+      {0:indent$}{0:indent$}value_{name} = raw_value_{name}.get_ok();
+      {0:indent$}}}",
+      "",
+      name = self.name,
+      typename = self.get_typename(),
+      default = self.get_default(),
+      base_typename = self.data_type,
+    );
+  }
+
+  /// Gets the parsing for this field
+  /// 
+  /// # Parameters
+  /// 
+  /// main_name: The name of the type which holds this field including namespace
+  /// 
+  /// indent: The indentation to use
+  fn get_parsing(&self, main_name: &str, indent: usize) -> String {
+    return match self.default {
+        DefaultType::Required => self.get_parsing_required(main_name, indent),
+        _ => self.get_parsing_optional(main_name, indent),
+    };
+  }
+
+  /// Gets the name of the field as a string
+  fn get_name_string(&self) -> String {
+    return format!("\"{name}\"", name = self.name);
+  }
+
+  /// Gets the value of this field when parsing after it is read
+  fn get_parameter_retrieval(&self) -> String {
+    return format!("std::move(value_{name})", name = self.name);
+  }
 }
 
 #[cfg(test)]
@@ -419,7 +560,7 @@ mod tests {
         return if lhs == rhs {
           None
         } else {
-          Some((index, lhs.to_string(), rhs.to_string()))
+          Some((index + 1, lhs.to_string(), rhs.to_string()))
         };
       })
       .next();
@@ -510,6 +651,7 @@ mod tests {
           data: DataTypeData::Struct(Struct { fields: vec![] }),
         },
       ],
+      namespace: vec!["test".to_string()],
     };
 
     // Create the header file
@@ -541,6 +683,7 @@ mod tests {
           data: DataTypeData::Struct(Struct { fields: vec![] }),
         },
       ],
+      namespace: vec!["test".to_string()],
     };
 
     // Create the header file
@@ -587,6 +730,7 @@ mod tests {
             }),
           },
         ],
+        namespace: vec!["test".to_string()],
       };
 
       // Create the header file
@@ -630,6 +774,7 @@ mod tests {
             }),
           },
         ],
+        namespace: vec!["test".to_string()],
       };
 
       // Create the header file
@@ -673,6 +818,7 @@ mod tests {
             }),
           },
         ],
+        namespace: vec!["test".to_string()],
       };
 
       // Create the header file
@@ -721,6 +867,7 @@ mod tests {
             }),
           },
         ],
+        namespace: vec!["test".to_string()],
       };
 
       // Create the header file

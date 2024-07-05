@@ -21,7 +21,7 @@ struct has_insertion_operator<T, std::void_t<decltype(std::declval<std::ostream 
 
 } // namespace
 
-
+namespace test1 { namespace test2 {
 
 namespace {
 
@@ -39,7 +39,9 @@ operator<<(std::ostream &os, const std::optional<T> &value) {
 
 
 
+} // namespace test1
 
+} // namespace test2
 
 namespace termite {
 
@@ -64,6 +66,6 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 
 } // namespace termite
 
-// footer data
+
 
 #endif

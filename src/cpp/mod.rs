@@ -27,11 +27,12 @@ pub fn get_termite_dependency() -> &'static str {
 pub struct DataModel {
   /// List of the the data types to implement
   data_types: Vec<DataType>,
-  /// List of all header data used to include external packages and start
-  /// namespaces
+  /// List of all header data used to include external packages
   headers: Headers,
-  /// List of all footer data used to end namespaces
+  /// List of all footer data
   footers: Footers,
+  /// The nested namespace to put the data model into
+  namespace: Vec<String>,
 }
 
 impl DataModel {
@@ -62,6 +63,7 @@ impl DataModel {
       data_types,
       headers,
       footers,
+      namespace: data.namespace,
     })
   }
 
@@ -73,9 +75,26 @@ impl DataModel {
   /// 
   /// indent: The number of spaces to use for indentation
   pub fn get_source(&self, name: &str, indent: usize) -> String {
+    // Get the namespace starts
+    let namespace_start = self.namespace.iter()
+      .map(|namespace| format!("namespace {namespace} {{"))
+      .collect::<Vec<String>>()
+      .join(" ");
+
     // Get all structs
     let data_types = self.data_types.iter()
       .map(|data_type| data_type.get_source(indent))
+      .collect::<Vec<String>>()
+      .join("\n\n");
+
+    // Get the namespace end
+    let namespace_end = self.namespace.iter()
+      .map(|namespace| format!("}} // namespace {namespace}"))
+      .collect::<Vec<String>>()
+      .join("\n\n");
+
+    let parsers = self.data_types.iter()
+      .map(|data_type| data_type.get_parser(indent, &self.namespace))
       .collect::<Vec<String>>()
       .join("\n\n");
 
@@ -85,18 +104,72 @@ impl DataModel {
       #define {name}_TERMITE_H_INCLUDED
 
       #include <iostream>
+      #include <sstream>
       #include <optional>
       #include <variant>
+      #include <algorithm>
       #include <termite.hpp>
 
       {header}
+
+      namespace {{
+
+      template <typename T, typename = void>
+      struct has_insertion_operator : std::false_type {{}};
+
+      template <typename T>
+      struct has_insertion_operator<T, std::void_t<decltype(std::declval<std::ostream &>() << std::declval<T>())>> : std::true_type {{}};
+
+      }} // namespace
+
+      {namespace_start}
       
+      namespace {{
+
+      template <typename T>
+      typename std::enable_if<has_insertion_operator<T>::value, std::ostream &>::type
+      operator<<(std::ostream &os, const std::optional<T> &value) {{
+      {0:indent$}if (value) {{
+      {0:indent$}{0:indent$}return os << *value;
+      {0:indent$}}} else {{
+      {0:indent$}{0:indent$}return os << \"nullopt\";
+      {0:indent$}}}
+      }}
+
+      }} // namespace
+
       {data_types}
+
+      {namespace_end}
+
+      namespace termite {{
+      
+      namespace {{
+
+      template <typename T>
+      typename std::enable_if<has_insertion_operator<T>::value, std::ostream &>::type
+      operator<<(std::ostream &os, const std::vector<T> &value) {{
+      {0:indent$}os << \"[ \";
+      {0:indent$}for (auto value_it = value.cbegin(); value_it != value.cend(); ++value_it) {{
+      {0:indent$}{0:indent$}if (value_it != value.cbegin()) {{
+      {0:indent$}{0:indent$}{0:indent$}os << \", \";
+      {0:indent$}{0:indent$}}}
+      {0:indent$}{0:indent$}os << *value_it;
+      {0:indent$}}}
+      {0:indent$}return os << \" ]\";
+      }}
+
+      }} // namespace
+
+      {parsers}
+
+      }} // namespace termite
       
       {footer}
       
       #endif
       ",
+      "",
       header = self.headers.source,
       footer = self.footers.source,
     );
@@ -117,7 +190,7 @@ impl Headers {
   /// 
   /// data: The generic data type to convert
   fn new(mut data: HashMap<String, String>) -> Result<Self, Error> {
-    let source = match data.remove("source") {
+    let source = match data.remove("cpp-source") {
       Some(value) => value,
       None => String::new(),
     };
@@ -142,7 +215,7 @@ impl Footers {
   /// 
   /// data: The generic data type to convert
   fn new(mut data: HashMap<String, String>) -> Result<Self, Error> {
-    let source = match data.remove("source") {
+    let source = match data.remove("cpp-source") {
       Some(value) => value,
       None => String::new(),
     };
@@ -208,6 +281,17 @@ impl DataType {
       definition = self.data.get_source(&self.name, indent),
     );
   }
+
+  /// Gets the source code for the parser for this type allowing it to be read from a file
+  /// 
+  /// # Parameters
+  /// 
+  /// indent: The number of spaces to use for indentation
+  /// 
+  /// namespace: The namespace of the type
+  pub(super) fn get_parser(&self, indent: usize, namespace: &[String]) -> String {
+    return self.data.get_parser(&self.name, indent, namespace);
+  }
 }
 
 /// Supplies the type sepcific information for a data type
@@ -241,6 +325,21 @@ impl DataTypeData {
   fn get_source(&self, name: &str, indent: usize) -> String {
     return match self {
       DataTypeData::Struct(data) => data.get_source(name, indent),
+    };
+  }
+
+  /// Gets the source code for the parser for this type allowing it to be read from a file
+  /// 
+  /// # Parameters
+  /// 
+  /// name: The name of the type
+  /// 
+  /// indent: The number of spaces to use for indentation
+  /// 
+  /// namespace: The namespace of the type
+  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String]) -> String {
+    return match self {
+      DataTypeData::Struct(data) => data.get_parser(name, indent, namespace),
     };
   }
 }
@@ -541,6 +640,7 @@ mod tests {
           }),
         }
       ],
+      namespace: vec![],
     };
 
     assert!(DataModel::new(data).is_err());
@@ -575,6 +675,7 @@ mod tests {
           }),
         }
       ],
+      namespace: vec![],
     };
 
     assert!(DataModel::new(data).is_err());
@@ -590,6 +691,7 @@ mod tests {
       headers: Headers { source: "// header data".to_string() },
       footers: Footers { source: "".to_string() },
       data_types: vec![],
+      namespace: vec![],
     };
     
     // Create the header file
@@ -610,6 +712,7 @@ mod tests {
       headers: Headers { source: "".to_string() },
       footers: Footers { source: "// footer data".to_string() },
       data_types: vec![],
+      namespace: vec![],
     };
     
     // Create the header file
@@ -621,14 +724,36 @@ mod tests {
   }
 
   #[test]
+  fn namespace() {
+    // Check c++ code
+    compile_and_test("namespace");
+
+    // Make sure it generates the correct code
+    let data_model = DataModel {
+      headers: Headers { source: "".to_string() },
+      footers: Footers { source: "".to_string() },
+      data_types: vec![],
+      namespace: vec!["test1".to_string(), "test2".to_string()],
+    };
+    
+    // Create the header file
+    let header_file = data_model.get_source("HEADER", 2);
+    let expected = include_str!("../../tests/cpp/namespace/namespace.hpp");
+
+    // Check that they are the same
+    assert_eq!(str_diff(&header_file, &expected), None);
+  }
+
+
+  #[test]
   fn outline() {
     // Check c++ code
     compile_and_test("outline");
 
     // Make sure it generates the correct code
     let data_model = DataModel {
-      headers: Headers { source: "namespace test {".to_string() },
-      footers: Footers { source: "} // namespace test".to_string() },
+      headers: Headers { source: "// Header".to_string() },
+      footers: Footers { source: "// Footer".to_string() },
       data_types: vec![
         DataType {
           name: "DataType1".to_string(),
@@ -641,6 +766,7 @@ mod tests {
           data: DataTypeData::Struct(Struct { fields: vec![] }),
         },
       ],
+      namespace: vec!["test".to_string()],
     };
     
     // Create the header file

@@ -3,11 +3,39 @@
 #define HEADER_TERMITE_H_INCLUDED
 
 #include <iostream>
+#include <sstream>
 #include <optional>
 #include <variant>
+#include <algorithm>
 #include <termite.hpp>
 
+// Header
+
+namespace {
+
+template <typename T, typename = void>
+struct has_insertion_operator : std::false_type {};
+
+template <typename T>
+struct has_insertion_operator<T, std::void_t<decltype(std::declval<std::ostream &>() << std::declval<T>())>> : std::true_type {};
+
+} // namespace
+
 namespace test {
+
+namespace {
+
+template <typename T>
+typename std::enable_if<has_insertion_operator<T>::value, std::ostream &>::type
+operator<<(std::ostream &os, const std::optional<T> &value) {
+  if (value) {
+    return os << *value;
+  } else {
+    return os << "nullopt";
+  }
+}
+
+} // namespace
 
 /**
  * @brief description1
@@ -16,7 +44,7 @@ namespace test {
 class DataType1 {
 public:
   /**
-   * @brief Constructs a new DataType1 object 
+   * @brief Constructs a new DataType1 object
    * 
    * 
    */
@@ -74,7 +102,7 @@ private:
 class DataType2 {
 public:
   /**
-   * @brief Constructs a new DataType2 object 
+   * @brief Constructs a new DataType2 object
    * 
    * 
    */
@@ -126,5 +154,76 @@ private:
 };
 
 } // namespace test
+
+namespace termite {
+
+namespace {
+
+template <typename T>
+typename std::enable_if<has_insertion_operator<T>::value, std::ostream &>::type
+operator<<(std::ostream &os, const std::vector<T> &value) {
+  os << "[ ";
+  for (auto value_it = value.cbegin(); value_it != value.cend(); ++value_it) {
+    if (value_it != value.cbegin()) {
+      os << ", ";
+    }
+    os << *value_it;
+  }
+  return os << " ]";
+}
+
+} // namespace
+
+template<>
+[[nodiscard]] Result<test::DataType1> NodeMap::to_value(bool allow_skipping) const {
+
+
+  if (!allow_skipping) {
+    std::vector<std::string> keys;
+    std::transform(map_.cbegin(), map_.cend(), std::back_inserter(keys), [](const std::pair<const std::string, std::unique_ptr<Node>> &key_value) {
+      return key_value.first;
+    });
+    std::vector<std::string> leftovers;
+    std::copy_if(keys.cbegin(), keys.cend(), std::back_inserter(leftovers), [](const std::string &value) {
+      std::vector<std::string> correct = {};
+      return std::find(correct.cbegin(), correct.cend(), value) == correct.cend();
+    });
+    if (!leftovers.empty()) {
+      std::ostringstream ss;
+      ss << "Found unused fields: " << leftovers;
+      return Result<test::DataType1>::err(Error(ss.str()));
+    }
+  }
+
+  return test::DataType1::from_values();
+}
+
+template<>
+[[nodiscard]] Result<test::DataType2> NodeMap::to_value(bool allow_skipping) const {
+
+
+  if (!allow_skipping) {
+    std::vector<std::string> keys;
+    std::transform(map_.cbegin(), map_.cend(), std::back_inserter(keys), [](const std::pair<const std::string, std::unique_ptr<Node>> &key_value) {
+      return key_value.first;
+    });
+    std::vector<std::string> leftovers;
+    std::copy_if(keys.cbegin(), keys.cend(), std::back_inserter(leftovers), [](const std::string &value) {
+      std::vector<std::string> correct = {};
+      return std::find(correct.cbegin(), correct.cend(), value) == correct.cend();
+    });
+    if (!leftovers.empty()) {
+      std::ostringstream ss;
+      ss << "Found unused fields: " << leftovers;
+      return Result<test::DataType2>::err(Error(ss.str()));
+    }
+  }
+
+  return test::DataType2::from_values();
+}
+
+} // namespace termite
+
+// Footer
 
 #endif

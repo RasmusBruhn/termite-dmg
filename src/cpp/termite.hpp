@@ -14,11 +14,12 @@
 #include <iostream>
 #include <map>
 #include <memory>
-#include <optional>
 #include <sstream>
 #include <string>
 #include <variant>
 #include <vector>
+
+namespace termite {
 
 namespace {
 
@@ -51,18 +52,6 @@ struct has_equality_operator<
     T, std::void_t<decltype(std::declval<T>() == std::declval<T>())>>
     : std::true_type {};
 }  // namespace
-
-template <typename T>
-typename std::enable_if<has_insertion_operator<T>::value, std::ostream &>::type
-operator<<(std::ostream &os, const std::optional<T> &value) {
-  if (value) {
-    return os << *value;
-  } else {
-    return os << "nullopt";
-  }
-}
-
-namespace termite {
 
 /**
  * @brief An empty class used as the ok value of a result if only the error
@@ -675,14 +664,13 @@ public:
    * @return The same output stream
    */
   friend std::ostream &operator<<(std::ostream &os, const Node &value) {
-    if (std::holds_alternative<NodeValue>(value.value_)) {
-      os << "{ Value: ";
-    } else if (std::holds_alternative<NodeMap>(value.value_)) {
-      os << "{ Map: ";
-    } else if (std::holds_alternative<NodeList>(value.value_)) {
-      os << "{ List: ";
+    if (std::holds_alternative<NodeMap>(value.value_)) {
+      return os << "{ Map " << std::get<NodeMap>(value.value_) << " }";
     }
-    return os << value << " }";
+    if (std::holds_alternative<NodeList>(value.value_)) {
+      return os << "{ List " << std::get<NodeList>(value.value_) << " }";
+    }
+    return os << "{ Value " << std::get<NodeValue>(value.value_) << " }";
   }
   /**
    * @brief Converts this node to a string

@@ -52,7 +52,10 @@
         "xstring": "cpp",
         "xtr1common": "cpp",
         "xutility": "cpp",
-        "vector": "cpp"
+        "vector": "cpp",
+        "algorithm": "cpp",
+        "map": "cpp",
+        "xtree": "cpp"
     },
     "editor.tabSize": 2,
 }
