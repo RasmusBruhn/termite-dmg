@@ -46,7 +46,8 @@ public:
   /**
    * @brief Constructs a new DataType1 object
    * 
-   * 
+   * @param values The values of the array
+   * @return The new array or an error if some constraints were not upheld
    */
   [[nodiscard]] static termite::Result<DataType1> from_values(std::vector<int> values) {
     for (auto value = values.cbegin(); value < values.cend(); ++value) {
@@ -178,7 +179,8 @@ public:
   /**
    * @brief Constructs a new DataType2 object
    * 
-   * 
+   * @param values The values of the array
+   * @return The new array or an error if some constraints were not upheld
    */
   [[nodiscard]] static termite::Result<DataType2> from_values(std::vector<float> values) {
     for (auto value = values.cbegin(); value < values.cend(); ++value) {

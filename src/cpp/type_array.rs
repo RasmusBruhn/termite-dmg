@@ -230,3 +230,129 @@ impl Array {
     );
   }
 }
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use std::{
+    fs,
+    path,
+    process,
+  };
+
+  fn str_diff(lhs: &str, rhs: &str) -> Option<(usize, String, String)> {
+    return lhs.lines()
+      .zip(rhs.lines())
+      .enumerate()
+      .filter_map(|(index, (lhs, rhs))| {
+        return if lhs == rhs {
+          None
+        } else {
+          Some((index + 1, lhs.to_string(), rhs.to_string()))
+        };
+      })
+      .next();
+  }
+
+  fn get_source_path(name: &str) -> path::PathBuf {
+    // Get the filename
+    let filename = path::Path::new(name).file_name().unwrap().to_str().unwrap();
+
+    return path::Path::new("tests/cpp")
+      .join(format!("{name}"))
+      .join(format!("{filename}_test.cpp"));
+  }
+
+  fn get_exe_path(name: &str) -> path::PathBuf {
+    // Get the filename
+    let filename = path::Path::new(name).file_name().unwrap().to_str().unwrap();
+
+    return path::Path::new("target/tests/cpp")
+      .join(format!("{name}"))
+      .join(filename);
+  }
+
+  fn compile_and_test(name: &str) {
+    // Get the paths
+    let source_path = get_source_path(name);
+    let exe_path = get_exe_path(name);
+
+    // Create the output directory
+    fs::create_dir_all(exe_path.parent().unwrap()).unwrap();
+
+    // Compile code
+    let compile_output = if cfg!(target_os = "windows") {
+      process::Command::new("cmd")
+        .arg("/C")
+        .arg(format!("g++ {} -Isrc/cpp -Wall -std=c++17 -o {}.exe", source_path.to_str().unwrap(), exe_path.to_str().unwrap()))
+        .output()
+        .expect("failed to compile")
+    } else {
+      process::Command::new("sh")
+        .arg("-c")
+        .arg(format!("g++ {} -Isrc/cpp -Wall -std=c++17 -o {}", source_path.to_str().unwrap(), exe_path.to_str().unwrap()))
+        .output()
+        .expect("failed to compile")
+    };
+
+    // Make sure it comiled without any warnings
+    assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
+    assert_eq!(compile_output.stdout.len(), 0);
+    assert_eq!(compile_output.stderr.len(), 0);
+
+    // Run the test executable
+    let test_output = if cfg!(target_os = "windows") {
+      process::Command::new("cmd")
+        .arg("/C")
+        .arg(format!(".\\{}.exe", exe_path.to_str().unwrap().replace('/', "\\")))
+        .output()
+        .expect("failed to test")
+    } else {
+      process::Command::new("sh")
+        .arg("-c")
+        .arg(format!("./{}", exe_path.to_str().unwrap()))
+        .output()
+        .expect("failed to test")
+    };
+
+    assert_eq!(test_output.status.code().expect("Unable to run test"), 0);
+  }
+
+  #[test]
+  fn basic() {
+    // Check c++ code
+    compile_and_test("type_array/basic");
+
+    // Make sure it generates the correct code
+    let data_model = DataModel {
+      headers: Headers { source: "".to_string() },
+      footers: Footers { source: "".to_string() },
+      data_types: vec![
+        DataType {
+          name: "DataType1".to_string(),
+          description: None,
+          data: DataTypeData::Array(Array {
+            data_type: "int".to_string(),
+            constraints: vec![],
+          }),
+        },
+        DataType {
+          name: "DataType2".to_string(),
+          description: None,
+          data: DataTypeData::Array(Array {
+            data_type: "float".to_string(),
+            constraints: vec![],
+          }),
+        },
+      ],
+      namespace: vec!["test".to_string()],
+    };
+
+    // Create the header file
+    let header_file = data_model.get_source("HEADER", 2);
+    let expected = include_str!("../../tests/cpp/type_array/basic/basic.hpp");
+
+    // Check that they are the same
+    assert_eq!(str_diff(&header_file, &expected), None);
+  }
+}
