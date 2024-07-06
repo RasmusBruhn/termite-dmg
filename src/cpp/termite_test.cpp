@@ -85,7 +85,8 @@ std::optional<std::string> test_error_add_field() {
 std::optional<std::string> test_error_add_list() {
   std::string correct = "list1[1]";
   termite::Error error("Message");
-  error.add_list("list1", "1");
+  error.add_list(1);
+  error.add_field("list1");
   std::string result = error.get_location();
 
   if (correct != result) {
@@ -93,7 +94,8 @@ std::optional<std::string> test_error_add_list() {
   }
 
   correct = "list2[2].list1[1]";
-  error.add_list("list2", "2");
+  error.add_list(2);
+  error.add_field("list2");
   result = error.get_location();
 
   if (correct != result) {

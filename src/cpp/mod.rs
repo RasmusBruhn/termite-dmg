@@ -15,8 +15,10 @@ use std::{
 };
 
 mod type_struct;
+mod type_array;
 
 use type_struct::Struct;
+use type_array::Array;
 
 /// Obtains the base termite c++ dependency required for all generated data
 /// models
@@ -66,7 +68,7 @@ impl DataModel {
       headers,
       footers,
       namespace: data.namespace,
-    })
+    });
   }
 
   /// Generates the header file
@@ -199,7 +201,7 @@ impl Headers {
 
     return Ok(Self {
       source,
-    })
+    });
   }
 }
 
@@ -224,7 +226,7 @@ impl Footers {
 
     return Ok(Self {
       source,
-    })
+    });
   }
 }
 
@@ -301,6 +303,8 @@ impl DataType {
 enum DataTypeData {
   /// Describes a struct
   Struct(Struct),
+  /// Describes an array
+  Array(Array),
 }
 
 impl DataTypeData {
@@ -312,6 +316,7 @@ impl DataTypeData {
   fn new(data: crate::DataTypeData) -> Result<Self, Error> {
     let result = match data {
       crate::DataTypeData::Struct(data) => DataTypeData::Struct(Struct::new(data)?),
+      crate::DataTypeData::Array(data) => DataTypeData::Array(Array::new(data)?),
     };
 
     return Ok(result);
@@ -327,6 +332,7 @@ impl DataTypeData {
   fn get_source(&self, name: &str, indent: usize) -> String {
     return match self {
       DataTypeData::Struct(data) => data.get_source(name, indent),
+      DataTypeData::Array(data) => data.get_source(name, indent),
     };
   }
 
@@ -342,6 +348,7 @@ impl DataTypeData {
   pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String]) -> String {
     return match self {
       DataTypeData::Struct(data) => data.get_parser(name, indent, namespace),
+      DataTypeData::Array(data) => data.get_parser(name, indent, namespace),
     };
   }
 }
@@ -499,7 +506,7 @@ mod tests {
   }
 
   #[test]
-  fn termite_result_type() {
+  fn termite_basis() {
     let compile_output = if cfg!(target_os = "windows") {
       process::Command::new("cmd")
         .arg("/C")

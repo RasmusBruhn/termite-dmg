@@ -48,6 +48,7 @@ public:
    * 
    * @param field1 
    * @param field2 
+   * @return The new struct or an error if some constraints were not upheld
    */
   [[nodiscard]] static termite::Result<DataType> from_values(int field1, float field2) {
     termite::Result<termite::Empty> validate_result = termite::Result<termite::Empty>::ok(termite::Empty());
@@ -161,11 +162,11 @@ private:
    */
   [[nodiscard]] static termite::Result<termite::Empty> validate_field1(const int &x) {
     if (!(x > 0)) {
-      return termite::Result<termite::Empty>::err(termite::Error("field1 did not pass constaint: x > 0"));
+      return termite::Result<termite::Empty>::err(termite::Error("Did not pass constaint: x > 0"));
     }
 
     if (!(x % 2 == 0)) {
-      return termite::Result<termite::Empty>::err(termite::Error("field1 did not pass constaint: x % 2 == 0"));
+      return termite::Result<termite::Empty>::err(termite::Error("Did not pass constaint: x % 2 == 0"));
     }
 
     return termite::Result<termite::Empty>::ok(termite::Empty());
@@ -178,7 +179,7 @@ private:
    */
   [[nodiscard]] static termite::Result<termite::Empty> validate_field2(const float &x) {
     if (!(std::abs(x) < 1e-9)) {
-      return termite::Result<termite::Empty>::err(termite::Error("field2 did not pass constaint: std::abs(x) < 1e-9"));
+      return termite::Result<termite::Empty>::err(termite::Error("Did not pass constaint: std::abs(x) < 1e-9"));
     }
 
     return termite::Result<termite::Empty>::ok(termite::Empty());

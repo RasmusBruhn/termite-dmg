@@ -52,6 +52,8 @@ pub struct DataType {
 pub enum DataTypeData {
   /// Describes a struct
   Struct(Struct),
+  /// Describes an array
+  Array(Array),
 }
 
 /// The type specific information for a struct
@@ -73,6 +75,15 @@ pub struct StructField {
   /// A default value if it it not required
   pub default: DefaultType,
   /// A list of possible constraints which should always be true
+  pub constraints: Vec<String>,
+}
+
+/// The type sepcific infomation for an array
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Array {
+  /// The data type for all elements
+  pub data_type: String,
+  /// All the constraints that all elements must uphold
   pub constraints: Vec<String>,
 }
 

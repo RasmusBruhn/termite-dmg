@@ -123,25 +123,28 @@ public:
    * @param name The name of the new base
    */
   void add_field(const std::string &name) {
-    if (location_.empty()) {
-      location_ = name;
-    } else {
-      location_ = name + "." + location_;
+    std::ostringstream ss;
+    ss << name;
+    if (!location_.empty() && location_[0] != '[') {
+      ss << ".";
     }
+    ss << location_;
+    location_ = ss.str();
   }
   /**
    * @brief Adds a list element to the locations such that the old location is a
    * field of the new list element
    *
-   * @param name The name of the base list
    * @param index The index of the list
    */
-  void add_list(const std::string &name, const std::string &index) {
-    if (location_.empty()) {
-      location_ = name + "[" + index + "]";
-    } else {
-      location_ = name + "[" + index + "]." + location_;
+  void add_list(size_t index) {
+    std::ostringstream ss;
+    ss << "[" << index << "]";
+    if (!location_.empty() && location_[0] != '[') {
+      ss << ".";
     }
+    ss << location_;
+    location_ = ss.str();
   }
 
   /**

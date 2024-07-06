@@ -47,6 +47,7 @@ public:
    * @brief Constructs a new DataType1 object
    * 
    * 
+   * @return The new struct or an error if some constraints were not upheld
    */
   [[nodiscard]] static termite::Result<DataType1> from_values() {
     
@@ -105,6 +106,7 @@ public:
    * @brief Constructs a new DataType2 object
    * 
    * 
+   * @return The new struct or an error if some constraints were not upheld
    */
   [[nodiscard]] static termite::Result<DataType2> from_values() {
     

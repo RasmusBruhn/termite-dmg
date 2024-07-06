@@ -43,7 +43,7 @@ impl Struct {
     // Move data
     return Ok(Self {
       fields
-    })
+    });
   }
 
   /// Converts the struct to a string for use in the header file
@@ -161,6 +161,7 @@ impl Struct {
       {0:indent$} * @brief Constructs a new {name} object
       {0:indent$} * 
       {0:indent$} * {constructor_description}
+      {0:indent$} * @return The new struct or an error if some constraints were not upheld
       {0:indent$} */
       {0:indent$}[[nodiscard]] static termite::Result<{name}> from_values({constructor_parameters}) {{
       {0:indent$}{0:indent$}{constructor_validators}
@@ -271,7 +272,7 @@ impl Struct {
       {0:indent$}return {typename}::from_values({parameter_retrievals});
       }}",
       "",
-    )
+    );
   }
 }
 
@@ -304,7 +305,7 @@ impl StructField {
       data_type: data.data_type,
       default: data.default,
       constraints: data.constraints,
-    })
+    });
   }
 
   /// Constructs the c++ typename of this field
@@ -386,8 +387,8 @@ impl StructField {
   /// 
   /// indent: The number of spaces to use for indentation
   fn get_setter(&self, indent: usize) -> String {
-    // Create the description
-    let description = self.constraints.iter()
+    // Create the constraints description
+    let constraints = self.constraints.iter()
       .map(|constraint| {
         return format!("\n{0:indent$} * - {constraint}", "");
       })
@@ -396,7 +397,7 @@ impl StructField {
     
     return formatdoc!("
       {0:indent$}/**
-      {0:indent$} * @brief Sets the value of {name} if it fulfills the constraints:{description}
+      {0:indent$} * @brief Sets the value of {name} if it fulfills the constraints:{constraints}
       {0:indent$} * 
       {0:indent$} * @param value The value of {name}
       {0:indent$} * @return An error if one of the constraints were not fulfilled
@@ -476,8 +477,8 @@ impl StructField {
   /// 
   /// indent: The number of spaces to use for indentation
   fn get_validation(&self, indent: usize) -> String {
-    // Create the description
-    let description = self.constraints.iter()
+    // Create the constraints description
+    let constraints = self.constraints.iter()
       .map(|constraint| {
         return format!("\n{0:indent$} * - {constraint}", "");
       })
@@ -488,11 +489,10 @@ impl StructField {
     let tests = self.constraints.iter()
       .map(|constraint| formatdoc!("
         {0:indent$}{0:indent$}if (!({constraint})) {{
-        {0:indent$}{0:indent$}{0:indent$}return termite::Result<termite::Empty>::err(termite::Error(\"{name} did not pass constaint: {constraint}\"));
+        {0:indent$}{0:indent$}{0:indent$}return termite::Result<termite::Empty>::err(termite::Error(\"Did not pass constaint: {constraint}\"));
         {0:indent$}{0:indent$}}}",
         "",
-        name = self.name
-        ))
+      ))
       .collect::<Vec<String>>()
       .join("\n\n");
 
@@ -504,7 +504,7 @@ impl StructField {
     
     return formatdoc!("
       {0:indent$}/**
-      {0:indent$} * @brief Validates if {name} is correct using the following constaints:{description}
+      {0:indent$} * @brief Validates if {name} is correct using the following constaints:{constraints}
       {0:indent$} * 
       {0:indent$} * @param {param_name} The value of the parameter to validate
       {0:indent$} */

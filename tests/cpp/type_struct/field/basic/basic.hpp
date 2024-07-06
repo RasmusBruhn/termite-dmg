@@ -48,6 +48,7 @@ public:
    * 
    * @param field1 
    * @param field2 
+   * @return The new struct or an error if some constraints were not upheld
    */
   [[nodiscard]] static termite::Result<DataType> from_values(int field1, float field2) {
     termite::Result<termite::Empty> validate_result = termite::Result<termite::Empty>::ok(termite::Empty());
