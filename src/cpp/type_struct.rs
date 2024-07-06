@@ -2,7 +2,50 @@ use indoc::formatdoc;
 use crate::DefaultType;
 use super::*;
 
+/// The type specific information for a struct
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct Struct {
+  /// A list of all the fields of the struct
+  pub(super) fields: Vec<StructField>,
+}
+
 impl Struct {
+  /// Constructs a new c++ struct from a generic struct
+  /// 
+  /// # Parameters
+  /// 
+  /// data: The generic struct to convert
+  pub(super) fn new(data: crate::Struct) -> Result<Self, Error> {
+    // Make sure the required fields are first
+    if let Some(name) = data.fields.iter()
+      .scan(false, |found_optional, field| {
+        if let crate::DefaultType::Required = field.default {
+          if *found_optional {
+            return Some(Some(&field.name));
+          }
+        } else {
+          *found_optional = true;
+        }
+
+        return Some(None);
+      })
+      .filter_map(|value| value)
+      .next() {
+      return Err(Error {
+        location: "".to_string(),
+        error: ErrorCore::StructFieldOrder(name.clone()),
+      })
+    }
+
+    // Convert the fields
+    let fields = data.fields.into_iter().map(|data| StructField::new(data)).collect::<Result<Vec<StructField>, Error>>()?;
+
+    // Move data
+    return Ok(Self {
+      fields
+    })
+  }
+
   /// Converts the struct to a string for use in the header file
   /// 
   /// # Parameters
@@ -232,7 +275,38 @@ impl Struct {
   }
 }
 
+/// A single field for a struct
+#[derive(Clone, Debug, PartialEq)]
+pub(super) struct StructField {
+  /// The name of the field
+  pub(super) name: String,
+  /// A description of the field
+  pub(super) description: Option<String>,
+  /// The data type of the field
+  pub(super) data_type: String,
+  /// Describes if the field is required or not, if optional it gives the
+  /// default value
+  pub(super) default: crate::DefaultType,
+  /// A list of all the constraints the field must uphold
+  pub(super) constraints: Vec<String>,
+}
+
 impl StructField {
+  /// Constructs a new c++ struct field from a generic struct field
+  /// 
+  /// # Parameters
+  /// 
+  /// data: The generic struct field to convert
+  fn new(data: crate::StructField) -> Result<Self, Error> {
+    return Ok(Self {
+      name: data.name,
+      description: data.description,
+      data_type: data.data_type,
+      default: data.default,
+      constraints: data.constraints,
+    })
+  }
+
   /// Constructs the c++ typename of this field
   fn get_typename(&self) -> String {
     return match &self.default {

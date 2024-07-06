@@ -16,6 +16,8 @@ use std::{
 
 mod type_struct;
 
+use type_struct::Struct;
+
 /// Obtains the base termite c++ dependency required for all generated data
 /// models
 pub fn get_termite_dependency() -> &'static str {
@@ -341,84 +343,6 @@ impl DataTypeData {
     return match self {
       DataTypeData::Struct(data) => data.get_parser(name, indent, namespace),
     };
-  }
-}
-
-/// The type specific information for a struct
-#[derive(Clone, Debug, PartialEq)]
-struct Struct {
-  /// A list of all the fields of the struct
-  fields: Vec<StructField>,
-}
-
-impl Struct {
-  /// Constructs a new c++ struct from a generic struct
-  /// 
-  /// # Parameters
-  /// 
-  /// data: The generic struct to convert
-  fn new(data: crate::Struct) -> Result<Self, Error> {
-    // Make sure the required fields are first
-    if let Some(name) = data.fields.iter()
-      .scan(false, |found_optional, field| {
-        if let crate::DefaultType::Required = field.default {
-          if *found_optional {
-            return Some(Some(&field.name));
-          }
-        } else {
-          *found_optional = true;
-        }
-
-        return Some(None);
-      })
-      .filter_map(|value| value)
-      .next() {
-      return Err(Error {
-        location: "".to_string(),
-        error: ErrorCore::StructFieldOrder(name.clone()),
-      })
-    }
-
-    // Convert the fields
-    let fields = data.fields.into_iter().map(|data| StructField::new(data)).collect::<Result<Vec<StructField>, Error>>()?;
-
-    // Move data
-    return Ok(Self {
-      fields
-    })
-  }
-}
-
-/// A single field for a struct
-#[derive(Clone, Debug, PartialEq)]
-struct StructField {
-  /// The name of the field
-  name: String,
-  /// A description of the field
-  description: Option<String>,
-  /// The data type of the field
-  data_type: String,
-  /// Describes if the field is required or not, if optional it gives the
-  /// default value
-  default: crate::DefaultType,
-  /// A list of all the constraints the field must uphold
-  constraints: Vec<String>,
-}
-
-impl StructField {
-  /// Constructs a new c++ struct field from a generic struct field
-  /// 
-  /// # Parameters
-  /// 
-  /// data: The generic struct field to convert
-  fn new(data: crate::StructField) -> Result<Self, Error> {
-    return Ok(Self {
-      name: data.name,
-      description: data.description,
-      data_type: data.data_type,
-      default: data.default,
-      constraints: data.constraints,
-    })
   }
 }
 
