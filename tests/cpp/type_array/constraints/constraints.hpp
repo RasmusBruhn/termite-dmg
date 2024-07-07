@@ -64,6 +64,8 @@ public:
 
   /**
    * @brief Sets the values if they fulfill the constraints:
+   * - x > 0
+   * - x % 2 == 0
    * 
    * @param values The values to set
    * @return An error if one of the constraints were not fulfilled
@@ -84,6 +86,8 @@ public:
 
   /**
    * @brief Pushes a single value if it fulfill the constraints:
+   * - x > 0
+   * - x % 2 == 0
    * 
    * @param value The value to set
    * @return An error if one of the constraints were not fulfilled
@@ -158,11 +162,19 @@ private:
 
   /**
    * @brief Validates if an element is correct using the following constaints:
+   * - x > 0
+   * - x % 2 == 0
    * 
-   * @param  The value of the parameter to validate
+   * @param x The value of the parameter to validate
    */
-  [[nodiscard]] static termite::Result<termite::Empty> validate(const int &) {
+  [[nodiscard]] static termite::Result<termite::Empty> validate(const int &x) {
+    if (!(x > 0)) {
+      return termite::Result<termite::Empty>::err(termite::Error("Did not pass constaint: x > 0"));
+    }
 
+    if (!(x % 2 == 0)) {
+      return termite::Result<termite::Empty>::err(termite::Error("Did not pass constaint: x % 2 == 0"));
+    }
 
     return termite::Result<termite::Empty>::ok(termite::Empty());
   }
@@ -201,6 +213,7 @@ public:
 
   /**
    * @brief Sets the values if they fulfill the constraints:
+   * - std::abs(x) < 1e-9
    * 
    * @param values The values to set
    * @return An error if one of the constraints were not fulfilled
@@ -221,6 +234,7 @@ public:
 
   /**
    * @brief Pushes a single value if it fulfill the constraints:
+   * - std::abs(x) < 1e-9
    * 
    * @param value The value to set
    * @return An error if one of the constraints were not fulfilled
@@ -295,11 +309,14 @@ private:
 
   /**
    * @brief Validates if an element is correct using the following constaints:
+   * - std::abs(x) < 1e-9
    * 
-   * @param  The value of the parameter to validate
+   * @param x The value of the parameter to validate
    */
-  [[nodiscard]] static termite::Result<termite::Empty> validate(const float &) {
-
+  [[nodiscard]] static termite::Result<termite::Empty> validate(const float &x) {
+    if (!(std::abs(x) < 1e-9)) {
+      return termite::Result<termite::Empty>::err(termite::Error("Did not pass constaint: std::abs(x) < 1e-9"));
+    }
 
     return termite::Result<termite::Empty>::ok(termite::Empty());
   }

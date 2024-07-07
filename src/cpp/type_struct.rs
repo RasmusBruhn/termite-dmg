@@ -627,7 +627,7 @@ mod tests {
   };
 
   fn str_diff(lhs: &str, rhs: &str) -> Option<(usize, String, String)> {
-    return lhs.lines()
+    if let Some(error) = lhs.lines()
       .zip(rhs.lines())
       .enumerate()
       .filter_map(|(index, (lhs, rhs))| {
@@ -637,7 +637,15 @@ mod tests {
           Some((index + 1, lhs.to_string(), rhs.to_string()))
         };
       })
-      .next();
+      .next() {
+      return Some(error);
+    }
+
+    if lhs.lines().count() != rhs.lines().count() {
+      return Some((0, "".to_string(), "".to_string()));
+    }
+
+    return None;
   }
 
   fn get_source_path(name: &str) -> path::PathBuf {

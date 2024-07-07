@@ -184,6 +184,10 @@ impl Array {
       {0:indent$}{0:indent$}return termite::Result<termite::Empty>::ok(termite::Empty());
       {0:indent$}}}
 
+      {0:indent$}/**
+      {0:indent$} * @brief The values of the array
+      {0:indent$} * 
+      {0:indent$} */
       {0:indent$}std::vector<{typename}> values_;
       }};",
       "",
@@ -241,7 +245,7 @@ mod tests {
   };
 
   fn str_diff(lhs: &str, rhs: &str) -> Option<(usize, String, String)> {
-    return lhs.lines()
+    if let Some(error) = lhs.lines()
       .zip(rhs.lines())
       .enumerate()
       .filter_map(|(index, (lhs, rhs))| {
@@ -251,7 +255,15 @@ mod tests {
           Some((index + 1, lhs.to_string(), rhs.to_string()))
         };
       })
-      .next();
+      .next() {
+      return Some(error);
+    }
+
+    if lhs.lines().count() != rhs.lines().count() {
+      return Some((0, "".to_string(), "".to_string()));
+    }
+
+    return None;
   }
 
   fn get_source_path(name: &str) -> path::PathBuf {
@@ -351,6 +363,49 @@ mod tests {
     // Create the header file
     let header_file = data_model.get_source("HEADER", 2);
     let expected = include_str!("../../tests/cpp/type_array/basic/basic.hpp");
+
+    // Check that they are the same
+    assert_eq!(str_diff(&header_file, &expected), None);
+  }
+
+  #[test]
+  fn constraints() {
+    // Check c++ code
+    compile_and_test("type_array/constraints");
+
+    // Make sure it generates the correct code
+    let data_model = DataModel {
+      headers: Headers { source: "".to_string() },
+      footers: Footers { source: "".to_string() },
+      data_types: vec![
+        DataType {
+          name: "DataType1".to_string(),
+          description: None,
+          data: DataTypeData::Array(Array {
+            data_type: "int".to_string(),
+            constraints: vec![
+              "x > 0".to_string(),
+              "x % 2 == 0".to_string(),
+            ],
+          }),
+        },
+        DataType {
+          name: "DataType2".to_string(),
+          description: None,
+          data: DataTypeData::Array(Array {
+            data_type: "float".to_string(),
+            constraints: vec![
+              "std::abs(x) < 1e-9".to_string(),
+            ],
+          }),
+        },
+      ],
+      namespace: vec!["test".to_string()],
+    };
+
+    // Create the header file
+    let header_file = data_model.get_source("HEADER", 2);
+    let expected = include_str!("../../tests/cpp/type_array/constraints/constraints.hpp");
 
     // Check that they are the same
     assert_eq!(str_diff(&header_file, &expected), None);
