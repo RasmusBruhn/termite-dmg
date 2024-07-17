@@ -112,7 +112,7 @@ public:
   }
 
   /**
-   * @brief Checks if this object the the other object are identical
+   * @brief Checks if this object and the other object are identical
    * 
    * @param x The other object to compare with
    * @return true if they are identical, false if not
@@ -131,7 +131,7 @@ public:
     return true;
   }
   /**
-   * @brief Checks if this object the the other object are different
+   * @brief Checks if this object and the other object are different
    * 
    * @param x The other object to compare with
    * @return true if they are different, false if not
@@ -259,7 +259,7 @@ public:
   }
 
   /**
-   * @brief Checks if this object the the other object are identical
+   * @brief Checks if this object and the other object are identical
    * 
    * @param x The other object to compare with
    * @return true if they are identical, false if not
@@ -278,7 +278,7 @@ public:
     return true;
   }
   /**
-   * @brief Checks if this object the the other object are different
+   * @brief Checks if this object and the other object are different
    * 
    * @param x The other object to compare with
    * @return true if they are different, false if not

@@ -174,7 +174,7 @@ impl Struct {
       {getter_methods}
 
       {0:indent$}/**
-      {0:indent$} * @brief Checks if this object the the other object are identical
+      {0:indent$} * @brief Checks if this object and the other object are identical
       {0:indent$} * 
       {0:indent$} * @param {other_name} The other object to compare with
       {0:indent$} * @return true if they are identical, false if not
@@ -183,7 +183,7 @@ impl Struct {
       {0:indent$}{0:indent$}return {equality_test};
       {0:indent$}}}
       {0:indent$}/**
-      {0:indent$} * @brief Checks if this object the the other object are different
+      {0:indent$} * @brief Checks if this object and the other object are different
       {0:indent$} * 
       {0:indent$} * @param x The other object to compare with
       {0:indent$} * @return true if they are different, false if not

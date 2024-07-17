@@ -122,7 +122,7 @@ public:
    *
    * @param name The name of the new base
    */
-  void add_field(const std::string &name) {
+  Error &add_field(const std::string &name) {
     std::ostringstream ss;
     ss << name;
     if (!location_.empty() && location_[0] != '[') {
@@ -130,6 +130,7 @@ public:
     }
     ss << location_;
     location_ = ss.str();
+    return *this;
   }
   /**
    * @brief Adds a list element to the locations such that the old location is a
@@ -137,7 +138,7 @@ public:
    *
    * @param index The index of the list
    */
-  void add_list(size_t index) {
+  Error &add_list(size_t index) {
     std::ostringstream ss;
     ss << "[" << index << "]";
     if (!location_.empty() && location_[0] != '[') {
@@ -145,6 +146,7 @@ public:
     }
     ss << location_;
     location_ = ss.str();
+    return *this;
   }
 
   /**
@@ -611,6 +613,10 @@ private:
   std::vector<Node> list_;
 };
 
+/**
+ * @brief A node which can be any kind
+ * 
+ */
 class Node {
 public:
   /**

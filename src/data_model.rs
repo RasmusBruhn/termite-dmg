@@ -78,13 +78,20 @@ pub struct StructField {
   pub constraints: Vec<String>,
 }
 
-/// The type sepcific infomation for an array
+/// The type specific infomation for an array
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Array {
   /// The data type for all elements
   pub data_type: String,
   /// All the constraints that all elements must uphold
   pub constraints: Vec<String>,
+}
+
+/// The type specific data for a variant
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Variant {
+  /// The list of data types the variant can be
+  pub data_types: Vec<String>,
 }
 
 /// Describes whether a field is required or optional

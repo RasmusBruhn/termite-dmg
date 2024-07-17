@@ -16,9 +16,11 @@ use std::{
 
 mod type_struct;
 mod type_array;
+mod type_variant;
 
 use type_struct::Struct;
 use type_array::Array;
+use type_variant::Variant;
 
 /// Obtains the base termite c++ dependency required for all generated data
 /// models

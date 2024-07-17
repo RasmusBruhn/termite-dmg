@@ -1,33 +1,30 @@
 use indoc::formatdoc;
 use super::*;
 
-/// The type specific information for an array
+/// The type specific information for a variant
 #[derive(Clone, Debug, PartialEq)]
-pub(super) struct Array {
-  /// The data type for all elements of the array
-  pub(super) data_type: String,
-  /// A list of all the constraints all elements must uphold
-  pub(super) constraints: Vec<String>,
+pub(super) struct Variant {
+  /// The possible types for the variant
+  pub(super) data_types: Vec<String>,
 }
 
-impl Array {
-  /// Constructs a new c++ array from a generic array
+impl Variant {
+  /// Constructs a new c++ variant from a generic variant
   /// 
   /// # Parameters
   /// 
-  /// data: The generic array to convert
-  pub(super) fn new(data: crate::Array) -> Result<Self, Error> {
+  /// data: The generic variant to convert
+  pub(super) fn new(data: crate::Variant) -> Result<Self, Error> {
     return Ok(Self {
-      data_type: data.data_type,
-      constraints: data.constraints,
+      data_types: data.data_types,
     });
   }
 
-  /// Converts the array to a string for use in the header file
+  /// Converts the variant to a string for use in the header file
   /// 
   /// # Parameters
   /// 
-  /// name: The name of the array
+  /// name: The name of the variant
   /// 
   /// indent: The number of spaces to use for indentation
   pub(super) fn get_source(&self, name: &str, indent: usize) -> String {
@@ -328,86 +325,5 @@ mod tests {
     };
 
     assert_eq!(test_output.status.code().expect("Unable to run test"), 0);
-  }
-
-  #[test]
-  fn basic() {
-    // Check c++ code
-    compile_and_test("type_array/basic");
-
-    // Make sure it generates the correct code
-    let data_model = DataModel {
-      headers: Headers { source: "".to_string() },
-      footers: Footers { source: "".to_string() },
-      data_types: vec![
-        DataType {
-          name: "DataType1".to_string(),
-          description: None,
-          data: DataTypeData::Array(Array {
-            data_type: "int".to_string(),
-            constraints: vec![],
-          }),
-        },
-        DataType {
-          name: "DataType2".to_string(),
-          description: None,
-          data: DataTypeData::Array(Array {
-            data_type: "float".to_string(),
-            constraints: vec![],
-          }),
-        },
-      ],
-      namespace: vec!["test".to_string()],
-    };
-
-    // Create the header file
-    let header_file = data_model.get_source("HEADER", 2);
-    let expected = include_str!("../../tests/cpp/type_array/basic/basic.hpp");
-
-    // Check that they are the same
-    assert_eq!(str_diff(&header_file, &expected), None);
-  }
-
-  #[test]
-  fn constraints() {
-    // Check c++ code
-    compile_and_test("type_array/constraints");
-
-    // Make sure it generates the correct code
-    let data_model = DataModel {
-      headers: Headers { source: "".to_string() },
-      footers: Footers { source: "".to_string() },
-      data_types: vec![
-        DataType {
-          name: "DataType1".to_string(),
-          description: None,
-          data: DataTypeData::Array(Array {
-            data_type: "int".to_string(),
-            constraints: vec![
-              "x > 0".to_string(),
-              "x % 2 == 0".to_string(),
-            ],
-          }),
-        },
-        DataType {
-          name: "DataType2".to_string(),
-          description: None,
-          data: DataTypeData::Array(Array {
-            data_type: "float".to_string(),
-            constraints: vec![
-              "std::abs(x) < 1e-9".to_string(),
-            ],
-          }),
-        },
-      ],
-      namespace: vec!["test".to_string()],
-    };
-
-    // Create the header file
-    let header_file = data_model.get_source("HEADER", 2);
-    let expected = include_str!("../../tests/cpp/type_array/constraints/constraints.hpp");
-
-    // Check that they are the same
-    assert_eq!(str_diff(&header_file, &expected), None);
   }
 }
