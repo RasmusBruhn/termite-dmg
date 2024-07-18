@@ -124,7 +124,7 @@ public:
    * 
    * @return The reference or an error if it is the wrong type
    */
-  [[nodiscard]] const std::variant<int, float> &get_float() const {
+  [[nodiscard]] const std::variant<int, float> &value() const {
     return value_;
   }
 
