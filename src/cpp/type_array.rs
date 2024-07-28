@@ -203,7 +203,7 @@ impl Array {
   /// 
   /// indent: The number of spaces to use for indentation
   /// 
-  /// namespace: The namespace of the struct
+  /// namespace: The namespace of the array
   pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String]) -> String {
     // Get the namespace name
     let namespace = namespace.iter()

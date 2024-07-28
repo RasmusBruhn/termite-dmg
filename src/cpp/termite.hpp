@@ -88,6 +88,57 @@ public:
   }
 };
 
+template <class T>
+class Reference {
+public:
+  explicit Reference(const T &ref) : ref_(ref) {}
+
+  /**
+   * @brief Gets the stored reference
+   * 
+   * @return The reference
+   */
+  const T &get() const {
+    return ref_;
+  }
+
+  /**
+   * @brief Checks if this value and the other value are identical
+   *
+   * @param other The other value to compare with
+   * @return true if they are identical, false if not
+   */
+  [[nodiscard]]
+  typename std::enable_if<has_equality_operator<T>::value, bool>::type
+  operator==(const Reference &other) const {
+    return ref_ == other.ref_;
+  }
+  /**
+   * @brief Checks if this value and the other value are different
+   *
+   * @param other The other value to compare with
+   * @return true if they are different, false if not
+   */
+  [[nodiscard]] bool operator!=(const Reference &other) const {
+    return !(*this == other);
+  }
+  /**
+   * @brief Prints the value to an ostream
+   *
+   * @param os The stream to print to
+   * @param value The value to print
+   * @return The same ostream
+   */
+  typename std::enable_if<has_insertion_operator<T>::value,
+                          std::ostream &>::type friend
+  operator<<(std::ostream &os, const Reference &value) {
+    return os << "{ " << value.ref_ << " }";
+  }
+
+private:
+  const T &ref_;
+};
+
 /**
  * @brief Describes any error within a data model
  *
@@ -615,16 +666,17 @@ private:
 
 /**
  * @brief A node which can be any kind
- * 
+ *
  */
 class Node {
 public:
   /**
    * @brief Constructs a new node
-   * 
+   *
    * @param value The value of the node
    */
-  explicit Node(std::variant<NodeValue, NodeMap, NodeList> value) : value_(std::move(value)) {}
+  explicit Node(std::variant<NodeValue, NodeMap, NodeList> value)
+      : value_(std::move(value)) {}
 
   /**
    * @brief Casts the node to the given type

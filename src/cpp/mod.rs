@@ -307,6 +307,8 @@ enum DataTypeData {
   Struct(Struct),
   /// Describes an array
   Array(Array),
+  /// Describes a variant
+  Variant(Variant),
 }
 
 impl DataTypeData {
@@ -319,6 +321,7 @@ impl DataTypeData {
     let result = match data {
       crate::DataTypeData::Struct(data) => DataTypeData::Struct(Struct::new(data)?),
       crate::DataTypeData::Array(data) => DataTypeData::Array(Array::new(data)?),
+      crate::DataTypeData::Variant(data) => DataTypeData::Variant(Variant::new(data)?),      
     };
 
     return Ok(result);
@@ -335,6 +338,7 @@ impl DataTypeData {
     return match self {
       DataTypeData::Struct(data) => data.get_source(name, indent),
       DataTypeData::Array(data) => data.get_source(name, indent),
+      DataTypeData::Variant(data) => data.get_source(name, indent),
     };
   }
 
@@ -351,6 +355,7 @@ impl DataTypeData {
     return match self {
       DataTypeData::Struct(data) => data.get_parser(name, indent, namespace),
       DataTypeData::Array(data) => data.get_parser(name, indent, namespace),
+      DataTypeData::Variant(data) => data.get_parser(name, indent, namespace),
     };
   }
 }

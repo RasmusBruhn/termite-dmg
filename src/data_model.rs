@@ -54,6 +54,8 @@ pub enum DataTypeData {
   Struct(Struct),
   /// Describes an array
   Array(Array),
+  /// Describes a variant
+  Variant(Variant),
 }
 
 /// The type specific information for a struct

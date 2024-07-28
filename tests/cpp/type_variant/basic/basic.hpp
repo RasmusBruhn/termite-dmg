@@ -55,7 +55,7 @@ public:
   /**
    * @brief Constructs a new DataType object
    * 
-   * @param value
+   * @param value The value of the variant
    * @return The new variant
    */
   [[nodiscard]] static DataType from_values(std::variant<int, float> value) {
@@ -83,7 +83,7 @@ public:
    * 
    * @param value The value to set
    */
-  void set_float(std::variant<int, float> value) {
+  void set_value(std::variant<int, float> value) {
     value_ = std::move(value);
   }
 
@@ -96,35 +96,35 @@ public:
     return static_cast<Variant>(value_.index());
   }
   /**
-   * @brief Moves the value out as a int
+   * @brief Retrieves a reference to the value as a int
    * 
    * @return The value or an error if it is the wrong type
    */
-  [[nodiscard]] termite::Result<int> get_int() {
+  [[nodiscard]] termite::Result<termite::Reference<int>> get_int() {
     if (!std::holds_alternative<int>(value_)) {
-      return termite::Result<int>::err(termite::Error("Value is not a int"));
+      return termite::Result<termite::Reference<int>>::err(termite::Error("Value is not a int"));
     }
 
-    return termite::Result<int>::ok(std::get<int>(std::move(value_)));
+    return termite::Result<termite::Reference<int>>::ok(termite::Reference(std::get<int>(std::move(value_))));
   }
   /**
-   * @brief Moves the value out as a float
+   * @brief Retrieves a reference to the value as a float
    * 
    * @return The value or an error if it is the wrong type
    */
-  [[nodiscard]] termite::Result<float> get_float() {
+  [[nodiscard]] termite::Result<termite::Reference<float>> get_float() {
     if (!std::holds_alternative<float>(value_)) {
-      return termite::Result<float>::err(termite::Error("Value is not a float"));
+      return termite::Result<termite::Reference<float>>::err(termite::Error("Value is not a float"));
     }
 
-    return termite::Result<float>::ok(std::get<float>(std::move(value_)));
+    return termite::Result<termite::Reference<float>>::ok(termite::Reference(std::get<float>(std::move(value_))));
   }
   /**
    * @brief Retrieves a reference to the value
    * 
    * @return The reference or an error if it is the wrong type
    */
-  [[nodiscard]] const std::variant<int, float> &value() const {
+  [[nodiscard]] const std::variant<int, float> &get_value() const {
     return value_;
   }
 
@@ -155,8 +155,7 @@ public:
    */
   friend std::ostream &operator<<(std::ostream &os, const DataType &x) {
     return os << "{ value: ";
-    switch (x.value_.index())
-    {
+    switch (x.value_.index()) {
     case 0:
       os << "int " << std::get<int>(x.value_);
       break;

@@ -21,10 +21,10 @@ int main() {
     return 5;
   }
 
-  if (value1.value() != std::variant<int, float>(1)) {
+  if (value1.get_value() != std::variant<int, float>(1)) {
     return 6;
   }
-  if (value2.value() != std::variant<int, float>((float)1.5)) {
+  if (value2.get_value() != std::variant<int, float>((float)1.5)) {
     return 7;
   }
   if (value1.variant() != test::DataType::Variant::kInt) {
@@ -37,7 +37,7 @@ int main() {
   if (!value1.get_int().is_ok()) {
     return 10;
   }
-  if (value1.get_int().get_ok() != 1) {
+  if (value1.get_int().get_ok().get() != 1) {
     return 11;
   }
   if (value1.get_float().is_ok()) {
@@ -46,7 +46,7 @@ int main() {
   if (!value2.get_float().is_ok()) {
     return 13;
   }
-  if (value2.get_float().get_ok() != 1.5) {
+  if (value2.get_float().get_ok().get() != 1.5) {
     return 14;
   }
   if (value2.get_int().is_ok()) {
@@ -57,14 +57,14 @@ int main() {
   if (!value1.get_float().is_ok()) {
     return 16;
   }
-  if (value1.get_float().get_ok() != 2.5) {
+  if (value1.get_float().get_ok().get() != 2.5) {
     return 17;
   }
   value2.set_int(3);
   if (!value2.get_int().is_ok()) {
     return 18;
   }
-  if (value2.get_int().get_ok() != 3) {
+  if (value2.get_int().get_ok().get() != 3) {
     return 19;
   }
 

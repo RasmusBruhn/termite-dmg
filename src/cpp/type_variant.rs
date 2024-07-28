@@ -1,5 +1,136 @@
+use std::char::{
+  ToLowercase, 
+  ToUppercase
+};
+
 use indoc::formatdoc;
 use super::*;
+
+/// Iterator to convert an iterator of chars to snake case converting all
+/// uppercase characters to an underscore and the lowercase character
+struct ToSnakeCase<'a> {
+  /// The characters to convert to snake case
+  chars: &'a mut dyn Iterator<Item = char>,
+  /// The characters currently being converted to lowercase
+  set_lower: Option<ToLowercase>,
+}
+
+impl<'a> ToSnakeCase<'a> {
+  /// Creates a new ToSnakeCase object
+  /// 
+  /// # Parameters
+  /// 
+  /// chars: The iterator of the characters to convert
+  fn new(chars: &'a mut dyn Iterator<Item = char>) -> Self {
+    // Make sure the first character is lowercase without an underscore
+    let set_lower = if let Some(first_char) = chars.next() {
+      Some(first_char.to_lowercase())
+    } else {
+      None
+    };
+
+    return Self {
+      chars,
+      set_lower,
+    }
+  }
+}
+
+impl<'a> Iterator for ToSnakeCase<'a> {
+  type Item = char;
+
+  fn next(&mut self) -> Option<Self::Item> {
+      // Set to lower case
+      if let Some(set_lower) = &mut self.set_lower {
+        // Get the next character
+        if let Some(next_char) = set_lower.next() {
+          return Some(next_char);
+        }
+
+        // Finish up setting to lowercase
+        self.set_lower = None;
+      }
+
+      // Get next character
+      return if let Some(next_char) = self.chars.next() {
+        // Set to lowercase if it is uppercase
+        if next_char.is_uppercase() {
+          self.set_lower = Some(next_char.to_lowercase());
+          Some('_')
+        } else {
+          Some(next_char)
+        }
+      } else {
+        None
+      }
+  }
+}
+
+/// Iterator to convert an iterator of chars to camel case converting all
+/// underscores and a character to the uppercase character
+struct ToCamelCase<'a> {
+  /// The characters to convert to camel case
+  chars: &'a mut dyn Iterator<Item = char>,
+  /// The characters currently being converted to uppercase
+  set_upper: Option<ToUppercase>,
+}
+
+impl<'a> ToCamelCase<'a> {
+  /// Creates a new ToCamelCase object
+  /// 
+  /// # Parameters
+  /// 
+  /// chars: The iterator of the characters to convert
+  fn new(chars: &'a mut dyn Iterator<Item = char>) -> Self {
+    // Make sure the first character is uppercase without an underscore
+    let set_upper = if let Some(first_char) = chars.next() {
+      Some(first_char.to_uppercase())
+    } else {
+      None
+    };
+
+    return Self {
+      chars,
+      set_upper,
+    }
+  }
+}
+
+impl<'a> Iterator for ToCamelCase<'a> {
+  type Item = char;
+
+  fn next(&mut self) -> Option<Self::Item> {
+      // Set to uppercase
+      if let Some(set_upper) = &mut self.set_upper {
+        // Get the next character
+        if let Some(next_char) = set_upper.next() {
+          return Some(next_char);
+        }
+
+        // Finish up setting to uppercase
+        self.set_upper = None;
+      }
+
+      // Get next character
+      return if let Some(next_char) = self.chars.next() {
+        // Set to uppercase if it is underscore
+        if next_char == '_' {
+          if let Some(to_upper) = self.chars.next() {
+            let mut uppercase = to_upper.to_uppercase();
+            let result = uppercase.next();
+            self.set_upper = Some(uppercase);
+            result
+          } else {
+            None
+          }
+        } else {
+          Some(next_char)
+        }
+      } else {
+        None
+      }
+  }
+}
 
 /// The type specific information for a variant
 #[derive(Clone, Debug, PartialEq)]
@@ -28,97 +159,120 @@ impl Variant {
   /// 
   /// indent: The number of spaces to use for indentation
   pub(super) fn get_source(&self, name: &str, indent: usize) -> String {
-    // Create the constraints description
-    let constraints = self.constraints.iter()
-      .map(|constraint| {
-        return format!("\n{0:indent$} * - {constraint}", "");
+    // Get the variants enum
+    let variant_enum = self.data_types.iter()
+      .enumerate()
+      .map(|(index, data_type)| format!(
+        "{0:indent$}{0:indent$}k{type_name} = {index},", 
+        "", 
+        type_name = ToCamelCase::new(&mut data_type.chars()).collect::<String>()
+      ))
+      .collect::<Vec<String>>()
+      .join("\n");
+
+    // Create list of the variants
+    let variant_list = self.data_types.join(", ");
+
+    // Get snake case naming
+    let snake_case_data_types = self.data_types.iter()
+      .map(|data_type| ToSnakeCase::new(&mut data_type.chars()).collect::<String>())
+      .collect::<Vec<String>>();
+
+    // Create the setters
+    let setters = self.data_types.iter()
+      .zip(snake_case_data_types.iter())
+      .map(|(data_type, snake_case)| formatdoc!{"
+        {0:indent$}/**
+        {0:indent$} * @brief Sets the value as a {data_type}
+        {0:indent$} * 
+        {0:indent$} * @param value The value to set
+        {0:indent$} */
+        {0:indent$}void set_{snake_case}({data_type} value) {{
+        {0:indent$}{0:indent$}value_ = std::move(value);
+        {0:indent$}}}",
+        "",
       })
       .collect::<Vec<String>>()
-      .join("");
+      .join("\n");
 
-    // Create the tests
-    let tests = self.constraints.iter()
-      .map(|constraint| formatdoc!("
-        {0:indent$}{0:indent$}if (!({constraint})) {{
-        {0:indent$}{0:indent$}{0:indent$}return termite::Result<termite::Empty>::err(termite::Error(\"Did not pass constaint: {constraint}\"));
-        {0:indent$}{0:indent$}}}",
+    let getters = self.data_types.iter()
+      .zip(snake_case_data_types.iter())
+      .map(|(data_type, snake_case)| formatdoc!("
+        {0:indent$}/**
+        {0:indent$} * @brief Retrieves a reference to the value as a {data_type}
+        {0:indent$} * 
+        {0:indent$} * @return The value or an error if it is the wrong type
+        {0:indent$} */
+        {0:indent$}[[nodiscard]] termite::Result<termite::Reference<{data_type}>> get_{snake_case}() {{
+        {0:indent$}{0:indent$}if (!std::holds_alternative<{data_type}>(value_)) {{
+        {0:indent$}{0:indent$}{0:indent$}return termite::Result<termite::Reference<{data_type}>>::err(termite::Error(\"Value is not a {data_type}\"));
+        {0:indent$}{0:indent$}}}
+
+        {0:indent$}{0:indent$}return termite::Result<termite::Reference<{data_type}>>::ok(termite::Reference(std::get<{data_type}>(std::move(value_))));
+        {0:indent$}}}",
         "",
       ))
       .collect::<Vec<String>>()
-      .join("\n\n");
+      .join("\n");
 
-    // The name of the validation parameter, should not exist if there are no constraints
-    let param_name = if self.constraints.is_empty() {
-      "".to_string()
-    } else {
-      "x".to_string()
-    };
-  
+    let writer_specifiers = self.data_types.iter()
+      .enumerate()
+      .map(|(index, data_type)| formatdoc!("
+        {0:indent$}{0:indent$}case {index}:
+        {0:indent$}{0:indent$}{0:indent$}os << \"{data_type} \" << std::get<{data_type}>(x.value_);
+        {0:indent$}{0:indent$}{0:indent$}break;",
+        "",
+      ))
+      .collect::<Vec<String>>()
+      .join("\n");
+
     return formatdoc!("
       class {name} {{
       public:
       {0:indent$}/**
+      {0:indent$} * @brief The types of variants
+      {0:indent$} * 
+      {0:indent$} */
+      {0:indent$}enum Variant {{
+      {variant_enum}
+      {0:indent$}}};
+
+      {0:indent$}/**
       {0:indent$} * @brief Constructs a new {name} object
       {0:indent$} * 
-      {0:indent$} * @param values The values of the array
-      {0:indent$} * @return The new array or an error if some constraints were not upheld
+      {0:indent$} * @param value The value of the variant
+      {0:indent$} * @return The new variant
       {0:indent$} */
-      {0:indent$}[[nodiscard]] static termite::Result<{name}> from_values(std::vector<{typename}> values) {{
-      {0:indent$}{0:indent$}for (auto value = values.cbegin(); value < values.cend(); ++value) {{
-      {0:indent$}{0:indent$}{0:indent$}termite::Result<termite::Empty> validate_result = validate(*value);
-      {0:indent$}{0:indent$}{0:indent$}if (!validate_result.is_ok()) {{
-      {0:indent$}{0:indent$}{0:indent$}{0:indent$}termite::Error error = validate_result.get_err();
-      {0:indent$}{0:indent$}{0:indent$}{0:indent$}error.add_list(value - values.cbegin());
-      {0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite::Result<{name}>::err(std::move(error));
-      {0:indent$}{0:indent$}{0:indent$}}}
-      {0:indent$}{0:indent$}}}
-
-      {0:indent$}{0:indent$}return termite::Result<{name}>::ok({name}(std::move(values)));
+      {0:indent$}[[nodiscard]] static {name} from_values(std::variant<{variant_list}> value) {{
+      {0:indent$}{0:indent$}return {name}(std::move(value));
       {0:indent$}}}
 
+      {setters}
       {0:indent$}/**
-      {0:indent$} * @brief Sets the values if they fulfill the constraints:{constraints}
-      {0:indent$} * 
-      {0:indent$} * @param values The values to set
-      {0:indent$} * @return An error if one of the constraints were not fulfilled
-      {0:indent$} */
-      {0:indent$}[[nodiscard]] termite::Result<termite::Empty> set_values(std::vector<{typename}> values) {{
-      {0:indent$}{0:indent$}for (auto value = values.cbegin(); value < values.cend(); ++value) {{
-      {0:indent$}{0:indent$}{0:indent$}termite::Result<termite::Empty> validate_result = validate(*value);
-      {0:indent$}{0:indent$}{0:indent$}if (!validate_result.is_ok()) {{
-      {0:indent$}{0:indent$}{0:indent$}{0:indent$}termite::Error error = validate_result.get_err();
-      {0:indent$}{0:indent$}{0:indent$}{0:indent$}error.add_list(value - values.cbegin());
-      {0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite::Result<termite::Empty>::err(std::move(error));
-      {0:indent$}{0:indent$}{0:indent$}}}
-      {0:indent$}{0:indent$}}}
-
-      {0:indent$}{0:indent$}values_ = std::move(values);
-      {0:indent$}{0:indent$}return termite::Result<termite::Empty>::ok(termite::Empty());
-      {0:indent$}}}
-
-      {0:indent$}/**
-      {0:indent$} * @brief Pushes a single value if it fulfill the constraints:{constraints}
+      {0:indent$} * @brief Sets the value
       {0:indent$} * 
       {0:indent$} * @param value The value to set
-      {0:indent$} * @return An error if one of the constraints were not fulfilled
       {0:indent$} */
-      {0:indent$}[[nodiscard]] termite::Result<termite::Empty> push_value({typename} value) {{
-      {0:indent$}{0:indent$}termite::Result<termite::Empty> validate_result = validate(value);
-      {0:indent$}{0:indent$}if (!validate_result.is_ok()) {{
-      {0:indent$}{0:indent$}{0:indent$}return validate_result;
-      {0:indent$}{0:indent$}}}
-
-      {0:indent$}{0:indent$}values_.push_back(std::move(value));
-      {0:indent$}{0:indent$}return termite::Result<termite::Empty>::ok(termite::Empty());
+      {0:indent$}void set_value(std::variant<{variant_list}> value) {{
+      {0:indent$}{0:indent$}value_ = std::move(value);
       {0:indent$}}}
 
       {0:indent$}/**
-      {0:indent$} * @brief Retrieves a reference to the values
+      {0:indent$} * @brief Retrieves the type of variant stored
       {0:indent$} * 
-      {0:indent$} * @return The reference
+      {0:indent$} * @return The type of variant
       {0:indent$} */
-      {0:indent$}[[nodiscard]] const std::vector<{typename}> &get_values() const {{
-      {0:indent$}{0:indent$}return values_;
+      {0:indent$}[[nodiscard]] Variant variant() const {{
+      {0:indent$}{0:indent$}return static_cast<Variant>(value_.index());
+      {0:indent$}}}
+      {getters}
+      {0:indent$}/**
+      {0:indent$} * @brief Retrieves a reference to the value
+      {0:indent$} * 
+      {0:indent$} * @return The reference or an error if it is the wrong type
+      {0:indent$} */
+      {0:indent$}[[nodiscard]] const std::variant<int, float> &get_value() const {{
+      {0:indent$}{0:indent$}return value_;
       {0:indent$}}}
 
       {0:indent$}/**
@@ -127,18 +281,8 @@ impl Variant {
       {0:indent$} * @param x The other object to compare with
       {0:indent$} * @return true if they are identical, false if not
       {0:indent$} */
-      {0:indent$}[[nodiscard]] bool operator==(const {name} &x) {{
-      {0:indent$}{0:indent$}if (values_.size() != x.values_.size()) {{
-      {0:indent$}{0:indent$}{0:indent$}return false;
-      {0:indent$}{0:indent$}}}
-
-      {0:indent$}{0:indent$}for (auto lhs = values_.cbegin(), rhs = x.values_.cbegin(); lhs < values_.cend(); ++lhs, ++rhs) {{
-      {0:indent$}{0:indent$}{0:indent$}if (*lhs != *rhs) {{
-      {0:indent$}{0:indent$}{0:indent$}{0:indent$}return false;
-      {0:indent$}{0:indent$}{0:indent$}}}
-      {0:indent$}{0:indent$}}}
-
-      {0:indent$}{0:indent$}return true;
+      {0:indent$}[[nodiscard]] bool operator==(const DataType &x) {{
+      {0:indent$}{0:indent$}return value_ == x.value_;
       {0:indent$}}}
       {0:indent$}/**
       {0:indent$} * @brief Checks if this object and the other object are different
@@ -146,8 +290,8 @@ impl Variant {
       {0:indent$} * @param x The other object to compare with
       {0:indent$} * @return true if they are different, false if not
       {0:indent$} */
-      {0:indent$}[[nodiscard]] bool operator!=(const {name} &x) {{
-      {0:indent$}  return !(*this == x);
+      {0:indent$}[[nodiscard]] bool operator!=(const DataType &x) {{
+      {0:indent$}{0:indent$}return !(*this == x);
       {0:indent$}}}
       {0:indent$}/**
       {0:indent$} * @brief Prints the object onto the output stream
@@ -156,51 +300,39 @@ impl Variant {
       {0:indent$} * @param x The object to print
       {0:indent$} * @return The output stream
       {0:indent$} */
-      {0:indent$}friend std::ostream &operator<<(std::ostream &os, const {name} &x) {{
-      {0:indent$}{0:indent$}os << \"{{ values: [ \";
-      {0:indent$}{0:indent$}for (auto value = x.values_.cbegin(); value < x.values_.cend(); ++value) {{
-      {0:indent$}{0:indent$}{0:indent$}if (value != x.values_.cbegin()) {{
-      {0:indent$}{0:indent$}{0:indent$}{0:indent$}os << \", \";
-      {0:indent$}{0:indent$}{0:indent$}}}
-      {0:indent$}{0:indent$}{0:indent$}os << *value;
+      {0:indent$}friend std::ostream &operator<<(std::ostream &os, const DataType &x) {{
+      {0:indent$}{0:indent$}return os << \"{{ value: \";
+      {0:indent$}{0:indent$}switch (x.value_.index()) {{
+      {writer_specifiers}
+      {0:indent$}{0:indent$}default:
+      {0:indent$}{0:indent$}{0:indent$}os << \"Unknown\";
+      {0:indent$}{0:indent$}{0:indent$}break;
       {0:indent$}{0:indent$}}}
-      {0:indent$}{0:indent$}return os << \" ] }}\";
+      {0:indent$}{0:indent$}return os << \" }}\";
       {0:indent$}}}
 
       private:
-      {0:indent$}explicit {name}(std::vector<{typename}> values) : values_(std::move(values)) {{}}
+      {0:indent$}explicit {name}(std::variant<{variant_list}> value) : value_(std::move(value)) {{}}
 
       {0:indent$}/**
-      {0:indent$} * @brief Validates if an element is correct using the following constaints:{constraints}
-      {0:indent$} * 
-      {0:indent$} * @param {param_name} The value of the parameter to validate
-      {0:indent$} */
-      {0:indent$}[[nodiscard]] static termite::Result<termite::Empty> validate(const {typename} &{param_name}) {{
-      {tests}
-
-      {0:indent$}{0:indent$}return termite::Result<termite::Empty>::ok(termite::Empty());
-      {0:indent$}}}
-
-      {0:indent$}/**
-      {0:indent$} * @brief The values of the array
+      {0:indent$} * @brief The value of the variant
       {0:indent$} * 
       {0:indent$} */
-      {0:indent$}std::vector<{typename}> values_;
+      {0:indent$}std::variant<{variant_list}> value_;
       }};",
       "",
-      typename = self.data_type,
     );
   }
 
-  /// Gets the source code for the parser for this array allowing it to be read from a file
+  /// Gets the source code for the parser for this variant allowing it to be read from a file
   /// 
   /// # Parameters
   /// 
-  /// name: The name of the array
+  /// name: The name of the variant
   /// 
   /// indent: The number of spaces to use for indentation
   /// 
-  /// namespace: The namespace of the struct
+  /// namespace: The namespace of the variant
   pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String]) -> String {
     // Get the namespace name
     let namespace = namespace.iter()
@@ -209,25 +341,43 @@ impl Variant {
       .join("");
     let typename = format!("{namespace}{name}");
 
+    // Get snake case naming
+    let snake_case_data_types = self.data_types.iter()
+      .map(|data_type| ToSnakeCase::new(&mut data_type.chars()).collect::<String>())
+      .collect::<Vec<String>>();
+
+    // Get all the readers
+    let readers = self.data_types.iter()
+      .zip(snake_case_data_types.iter())
+      .map(|(data_type, snake_case)| formatdoc!("
+        {0:indent$}Result<{data_type}> result_{snake_case} = to_value<{data_type}>(allow_skipping);
+        {0:indent$}if (result_{snake_case}.is_ok()) {{
+        {0:indent$}{0:indent$}return Result<{typename}>::ok({typename}::from_values(result_{snake_case}.get_ok()));
+        {0:indent$}}}
+        {0:indent$}error << \"{data_type} {{ \" << result_{snake_case}.get_err() << \" }}\";",
+      "",
+      ))
+      .collect::<Vec<String>>()
+      .join(&formatdoc!("
+          
+          {0:indent$}error << \", \";
+
+        ",
+        "",
+      ));
+
     return formatdoc!("
       template<>
-      [[nodiscard]] Result<{typename}> NodeList::to_value(bool allow_skipping) const {{
-      {0:indent$}std::vector<{data_type}> values;
-      {0:indent$}values.reserve(list_.size());
-      {0:indent$}for (auto node = list_.cbegin(); node < list_.cend(); ++node) {{
-      {0:indent$}{0:indent$}Result<{data_type}> value = node->to_value<{data_type}>(allow_skipping);
-      {0:indent$}{0:indent$}if (!value.is_ok()) {{
-      {0:indent$}{0:indent$}{0:indent$}Error error = value.get_err();
-      {0:indent$}{0:indent$}{0:indent$}error.add_list(node - list_.cbegin());
-      {0:indent$}{0:indent$}{0:indent$}return Result<{typename}>::err(std::move(error));
-      {0:indent$}{0:indent$}}}
-      {0:indent$}{0:indent$}values.push_back(std::move(value.get_ok()));
-      {0:indent$}}}
+      [[nodiscard]] Result<{typename}> Node::to_value(bool allow_skipping) const {{
+      {0:indent$}std::stringstream error;
+      {0:indent$}error << \"Unable to parse any variant: [ \";
 
-      {0:indent$}return {typename}::from_values(std::move(values));
+      {readers}
+      {0:indent$}error << \" ]\";
+
+      {0:indent$}return Result<{typename}>::err(Error(error.str()));
       }}",
       "",
-      data_type = self.data_type,
     );
   }
 }
@@ -325,5 +475,37 @@ mod tests {
     };
 
     assert_eq!(test_output.status.code().expect("Unable to run test"), 0);
+  }
+
+  #[test]
+  fn basic() {
+    // Check c++ code
+    compile_and_test("type_variant/basic");
+
+    // Make sure it generates the correct code
+    let data_model = DataModel {
+      headers: Headers { source: "".to_string() },
+      footers: Footers { source: "".to_string() },
+      data_types: vec![
+        DataType {
+          name: "DataType".to_string(),
+          description: None,
+          data: DataTypeData::Variant(Variant {
+            data_types: vec![
+              "int".to_string(),
+              "float".to_string(),
+            ],
+          }),
+        },
+      ],
+      namespace: vec!["test".to_string()],
+    };
+
+    // Create the header file
+    let header_file = data_model.get_source("HEADER", 2);
+    let expected = include_str!("../../tests/cpp/type_variant/basic/basic.hpp");
+
+    // Check that they are the same
+    assert_eq!(str_diff(&header_file, &expected), None);
   }
 }
