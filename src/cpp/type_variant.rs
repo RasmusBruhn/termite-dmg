@@ -301,7 +301,7 @@ impl Variant {
       {0:indent$} * @return The output stream
       {0:indent$} */
       {0:indent$}friend std::ostream &operator<<(std::ostream &os, const DataType &x) {{
-      {0:indent$}{0:indent$}return os << \"{{ value: \";
+      {0:indent$}{0:indent$}os << \"{{ value: \";
       {0:indent$}{0:indent$}switch (x.value_.index()) {{
       {writer_specifiers}
       {0:indent$}{0:indent$}default:

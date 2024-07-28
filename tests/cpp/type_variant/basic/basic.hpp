@@ -154,7 +154,7 @@ public:
    * @return The output stream
    */
   friend std::ostream &operator<<(std::ostream &os, const DataType &x) {
-    return os << "{ value: ";
+    os << "{ value: ";
     switch (x.value_.index()) {
     case 0:
       os << "int " << std::get<int>(x.value_);
