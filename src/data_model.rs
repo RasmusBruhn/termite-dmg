@@ -56,6 +56,8 @@ pub enum DataTypeData {
   Array(Array),
   /// Describes a variant
   Variant(Variant),
+  /// Describes a constrained type
+  ConstrainedType(ConstrainedType),
 }
 
 /// The type specific information for a struct
@@ -94,6 +96,15 @@ pub struct Array {
 pub struct Variant {
   /// The list of data types the variant can be
   pub data_types: Vec<String>,
+}
+
+/// The type specific data for a constrained type
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct ConstrainedType {
+  /// The type that is constrained
+  pub data_type: String,
+  /// All extra constraints for the type
+  pub constraints: Vec<String>,
 }
 
 /// Describes whether a field is required or optional

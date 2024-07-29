@@ -59,7 +59,7 @@ public:
     return termite::Result<DataType1>::ok(DataType1(std::move(value)));
   }
 
-    /**
+  /**
    * @brief Sets the value if it fulfills the constraints:
    * 
    * @param value The value to set
@@ -156,7 +156,7 @@ public:
     return termite::Result<DataType2>::ok(DataType2(std::move(value)));
   }
 
-    /**
+  /**
    * @brief Sets the value if it fulfills the constraints:
    * 
    * @param value The value to set

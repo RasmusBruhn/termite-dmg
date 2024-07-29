@@ -25,4 +25,4 @@
 mod data_model;
 pub mod cpp;
 
-pub use data_model::{DataModel, DataType, DataTypeData, Struct, StructField, DefaultType, Array, Variant};
+pub use data_model::{DataModel, DataType, DataTypeData, Struct, StructField, DefaultType, Array, Variant, ConstrainedType};
