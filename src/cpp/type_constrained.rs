@@ -136,7 +136,7 @@ impl ConstrainedType {
       {0:indent$}/**
       {0:indent$} * @brief Validates if value is correct using the following constaints:{constraints}
       {0:indent$} * 
-      {0:indent$} * @param  The value of the parameter to validate
+      {0:indent$} * @param {param_name} The value of the parameter to validate
       {0:indent$} */
       {0:indent$}[[nodiscard]] static termite::Result<termite::Empty> validate(const {data_type} &{param_name}) {{
       {tests}
@@ -318,6 +318,49 @@ mod tests {
     // Create the header file
     let header_file = data_model.get_source("HEADER", 2);
     let expected = include_str!("../../tests/cpp/type_constrained/basic/basic.hpp");
+
+    // Check that they are the same
+    assert_eq!(str_diff(&header_file, &expected), None);
+  }
+
+  #[test]
+  fn constraints() {
+    // Check c++ code
+    compile_and_test("type_constrained/constraints");
+
+    // Make sure it generates the correct code
+    let data_model = DataModel {
+      headers: Headers { source: "".to_string() },
+      footers: Footers { source: "".to_string() },
+      data_types: vec![
+        DataType {
+          name: "DataType1".to_string(),
+          description: None,
+          data: DataTypeData::ConstrainedType(ConstrainedType {
+            data_type: "int".to_string(),
+            constraints: vec![
+              "x > 0".to_string(),
+              "x % 2 == 0".to_string(),
+            ],
+          }),
+        },
+        DataType {
+          name: "DataType2".to_string(),
+          description: None,
+          data: DataTypeData::ConstrainedType(ConstrainedType {
+            data_type: "float".to_string(),
+            constraints: vec![
+              "std::abs(x) < 1e-9".to_string(),
+            ],
+          }),
+        },
+      ],
+      namespace: vec!["test".to_string()],
+    };
+
+    // Create the header file
+    let header_file = data_model.get_source("HEADER", 2);
+    let expected = include_str!("../../tests/cpp/type_constrained/constraints/constraints.hpp");
 
     // Check that they are the same
     assert_eq!(str_diff(&header_file, &expected), None);
