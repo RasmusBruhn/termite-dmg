@@ -47,65 +47,29 @@ public:
    * @brief Constructs a new DataType1 object
    * 
    * @param values The values of the array
-   * @return The new array or an error if some constraints were not upheld
    */
-  [[nodiscard]] static termite::Result<DataType1> from_values(std::vector<int> values) {
-    for (auto value = values.cbegin(); value < values.cend(); ++value) {
-      termite::Result<termite::Empty> validate_result = validate(*value);
-      if (!validate_result.is_ok()) {
-        termite::Error error = validate_result.get_err();
-        error.add_list(value - values.cbegin());
-        return termite::Result<DataType1>::err(std::move(error));
-      }
-    }
-
-    return termite::Result<DataType1>::ok(DataType1(std::move(values)));
-  }
+  explicit DataType1(std::vector<int> values) : values_(std::move(values)) {}
 
   /**
-   * @brief Sets the values if they fulfill the constraints:
+   * @brief Sets the values
    * 
    * @param values The values to set
-   * @return An error if one of the constraints were not fulfilled
    */
-  [[nodiscard]] termite::Result<termite::Empty> set_values(std::vector<int> values) {
-    for (auto value = values.cbegin(); value < values.cend(); ++value) {
-      termite::Result<termite::Empty> validate_result = validate(*value);
-      if (!validate_result.is_ok()) {
-        termite::Error error = validate_result.get_err();
-        error.add_list(value - values.cbegin());
-        return termite::Result<termite::Empty>::err(std::move(error));
-      }
-    }
-
-    values_ = std::move(values);
-    return termite::Result<termite::Empty>::ok(termite::Empty());
-  }
+  void set_values(std::vector<int> values) { values_ = std::move(values); }
 
   /**
-   * @brief Pushes a single value if it fulfill the constraints:
+   * @brief Pushes a single value
    * 
    * @param value The value to set
-   * @return An error if one of the constraints were not fulfilled
    */
-  [[nodiscard]] termite::Result<termite::Empty> push_value(int value) {
-    termite::Result<termite::Empty> validate_result = validate(value);
-    if (!validate_result.is_ok()) {
-      return validate_result;
-    }
-
-    values_.push_back(std::move(value));
-    return termite::Result<termite::Empty>::ok(termite::Empty());
-  }
+  void push_value(int value) { values_.push_back(std::move(value)); }
 
   /**
    * @brief Retrieves a reference to the values
    * 
    * @return The reference
    */
-  [[nodiscard]] const std::vector<int> &get_values() const {
-    return values_;
-  }
+  [[nodiscard]] const std::vector<int> &get_values() const { return values_; }
 
   /**
    * @brief Checks if this object and the other object are identical
@@ -154,19 +118,6 @@ public:
   }
 
 private:
-  explicit DataType1(std::vector<int> values) : values_(std::move(values)) {}
-
-  /**
-   * @brief Validates if an element is correct using the following constaints:
-   * 
-   * @param  The value of the parameter to validate
-   */
-  [[nodiscard]] static termite::Result<termite::Empty> validate(const int &) {
-
-
-    return termite::Result<termite::Empty>::ok(termite::Empty());
-  }
-
   /**
    * @brief The values of the array
    * 
@@ -184,65 +135,29 @@ public:
    * @brief Constructs a new DataType2 object
    * 
    * @param values The values of the array
-   * @return The new array or an error if some constraints were not upheld
    */
-  [[nodiscard]] static termite::Result<DataType2> from_values(std::vector<float> values) {
-    for (auto value = values.cbegin(); value < values.cend(); ++value) {
-      termite::Result<termite::Empty> validate_result = validate(*value);
-      if (!validate_result.is_ok()) {
-        termite::Error error = validate_result.get_err();
-        error.add_list(value - values.cbegin());
-        return termite::Result<DataType2>::err(std::move(error));
-      }
-    }
-
-    return termite::Result<DataType2>::ok(DataType2(std::move(values)));
-  }
+  explicit DataType2(std::vector<float> values) : values_(std::move(values)) {}
 
   /**
-   * @brief Sets the values if they fulfill the constraints:
+   * @brief Sets the values
    * 
    * @param values The values to set
-   * @return An error if one of the constraints were not fulfilled
    */
-  [[nodiscard]] termite::Result<termite::Empty> set_values(std::vector<float> values) {
-    for (auto value = values.cbegin(); value < values.cend(); ++value) {
-      termite::Result<termite::Empty> validate_result = validate(*value);
-      if (!validate_result.is_ok()) {
-        termite::Error error = validate_result.get_err();
-        error.add_list(value - values.cbegin());
-        return termite::Result<termite::Empty>::err(std::move(error));
-      }
-    }
-
-    values_ = std::move(values);
-    return termite::Result<termite::Empty>::ok(termite::Empty());
-  }
+  void set_values(std::vector<float> values) { values_ = std::move(values); }
 
   /**
-   * @brief Pushes a single value if it fulfill the constraints:
+   * @brief Pushes a single value
    * 
    * @param value The value to set
-   * @return An error if one of the constraints were not fulfilled
    */
-  [[nodiscard]] termite::Result<termite::Empty> push_value(float value) {
-    termite::Result<termite::Empty> validate_result = validate(value);
-    if (!validate_result.is_ok()) {
-      return validate_result;
-    }
-
-    values_.push_back(std::move(value));
-    return termite::Result<termite::Empty>::ok(termite::Empty());
-  }
+  void push_value(float value) { values_.push_back(std::move(value)); }
 
   /**
    * @brief Retrieves a reference to the values
    * 
    * @return The reference
    */
-  [[nodiscard]] const std::vector<float> &get_values() const {
-    return values_;
-  }
+  [[nodiscard]] const std::vector<float> &get_values() const { return values_; }
 
   /**
    * @brief Checks if this object and the other object are identical
@@ -291,19 +206,6 @@ public:
   }
 
 private:
-  explicit DataType2(std::vector<float> values) : values_(std::move(values)) {}
-
-  /**
-   * @brief Validates if an element is correct using the following constaints:
-   * 
-   * @param  The value of the parameter to validate
-   */
-  [[nodiscard]] static termite::Result<termite::Empty> validate(const float &) {
-
-
-    return termite::Result<termite::Empty>::ok(termite::Empty());
-  }
-
   /**
    * @brief The values of the array
    * 
@@ -346,7 +248,7 @@ template<>
     values.push_back(std::move(value.get_ok()));
   }
 
-  return test::DataType1::from_values(std::move(values));
+  return Result<test::DataType1>::ok(test::DataType1(std::move(values)));
 }
 
 template<>
@@ -363,7 +265,7 @@ template<>
     values.push_back(std::move(value.get_ok()));
   }
 
-  return test::DataType2::from_values(std::move(values));
+  return Result<test::DataType2>::ok(test::DataType2(std::move(values)));
 }
 
 } // namespace termite

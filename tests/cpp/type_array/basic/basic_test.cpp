@@ -2,41 +2,37 @@
 #include "basic.hpp"
 
 int main() {
-  auto value1 = test::DataType1::from_values({1, 2}).get_ok();
-  auto value2 = test::DataType2::from_values({1.5, -3.5}).get_ok();
+  auto value1 = test::DataType1({1, 2});
+  auto value2 = test::DataType2({1.5, -3.5});
   if (value1 != value1) {
     return 1;
   }
   if (value2.get_values() != std::vector<float>{1.5, -3.5}) {
     return 2;
   }
-  if (value1 == test::DataType1::from_values({1, 2, 3}).get_ok()) {
+  if (value1 == test::DataType1({1, 2, 3})) {
     return 3;
   }
-  if (value1 == test::DataType1::from_values({1, 3}).get_ok()) {
+  if (value1 == test::DataType1({1, 3})) {
     return 4;
   }
-  if (value2 == test::DataType2::from_values({1.5}).get_ok()) {
+  if (value2 == test::DataType2({1.5})) {
     return 5;
   }
-  if (value2 == test::DataType2::from_values({1.5, 3.5}).get_ok()) {
+  if (value2 == test::DataType2({1.5, 3.5})) {
     return 6;
   }
-  if (!value1.set_values({1, 2, 3}).is_ok()) {
-    return 7;
-  }
+  value1.set_values({1, 2, 3});
   if (value1.get_values() != std::vector<int>{1, 2, 3}) {
     return 8;
   }
-  if (!value2.push_value(3.5).is_ok()) {
-    return 9;
-  }
+  value2.push_value(3.5);
   if (value2.get_values() != std::vector<float>{1.5, -3.5, 3.5}) {
     return 10;
   }
 
-  value1 = test::DataType1::from_values({1, 2}).get_ok();
-  value2 = test::DataType2::from_values({1.5, -3.5}).get_ok();
+  value1 = test::DataType1({1, 2});
+  value2 = test::DataType2({1.5, -3.5});
 
   std::vector<termite::Node> vector_correct1;
   vector_correct1.emplace_back(termite::NodeValue("1"));

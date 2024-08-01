@@ -30,33 +30,7 @@ impl Array {
   /// name: The name of the array
   /// 
   /// indent: The number of spaces to use for indentation
-  pub(super) fn get_source(&self, name: &str, indent: usize) -> String {
-    // Create the constraints description
-    let constraints = self.constraints.iter()
-      .map(|constraint| {
-        return format!("\n{0:indent$} * - {constraint}", "");
-      })
-      .collect::<Vec<String>>()
-      .join("");
-
-    // Create the tests
-    let tests = self.constraints.iter()
-      .map(|constraint| formatdoc!("
-        {0:indent$}{0:indent$}if (!({constraint})) {{
-        {0:indent$}{0:indent$}{0:indent$}return termite::Result<termite::Empty>::err(termite::Error(\"Did not pass constaint: {constraint}\"));
-        {0:indent$}{0:indent$}}}",
-        "",
-      ))
-      .collect::<Vec<String>>()
-      .join("\n\n");
-
-    // The name of the validation parameter, should not exist if there are no constraints
-    let param_name = if self.constraints.is_empty() {
-      "".to_string()
-    } else {
-      "x".to_string()
-    };
-  
+  pub(super) fn get_source(&self, name: &str, indent: usize) -> String {  
     return formatdoc!("
       class {name} {{
       public:
@@ -64,65 +38,29 @@ impl Array {
       {0:indent$} * @brief Constructs a new {name} object
       {0:indent$} * 
       {0:indent$} * @param values The values of the array
-      {0:indent$} * @return The new array or an error if some constraints were not upheld
       {0:indent$} */
-      {0:indent$}[[nodiscard]] static termite::Result<{name}> from_values(std::vector<{typename}> values) {{
-      {0:indent$}{0:indent$}for (auto value = values.cbegin(); value < values.cend(); ++value) {{
-      {0:indent$}{0:indent$}{0:indent$}termite::Result<termite::Empty> validate_result = validate(*value);
-      {0:indent$}{0:indent$}{0:indent$}if (!validate_result.is_ok()) {{
-      {0:indent$}{0:indent$}{0:indent$}{0:indent$}termite::Error error = validate_result.get_err();
-      {0:indent$}{0:indent$}{0:indent$}{0:indent$}error.add_list(value - values.cbegin());
-      {0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite::Result<{name}>::err(std::move(error));
-      {0:indent$}{0:indent$}{0:indent$}}}
-      {0:indent$}{0:indent$}}}
-
-      {0:indent$}{0:indent$}return termite::Result<{name}>::ok({name}(std::move(values)));
-      {0:indent$}}}
+      {0:indent$}explicit {name}(std::vector<{typename}> values) : values_(std::move(values)) {{}}
 
       {0:indent$}/**
-      {0:indent$} * @brief Sets the values if they fulfill the constraints:{constraints}
+      {0:indent$} * @brief Sets the values
       {0:indent$} * 
       {0:indent$} * @param values The values to set
-      {0:indent$} * @return An error if one of the constraints were not fulfilled
       {0:indent$} */
-      {0:indent$}[[nodiscard]] termite::Result<termite::Empty> set_values(std::vector<{typename}> values) {{
-      {0:indent$}{0:indent$}for (auto value = values.cbegin(); value < values.cend(); ++value) {{
-      {0:indent$}{0:indent$}{0:indent$}termite::Result<termite::Empty> validate_result = validate(*value);
-      {0:indent$}{0:indent$}{0:indent$}if (!validate_result.is_ok()) {{
-      {0:indent$}{0:indent$}{0:indent$}{0:indent$}termite::Error error = validate_result.get_err();
-      {0:indent$}{0:indent$}{0:indent$}{0:indent$}error.add_list(value - values.cbegin());
-      {0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite::Result<termite::Empty>::err(std::move(error));
-      {0:indent$}{0:indent$}{0:indent$}}}
-      {0:indent$}{0:indent$}}}
-
-      {0:indent$}{0:indent$}values_ = std::move(values);
-      {0:indent$}{0:indent$}return termite::Result<termite::Empty>::ok(termite::Empty());
-      {0:indent$}}}
+      {0:indent$}void set_values(std::vector<{typename}> values) {{ values_ = std::move(values); }}
 
       {0:indent$}/**
-      {0:indent$} * @brief Pushes a single value if it fulfill the constraints:{constraints}
+      {0:indent$} * @brief Pushes a single value
       {0:indent$} * 
       {0:indent$} * @param value The value to set
-      {0:indent$} * @return An error if one of the constraints were not fulfilled
       {0:indent$} */
-      {0:indent$}[[nodiscard]] termite::Result<termite::Empty> push_value({typename} value) {{
-      {0:indent$}{0:indent$}termite::Result<termite::Empty> validate_result = validate(value);
-      {0:indent$}{0:indent$}if (!validate_result.is_ok()) {{
-      {0:indent$}{0:indent$}{0:indent$}return validate_result;
-      {0:indent$}{0:indent$}}}
-
-      {0:indent$}{0:indent$}values_.push_back(std::move(value));
-      {0:indent$}{0:indent$}return termite::Result<termite::Empty>::ok(termite::Empty());
-      {0:indent$}}}
+      {0:indent$}void push_value({typename} value) {{ values_.push_back(std::move(value)); }}
 
       {0:indent$}/**
       {0:indent$} * @brief Retrieves a reference to the values
       {0:indent$} * 
       {0:indent$} * @return The reference
       {0:indent$} */
-      {0:indent$}[[nodiscard]] const std::vector<{typename}> &get_values() const {{
-      {0:indent$}{0:indent$}return values_;
-      {0:indent$}}}
+      {0:indent$}[[nodiscard]] const std::vector<{typename}> &get_values() const {{ return values_; }}
 
       {0:indent$}/**
       {0:indent$} * @brief Checks if this object and the other object are identical
@@ -171,19 +109,6 @@ impl Array {
       {0:indent$}}}
 
       private:
-      {0:indent$}explicit {name}(std::vector<{typename}> values) : values_(std::move(values)) {{}}
-
-      {0:indent$}/**
-      {0:indent$} * @brief Validates if an element is correct using the following constaints:{constraints}
-      {0:indent$} * 
-      {0:indent$} * @param {param_name} The value of the parameter to validate
-      {0:indent$} */
-      {0:indent$}[[nodiscard]] static termite::Result<termite::Empty> validate(const {typename} &{param_name}) {{
-      {tests}
-
-      {0:indent$}{0:indent$}return termite::Result<termite::Empty>::ok(termite::Empty());
-      {0:indent$}}}
-
       {0:indent$}/**
       {0:indent$} * @brief The values of the array
       {0:indent$} * 
@@ -227,7 +152,7 @@ impl Array {
       {0:indent$}{0:indent$}values.push_back(std::move(value.get_ok()));
       {0:indent$}}}
 
-      {0:indent$}return {typename}::from_values(std::move(values));
+      {0:indent$}return Result<{typename}>::ok({typename}(std::move(values)));
       }}",
       "",
       data_type = self.data_type,
@@ -363,49 +288,6 @@ mod tests {
     // Create the header file
     let header_file = data_model.get_source("HEADER", 2);
     let expected = include_str!("../../tests/cpp/type_array/basic/basic.hpp");
-
-    // Check that they are the same
-    assert_eq!(str_diff(&header_file, &expected), None);
-  }
-
-  #[test]
-  fn constraints() {
-    // Check c++ code
-    compile_and_test("type_array/constraints");
-
-    // Make sure it generates the correct code
-    let data_model = DataModel {
-      headers: Headers { source: "".to_string() },
-      footers: Footers { source: "".to_string() },
-      data_types: vec![
-        DataType {
-          name: "DataType1".to_string(),
-          description: None,
-          data: DataTypeData::Array(Array {
-            data_type: "int".to_string(),
-            constraints: vec![
-              "x > 0".to_string(),
-              "x % 2 == 0".to_string(),
-            ],
-          }),
-        },
-        DataType {
-          name: "DataType2".to_string(),
-          description: None,
-          data: DataTypeData::Array(Array {
-            data_type: "float".to_string(),
-            constraints: vec![
-              "std::abs(x) < 1e-9".to_string(),
-            ],
-          }),
-        },
-      ],
-      namespace: vec!["test".to_string()],
-    };
-
-    // Create the header file
-    let header_file = data_model.get_source("HEADER", 2);
-    let expected = include_str!("../../tests/cpp/type_array/constraints/constraints.hpp");
 
     // Check that they are the same
     assert_eq!(str_diff(&header_file, &expected), None);
