@@ -41,23 +41,14 @@ operator<<(std::ostream &os, const std::optional<T> &value) {
  * @brief description1
  * 
  */
-class DataType1 {
+struct DataType1 {
 public:
   /**
    * @brief Constructs a new DataType1 object
    * 
    * 
-   * @return The new struct or an error if some constraints were not upheld
    */
-  [[nodiscard]] static termite::Result<DataType1> from_values() {
-    
-
-    return termite::Result<DataType1>::ok(DataType1());
-  }
-
-
-
-
+  explicit DataType1() {}
 
   /**
    * @brief Checks if this object and the other object are identical
@@ -88,11 +79,6 @@ public:
     return os << "{ " << "" << " }";
   }
 
-private:
-  explicit DataType1() {}
-
-
-
 
 };
 
@@ -100,23 +86,14 @@ private:
  * @brief description2
  * 
  */
-class DataType2 {
+struct DataType2 {
 public:
   /**
    * @brief Constructs a new DataType2 object
    * 
    * 
-   * @return The new struct or an error if some constraints were not upheld
    */
-  [[nodiscard]] static termite::Result<DataType2> from_values() {
-    
-
-    return termite::Result<DataType2>::ok(DataType2());
-  }
-
-
-
-
+  explicit DataType2() {}
 
   /**
    * @brief Checks if this object and the other object are identical
@@ -146,11 +123,6 @@ public:
   friend std::ostream &operator<<(std::ostream &os, const DataType2 &) {
     return os << "{ " << "" << " }";
   }
-
-private:
-  explicit DataType2() {}
-
-
 
 
 };
@@ -197,7 +169,7 @@ template<>
     }
   }
 
-  return test::DataType1::from_values();
+  return Result<test::DataType1>::ok(test::DataType1());
 }
 
 template<>
@@ -221,7 +193,7 @@ template<>
     }
   }
 
-  return test::DataType2::from_values();
+  return Result<test::DataType2>::ok(test::DataType2());
 }
 
 } // namespace termite

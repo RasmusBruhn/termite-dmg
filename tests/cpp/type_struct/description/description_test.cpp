@@ -2,12 +2,12 @@
 #include "description.hpp"
 
 int main() {
-  auto type1 = test::DataType1::from_values().get_ok();
-  if (type1 != test::DataType1::from_values().get_ok()) {
+  auto type1 = test::DataType1();
+  if (type1 != test::DataType1()) {
     return 1;
   }
-  auto type2 = test::DataType2::from_values().get_ok();
-  if (type2 != test::DataType2::from_values().get_ok()) {
+  auto type2 = test::DataType2();
+  if (type2 != test::DataType2()) {
     return 2;
   }
 

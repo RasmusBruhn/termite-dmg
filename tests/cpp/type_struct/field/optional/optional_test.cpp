@@ -2,8 +2,8 @@
 #include "optional.hpp"
 
 int main() {
-  auto value1 = test::DataType::from_values().get_ok();
-  auto value2 = test::DataType::from_values(-2, 3.5).get_ok();
+  auto value1 = test::DataType();
+  auto value2 = test::DataType(-2, 3.5);
   if (value1 != value1) {
     return 1;
   }
@@ -12,30 +12,6 @@ int main() {
   }
   if (value1 == value2) {
     return 3;
-  }
-  if (value1.get_field1() != 1) {
-    return 4;
-  }
-  if (value1.get_field2()) {
-    return 5;
-  }
-  if (value2.get_field1() != -2) {
-    return 6;
-  }
-  if (*value2.get_field2() != 3.5) {
-    return 7;
-  }
-  if (!value2.set_field1(3).is_ok()) {
-    return 8;
-  }
-  if (!value2.set_field2(7.5).is_ok()) {
-    return 9;
-  }
-  if (value2.get_field1() != 3) {
-    return 10;
-  }
-  if (*value2.get_field2() != 7.5) {
-    return 11;
   }
 
   std::map<std::string, std::unique_ptr<termite::Node>> map_correct1;
@@ -49,8 +25,8 @@ int main() {
   }
 
   std::map<std::string, std::unique_ptr<termite::Node>> map_correct2;
-  map_correct2.insert({"field1", std::unique_ptr<termite::Node>(new termite::Node(termite::NodeValue("3")))});
-  map_correct2.insert({"field2", std::unique_ptr<termite::Node>(new termite::Node(termite::NodeValue("7.5")))});
+  map_correct2.insert({"field1", std::unique_ptr<termite::Node>(new termite::Node(termite::NodeValue("-2")))});
+  map_correct2.insert({"field2", std::unique_ptr<termite::Node>(new termite::Node(termite::NodeValue("3.5")))});
   termite::Node node_correct2(termite::NodeMap(std::move(map_correct2)));
   auto value2_read_correct = node_correct2.to_value<test::DataType>();
   if (!value2_read_correct.is_ok()) {

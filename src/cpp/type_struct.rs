@@ -66,35 +66,6 @@ impl Struct {
       .collect::<Vec<String>>()
       .join(", ");
 
-    // Get the constructor validation
-    let constructor_validators = self.fields.iter()
-      .map(|field| field.get_constructor_validator(indent))
-      .collect::<Vec<String>>()
-      .join("\n\n");
-    let constructor_validators = if constructor_validators.is_empty() {
-      "".to_string()
-    } else {
-      format!("termite::Result<termite::Empty> validate_result = termite::Result<termite::Empty>::ok(termite::Empty());\n\n{constructor_validators}")
-    };
-
-    // Get the move parameter list for the constructor
-    let constructor_move_parameters = self.fields.iter()
-      .map(|field| field.get_constructor_move_parameter())
-      .collect::<Vec<String>>()
-      .join(", ");
-
-    // Get the setter methods
-    let setter_methods = self.fields.iter()
-      .map(|field| field.get_setter(indent))
-      .collect::<Vec<String>>()
-      .join("\n");
-
-    // Get the getter methods
-    let getter_methods = self.fields.iter()
-      .map(|field| field.get_getter(indent))
-      .collect::<Vec<String>>()
-      .join("\n");
-
     // Get the name for "other" parameter which is gone if there are no fields
     let other_name = if self.fields.is_empty() {
       "".to_string()
@@ -124,28 +95,16 @@ impl Struct {
       printout
     };
 
-    // Get the list of parameters for the internal constructor
-    let internal_parameters = self.fields.iter()
-      .map(|field| field.get_internal_parameter())
-      .collect::<Vec<String>>()
-      .join(", ");
-
     // Get the list of setters for the internal constructor
-    let internal_setters = self.fields.iter()
-      .map(|field| field.get_internal_setter())
+    let constructor_setters = self.fields.iter()
+      .map(|field| field.get_constructor_setter())
       .collect::<Vec<String>>()
       .join(", ");
-    let internal_setters = if internal_setters.is_empty() {
+    let constructor_setters = if constructor_setters.is_empty() {
       "".to_string()
     } else {
-      format!(" : {internal_setters}")
+      format!(" : {constructor_setters}")
     };
-
-    // Get the validation functions
-    let validation_functions = self.fields.iter()
-      .map(|field| field.get_validation(indent))
-      .collect::<Vec<String>>()
-      .join("\n");
 
     // Get the definitions of all the fields but without any initialization
     let field_definitions = self.fields.iter()
@@ -155,23 +114,14 @@ impl Struct {
 
     // Generate the code
     return formatdoc!("
-      class {name} {{
+      struct {name} {{
       public:
       {0:indent$}/**
       {0:indent$} * @brief Constructs a new {name} object
       {0:indent$} * 
       {0:indent$} * {constructor_description}
-      {0:indent$} * @return The new struct or an error if some constraints were not upheld
       {0:indent$} */
-      {0:indent$}[[nodiscard]] static termite::Result<{name}> from_values({constructor_parameters}) {{
-      {0:indent$}{0:indent$}{constructor_validators}
-
-      {0:indent$}{0:indent$}return termite::Result<{name}>::ok({name}({constructor_move_parameters}));
-      {0:indent$}}}
-
-      {setter_methods}
-
-      {getter_methods}
+      {0:indent$}explicit {name}({constructor_parameters}){constructor_setters} {{}}
 
       {0:indent$}/**
       {0:indent$} * @brief Checks if this object and the other object are identical
@@ -201,11 +151,6 @@ impl Struct {
       {0:indent$}friend std::ostream &operator<<(std::ostream &os, const {name} &{other_name}) {{
       {0:indent$}{0:indent$}return os << \"{{ \" << {printout} << \" }}\";
       {0:indent$}}}
-
-      private:
-      {0:indent$}explicit {name}({internal_parameters}){internal_setters} {{}}
-
-      {validation_functions}
 
       {field_definitions}
       }};", "",
@@ -269,7 +214,7 @@ impl Struct {
       {0:indent$}{0:indent$}}}
       {0:indent$}}}
 
-      {0:indent$}return {typename}::from_values({parameter_retrievals});
+      {0:indent$}return Result<{typename}>::ok({typename}({parameter_retrievals}));
       }}",
       "",
     );
@@ -355,93 +300,10 @@ impl StructField {
     );
   }
 
-  /// Get the validation code for the constructor
-  /// 
-  /// # Parameters
-  /// 
-  /// indent: The number of spaces to indent
-  fn get_constructor_validator(&self, indent: usize) -> String {
-    return formatdoc!("
-      {0:indent$}{0:indent$}validate_result = validate_{name}({name});
-      {0:indent$}{0:indent$}if (!validate_result.is_ok()) {{
-      {0:indent$}{0:indent$}{0:indent$}termite::Error error = validate_result.get_err();
-      {0:indent$}{0:indent$}{0:indent$}error.add_field(\"{name}\");
-      {0:indent$}{0:indent$}{0:indent$}return termite::Result<DataType>::err(std::move(error));
-      {0:indent$}{0:indent$}}}",
-      "",
-      name = self.name,
-    );
-  }
-
-  /// Gets the parameter move definition for finishing up the constructor
-  fn get_constructor_move_parameter(&self) -> String {
-    return format!(
-      "std::move({name})",
-      name = self.name
-    );
-  }
-
-  /// Gets the setter function
-  /// 
-  /// # Parameters
-  /// 
-  /// indent: The number of spaces to use for indentation
-  fn get_setter(&self, indent: usize) -> String {
-    // Create the constraints description
-    let constraints = self.constraints.iter()
-      .map(|constraint| {
-        return format!("\n{0:indent$} * - {constraint}", "");
-      })
-      .collect::<Vec<String>>()
-      .join("");
-    
-    return formatdoc!("
-      {0:indent$}/**
-      {0:indent$} * @brief Sets the value of {name} if it fulfills the constraints:{constraints}
-      {0:indent$} * 
-      {0:indent$} * @param value The value of {name}
-      {0:indent$} * @return An error if one of the constraints were not fulfilled
-      {0:indent$} */
-      {0:indent$}[[nodiscard]] termite::Result<termite::Empty> set_{name}({typename} value) {{
-      {0:indent$}{0:indent$}termite::Result<termite::Empty> validate_result = validate_{name}(value);
-      {0:indent$}{0:indent$}if (!validate_result.is_ok()) {{
-      {0:indent$}{0:indent$}{0:indent$}return validate_result;
-      {0:indent$}{0:indent$}}}
-
-      {0:indent$}{0:indent$}{name}_ = std::move(value);
-      {0:indent$}{0:indent$}return termite::Result<termite::Empty>::ok(termite::Empty());
-      {0:indent$}}}",
-      "", 
-      name = self.name, 
-      typename = self.get_typename(),
-    );
-  }
-
-  /// Gets the getter function
-  /// 
-  /// # Parameters
-  /// 
-  /// indent: The number of spaces to use for indentation
-  fn get_getter(&self, indent: usize) -> String {
-    return formatdoc!("
-      {0:indent$}/**
-      {0:indent$} * @brief Retrieves a reference to the value of {name}
-      {0:indent$} * 
-      {0:indent$} * @return The reference
-      {0:indent$} */
-      {0:indent$}[[nodiscard]] const {typename} &get_{name}() const {{
-      {0:indent$}{0:indent$}return {name}_;
-      {0:indent$}}}",
-      "", 
-      name = self.name, 
-      typename = self.get_typename(),
-    );
-  }
-
   /// Gets the equality check for this field
   fn get_equality_check(&self) -> String {
     return format!(
-      "{name}_ == x.{name}_",
+      "{name} == x.{name}",
       name = self.name,
     );
   }
@@ -449,73 +311,16 @@ impl StructField {
   /// Gets the printout of this field for the operator>> ostream function
   fn get_printout(&self) -> String {
     return format!(
-      "\"{name}: \" << x.{name}_",
-      name = self.name,
-    );
-  }
-
-  /// Gets the parameter for the internal constructor
-  fn get_internal_parameter(&self) -> String {
-    return format!(
-      "{typename} {name}",
-      typename = self.get_typename(),
+      "\"{name}: \" << x.{name}",
       name = self.name,
     );
   }
 
   /// Get the setter for this field for the internal constructor
-  fn get_internal_setter(&self) -> String {
+  fn get_constructor_setter(&self) -> String {
     return format!(
-      "{name}_(std::move({name}))",
+      "{name}(std::move({name}))",
       name = self.name
-    );
-  }
-
-  /// Gets the validation function
-  /// 
-  /// # Parameters
-  /// 
-  /// indent: The number of spaces to use for indentation
-  fn get_validation(&self, indent: usize) -> String {
-    // Create the constraints description
-    let constraints = self.constraints.iter()
-      .map(|constraint| {
-        return format!("\n{0:indent$} * - {constraint}", "");
-      })
-      .collect::<Vec<String>>()
-      .join("");
-
-    // Create the tests
-    let tests = self.constraints.iter()
-      .map(|constraint| formatdoc!("
-        {0:indent$}{0:indent$}if (!({constraint})) {{
-        {0:indent$}{0:indent$}{0:indent$}return termite::Result<termite::Empty>::err(termite::Error(\"Did not pass constaint: {constraint}\"));
-        {0:indent$}{0:indent$}}}",
-        "",
-      ))
-      .collect::<Vec<String>>()
-      .join("\n\n");
-
-    let param_name = if self.constraints.is_empty() {
-      "".to_string()
-    } else {
-      "x".to_string()
-    };
-    
-    return formatdoc!("
-      {0:indent$}/**
-      {0:indent$} * @brief Validates if {name} is correct using the following constaints:{constraints}
-      {0:indent$} * 
-      {0:indent$} * @param {param_name} The value of the parameter to validate
-      {0:indent$} */
-      {0:indent$}[[nodiscard]] static termite::Result<termite::Empty> validate_{name}(const {typename} &{param_name}) {{
-      {tests}
-
-      {0:indent$}{0:indent$}return termite::Result<termite::Empty>::ok(termite::Empty());
-      {0:indent$}}}",
-      "", 
-      name = self.name, 
-      typename = self.get_typename(),
     );
   }
 
@@ -530,7 +335,7 @@ impl StructField {
       {0:indent$} * @brief {description}
       {0:indent$} * 
       {0:indent$} */
-      {0:indent$}{typename} {name}_;",
+      {0:indent$}{typename} {name};",
       "",
       typename = self.get_typename(),
       name = self.name,
@@ -906,55 +711,6 @@ mod tests {
       // Create the header file
       let header_file = data_model.get_source("HEADER", 2);
       let expected = include_str!("../../tests/cpp/type_struct/field/optional/optional.hpp");
-
-      // Check that they are the same
-      assert_eq!(str_diff(&header_file, &expected), None); 
-    }
-
-    #[test]
-    fn constraints() {
-      // Check c++ code
-      compile_and_test("type_struct/field/constraints");
-
-      // Make sure it generates the correct code
-      let data_model = DataModel {
-        headers: Headers { source: "".to_string() },
-        footers: Footers { source: "".to_string() },
-        data_types: vec![
-          DataType {
-            name: "DataType".to_string(),
-            description: None,
-            data: DataTypeData::Struct(Struct {
-              fields: vec![
-                StructField {
-                  name: "field1".to_string(),
-                  description: None,
-                  data_type: "int".to_string(),
-                  default: DefaultType::Required,
-                  constraints: vec![
-                    "x > 0".to_string(),
-                    "x % 2 == 0".to_string(),
-                  ],
-                },
-                StructField {
-                  name: "field2".to_string(),
-                  description: None,
-                  data_type: "float".to_string(),
-                  default: DefaultType::Required,
-                  constraints: vec![
-                    "std::abs(x) < 1e-9".to_string(),
-                  ],
-                },
-              ] 
-            }),
-          },
-        ],
-        namespace: vec!["test".to_string()],
-      };
-
-      // Create the header file
-      let header_file = data_model.get_source("HEADER", 2);
-      let expected = include_str!("../../tests/cpp/type_struct/field/constraints/constraints.hpp");
 
       // Check that they are the same
       assert_eq!(str_diff(&header_file, &expected), None); 
