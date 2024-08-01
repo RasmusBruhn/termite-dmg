@@ -32,35 +32,14 @@ impl Array {
   /// indent: The number of spaces to use for indentation
   pub(super) fn get_source(&self, name: &str, indent: usize) -> String {  
     return formatdoc!("
-      class {name} {{
+      struct {name} {{
       public:
       {0:indent$}/**
       {0:indent$} * @brief Constructs a new {name} object
       {0:indent$} * 
       {0:indent$} * @param values The values of the array
       {0:indent$} */
-      {0:indent$}explicit {name}(std::vector<{typename}> values) : values_(std::move(values)) {{}}
-
-      {0:indent$}/**
-      {0:indent$} * @brief Sets the values
-      {0:indent$} * 
-      {0:indent$} * @param values The values to set
-      {0:indent$} */
-      {0:indent$}void set_values(std::vector<{typename}> values) {{ values_ = std::move(values); }}
-
-      {0:indent$}/**
-      {0:indent$} * @brief Pushes a single value
-      {0:indent$} * 
-      {0:indent$} * @param value The value to set
-      {0:indent$} */
-      {0:indent$}void push_value({typename} value) {{ values_.push_back(std::move(value)); }}
-
-      {0:indent$}/**
-      {0:indent$} * @brief Retrieves a reference to the values
-      {0:indent$} * 
-      {0:indent$} * @return The reference
-      {0:indent$} */
-      {0:indent$}[[nodiscard]] const std::vector<{typename}> &get_values() const {{ return values_; }}
+      {0:indent$}explicit {name}(std::vector<{typename}> values) : values(std::move(values)) {{}}
 
       {0:indent$}/**
       {0:indent$} * @brief Checks if this object and the other object are identical
@@ -69,11 +48,11 @@ impl Array {
       {0:indent$} * @return true if they are identical, false if not
       {0:indent$} */
       {0:indent$}[[nodiscard]] bool operator==(const {name} &x) {{
-      {0:indent$}{0:indent$}if (values_.size() != x.values_.size()) {{
+      {0:indent$}{0:indent$}if (values.size() != x.values.size()) {{
       {0:indent$}{0:indent$}{0:indent$}return false;
       {0:indent$}{0:indent$}}}
 
-      {0:indent$}{0:indent$}for (auto lhs = values_.cbegin(), rhs = x.values_.cbegin(); lhs < values_.cend(); ++lhs, ++rhs) {{
+      {0:indent$}{0:indent$}for (auto lhs = values.cbegin(), rhs = x.values.cbegin(); lhs < values.cend(); ++lhs, ++rhs) {{
       {0:indent$}{0:indent$}{0:indent$}if (*lhs != *rhs) {{
       {0:indent$}{0:indent$}{0:indent$}{0:indent$}return false;
       {0:indent$}{0:indent$}{0:indent$}}}
@@ -99,8 +78,8 @@ impl Array {
       {0:indent$} */
       {0:indent$}friend std::ostream &operator<<(std::ostream &os, const {name} &x) {{
       {0:indent$}{0:indent$}os << \"{{ values: [ \";
-      {0:indent$}{0:indent$}for (auto value = x.values_.cbegin(); value < x.values_.cend(); ++value) {{
-      {0:indent$}{0:indent$}{0:indent$}if (value != x.values_.cbegin()) {{
+      {0:indent$}{0:indent$}for (auto value = x.values.cbegin(); value < x.values.cend(); ++value) {{
+      {0:indent$}{0:indent$}{0:indent$}if (value != x.values.cbegin()) {{
       {0:indent$}{0:indent$}{0:indent$}{0:indent$}os << \", \";
       {0:indent$}{0:indent$}{0:indent$}}}
       {0:indent$}{0:indent$}{0:indent$}os << *value;
@@ -108,12 +87,11 @@ impl Array {
       {0:indent$}{0:indent$}return os << \" ] }}\";
       {0:indent$}}}
 
-      private:
       {0:indent$}/**
       {0:indent$} * @brief The values of the array
       {0:indent$} * 
       {0:indent$} */
-      {0:indent$}std::vector<{typename}> values_;
+      {0:indent$}std::vector<{typename}> values;
       }};",
       "",
       typename = self.data_type,

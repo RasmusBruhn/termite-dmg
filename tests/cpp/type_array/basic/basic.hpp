@@ -41,35 +41,14 @@ operator<<(std::ostream &os, const std::optional<T> &value) {
  * @brief 
  * 
  */
-class DataType1 {
+struct DataType1 {
 public:
   /**
    * @brief Constructs a new DataType1 object
    * 
    * @param values The values of the array
    */
-  explicit DataType1(std::vector<int> values) : values_(std::move(values)) {}
-
-  /**
-   * @brief Sets the values
-   * 
-   * @param values The values to set
-   */
-  void set_values(std::vector<int> values) { values_ = std::move(values); }
-
-  /**
-   * @brief Pushes a single value
-   * 
-   * @param value The value to set
-   */
-  void push_value(int value) { values_.push_back(std::move(value)); }
-
-  /**
-   * @brief Retrieves a reference to the values
-   * 
-   * @return The reference
-   */
-  [[nodiscard]] const std::vector<int> &get_values() const { return values_; }
+  explicit DataType1(std::vector<int> values) : values(std::move(values)) {}
 
   /**
    * @brief Checks if this object and the other object are identical
@@ -78,11 +57,11 @@ public:
    * @return true if they are identical, false if not
    */
   [[nodiscard]] bool operator==(const DataType1 &x) {
-    if (values_.size() != x.values_.size()) {
+    if (values.size() != x.values.size()) {
       return false;
     }
 
-    for (auto lhs = values_.cbegin(), rhs = x.values_.cbegin(); lhs < values_.cend(); ++lhs, ++rhs) {
+    for (auto lhs = values.cbegin(), rhs = x.values.cbegin(); lhs < values.cend(); ++lhs, ++rhs) {
       if (*lhs != *rhs) {
         return false;
       }
@@ -108,8 +87,8 @@ public:
    */
   friend std::ostream &operator<<(std::ostream &os, const DataType1 &x) {
     os << "{ values: [ ";
-    for (auto value = x.values_.cbegin(); value < x.values_.cend(); ++value) {
-      if (value != x.values_.cbegin()) {
+    for (auto value = x.values.cbegin(); value < x.values.cend(); ++value) {
+      if (value != x.values.cbegin()) {
         os << ", ";
       }
       os << *value;
@@ -117,47 +96,25 @@ public:
     return os << " ] }";
   }
 
-private:
   /**
    * @brief The values of the array
    * 
    */
-  std::vector<int> values_;
+  std::vector<int> values;
 };
 
 /**
  * @brief 
  * 
  */
-class DataType2 {
+struct DataType2 {
 public:
   /**
    * @brief Constructs a new DataType2 object
    * 
    * @param values The values of the array
    */
-  explicit DataType2(std::vector<float> values) : values_(std::move(values)) {}
-
-  /**
-   * @brief Sets the values
-   * 
-   * @param values The values to set
-   */
-  void set_values(std::vector<float> values) { values_ = std::move(values); }
-
-  /**
-   * @brief Pushes a single value
-   * 
-   * @param value The value to set
-   */
-  void push_value(float value) { values_.push_back(std::move(value)); }
-
-  /**
-   * @brief Retrieves a reference to the values
-   * 
-   * @return The reference
-   */
-  [[nodiscard]] const std::vector<float> &get_values() const { return values_; }
+  explicit DataType2(std::vector<float> values) : values(std::move(values)) {}
 
   /**
    * @brief Checks if this object and the other object are identical
@@ -166,11 +123,11 @@ public:
    * @return true if they are identical, false if not
    */
   [[nodiscard]] bool operator==(const DataType2 &x) {
-    if (values_.size() != x.values_.size()) {
+    if (values.size() != x.values.size()) {
       return false;
     }
 
-    for (auto lhs = values_.cbegin(), rhs = x.values_.cbegin(); lhs < values_.cend(); ++lhs, ++rhs) {
+    for (auto lhs = values.cbegin(), rhs = x.values.cbegin(); lhs < values.cend(); ++lhs, ++rhs) {
       if (*lhs != *rhs) {
         return false;
       }
@@ -196,8 +153,8 @@ public:
    */
   friend std::ostream &operator<<(std::ostream &os, const DataType2 &x) {
     os << "{ values: [ ";
-    for (auto value = x.values_.cbegin(); value < x.values_.cend(); ++value) {
-      if (value != x.values_.cbegin()) {
+    for (auto value = x.values.cbegin(); value < x.values.cend(); ++value) {
+      if (value != x.values.cbegin()) {
         os << ", ";
       }
       os << *value;
@@ -205,12 +162,11 @@ public:
     return os << " ] }";
   }
 
-private:
   /**
    * @brief The values of the array
    * 
    */
-  std::vector<float> values_;
+  std::vector<float> values;
 };
 
 } // namespace test

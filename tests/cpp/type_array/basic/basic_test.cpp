@@ -7,9 +7,6 @@ int main() {
   if (value1 != value1) {
     return 1;
   }
-  if (value2.get_values() != std::vector<float>{1.5, -3.5}) {
-    return 2;
-  }
   if (value1 == test::DataType1({1, 2, 3})) {
     return 3;
   }
@@ -21,14 +18,6 @@ int main() {
   }
   if (value2 == test::DataType2({1.5, 3.5})) {
     return 6;
-  }
-  value1.set_values({1, 2, 3});
-  if (value1.get_values() != std::vector<int>{1, 2, 3}) {
-    return 8;
-  }
-  value2.push_value(3.5);
-  if (value2.get_values() != std::vector<float>{1.5, -3.5, 3.5}) {
-    return 10;
   }
 
   value1 = test::DataType1({1, 2});
