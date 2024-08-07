@@ -208,7 +208,7 @@ std::optional<std::string> test_result_get()
  */
 std::optional<std::string> test_node_value_parse_simple()
 {
-  termite::Node node(termite::NodeValue("123"));
+  termite::Node node(termite::Node::Value("123"));
 
   auto value = node.to_value<int>();
   if (!value.is_ok()) {
@@ -229,7 +229,7 @@ std::optional<std::string> test_node_value_parse_simple()
  */
 std::optional<std::string> test_node_value_parse_spaces()
 {
-  termite::Node node(termite::NodeValue(" 123 "));
+  termite::Node node(termite::Node::Value(" 123 "));
 
   auto value = node.to_value<int>();
   if (!value.is_ok()) {
@@ -250,7 +250,7 @@ std::optional<std::string> test_node_value_parse_spaces()
  */
 std::optional<std::string> test_node_value_parse_error_begin()
 {
-  termite::Node node(termite::NodeValue(".123"));
+  termite::Node node(termite::Node::Value(".123"));
 
   auto value = node.to_value<int>();
   if (value.is_ok()) {
@@ -269,7 +269,7 @@ std::optional<std::string> test_node_value_parse_error_begin()
  */
 std::optional<std::string> test_node_value_parse_error_end()
 {
-  termite::Node node(termite::NodeValue("123."));
+  termite::Node node(termite::Node::Value("123."));
 
   auto value = node.to_value<int>();
   if (value.is_ok()) {
@@ -288,7 +288,7 @@ std::optional<std::string> test_node_value_parse_error_end()
  */
 std::optional<std::string> test_node_value_parse_error_class()
 {
-  termite::Node node(termite::NodeValue("123"));
+  termite::Node node(termite::Node::Value("123"));
 
   auto value = node.to_value<termite::Empty>();
   if (value.is_ok()) {
@@ -298,6 +298,22 @@ std::optional<std::string> test_node_value_parse_error_class()
   return std::nullopt;
 }
 
+/**
+ * @brief Test if Node can be copied
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_node_copy()
+{
+  termite::Node node(termite::Node::Value("123"));
+  termite::Node node2 = node;
+
+  if (node != node2) {
+    return "Could not copy";
+  }
+
+  return std::nullopt;
+}
 
 int main() {
   auto names = {

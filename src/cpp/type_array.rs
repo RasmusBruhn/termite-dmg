@@ -117,7 +117,7 @@ impl Array {
 
     return formatdoc!("
       template<>
-      [[nodiscard]] Result<{typename}> NodeList::to_value(bool allow_skipping) const {{
+      [[nodiscard]] Result<{typename}> Node::List::to_value(bool allow_skipping) const {{
       {0:indent$}std::vector<{data_type}> values;
       {0:indent$}values.reserve(list_.size());
       {0:indent$}for (auto node = list_.cbegin(); node < list_.cend(); ++node) {{

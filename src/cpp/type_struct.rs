@@ -194,12 +194,12 @@ impl Struct {
 
     return formatdoc!("
       template<>
-      [[nodiscard]] Result<{typename}> NodeMap::to_value(bool allow_skipping) const {{
+      [[nodiscard]] Result<{typename}> Node::Map::to_value(bool allow_skipping) const {{
       {parsing}
 
       {0:indent$}if (!allow_skipping) {{
       {0:indent$}{0:indent$}std::vector<std::string> keys;
-      {0:indent$}{0:indent$}std::transform(map_.cbegin(), map_.cend(), std::back_inserter(keys), [](const std::pair<const std::string, std::unique_ptr<Node>> &key_value) {{
+      {0:indent$}{0:indent$}std::transform(map_.cbegin(), map_.cend(), std::back_inserter(keys), [](const std::pair<const std::string, Node> &key_value) {{
       {0:indent$}{0:indent$}{0:indent$}return key_value.first;
       {0:indent$}{0:indent$}}});
       {0:indent$}{0:indent$}std::vector<std::string> leftovers;

@@ -369,301 +369,6 @@ private:
   std::variant<T, Error> value_;
 };
 
-class Node;
-std::ostream &operator<<(std::ostream &, const Node &);
-
-/**
- * @brief A single node value represented by a trimmed string
- *
- */
-class NodeValue {
-public:
-  /**
-   * @brief Constructs a new node value with trimmed input
-   *
-   * @param value The value of this node
-   */
-  explicit NodeValue(std::string value) {
-    // Trim the value
-    value.erase(value.begin(),
-                std::find_if(value.begin(), value.end(), [](unsigned char ch) {
-                  return !std::isspace(ch);
-                }));
-    value.erase(std::find_if(value.rbegin(), value.rend(),
-                             [](unsigned char ch) { return !std::isspace(ch); })
-                    .base(),
-                value.end());
-
-    value_ = std::move(value);
-  }
-
-  /**
-   * @brief Casts the node value to the given type, operator>> is not defined
-   * and thus an error occurs
-   *
-   * @tparam T The type to cast to
-   * @return A result of the given type which is always err
-   */
-  template <typename T>
-  [[nodiscard]]
-  typename std::enable_if<!has_parsing_operator<T>::value, Result<T>>::type
-  to_value() const {
-    return Result<T>::err(Error("Parsing not implemented for given type"));
-  }
-
-  /**
-   * @brief Casts the node value to the given type
-   *
-   * @tparam T The type to cast to
-   * @return A result of the given type
-   */
-  template <typename T>
-  [[nodiscard]]
-  typename std::enable_if<has_parsing_operator<T>::value, Result<T>>::type
-  to_value() const {
-    // Create the value
-    std::istringstream ss(value_);
-    T output;
-    ss >> output;
-
-    // Make sure it did not fail
-    if (ss.fail()) {
-      return Result<T>::err(Error("Unable to parse"));
-    }
-    // Make sure everything was used ie. 123et is not the integer 123
-    if (!ss.eof()) {
-      std::ostringstream error;
-      error << "Value has unused characters: \"" << ss.str() << "\"";
-      return Result<T>::err(Error(error.str()));
-    }
-
-    // Return the value
-    return Result<T>::ok(std::move(output));
-  }
-
-  /**
-   * @brief Checks if this node value and another node value are identical
-   *
-   * @param other The other node value to compare with
-   * @return true if they are identical, false if not
-   */
-  [[nodiscard]] bool operator==(const NodeValue &other) const {
-    return value_ == other.value_;
-  }
-  /**
-   * @brief Checks if this node value and another node value are different
-   *
-   * @param other The other node value to compare with
-   * @return true if they are different, false if not
-   */
-  [[nodiscard]] bool operator!=(const NodeValue &other) const {
-    return !(*this == other);
-  }
-
-  /**
-   * @brief Prints the node value to an output stream
-   *
-   * @param os The output stream to print to
-   * @param value The node value to print
-   * @return The same output stream
-   */
-  friend std::ostream &operator<<(std::ostream &os, const NodeValue &value) {
-    return os << "{ value: " << value.value_ << " }";
-  }
-  /**
-   * @brief Converts this node value to a string
-   *
-   * @return The string with this node value in
-   */
-  [[nodiscard]] std::string to_string() const {
-    std::stringstream ss;
-    ss << *this;
-    return ss.str();
-  }
-
-private:
-  /**
-   * @brief The value of this node
-   *
-   */
-  std::string value_;
-};
-
-/**
- * @brief A map of nodes which can be cast into structs
- *
- */
-class NodeMap {
-public:
-  /**
-   * @brief Constructs a new node map
-   *
-   * @param map The map of this node
-   */
-  explicit NodeMap(std::map<std::string, std::unique_ptr<Node>> map)
-      : map_(std::move(map)) {}
-
-  /**
-   * @brief Casts the node map to the given type, if not specialized then it
-   * will always return an error
-   *
-   * @tparam T The type to cast to
-   * @param allow_skipping if true then key-value pairs can be skipped when
-   * parsing maps, otherwise an error is thrown if all key-value pairs are not
-   * used
-   * @return A result of the given type
-   */
-  template <typename T>
-  [[nodiscard]] Result<T> to_value(bool allow_skipping = false) const {
-    return Result<T>::err(Error("Parsing not implemented for given type"));
-  }
-
-  /**
-   * @brief Checks if this node map and another node map are identical
-   *
-   * @param other The other node map to compare with
-   * @return true if they are identical, false if not
-   */
-  [[nodiscard]] bool operator==(const NodeMap &other) const {
-    return map_ == other.map_;
-  }
-  /**
-   * @brief Checks if this node map and another node map are different
-   *
-   * @param other The other node map to compare with
-   * @return true if they are different, false if not
-   */
-  [[nodiscard]] bool operator!=(const NodeMap &other) const {
-    return !(*this == other);
-  }
-
-  /**
-   * @brief Prints the node map to an output stream
-   *
-   * @param os The output stream to print to
-   * @param value The node map to print
-   * @return The same output stream
-   */
-  friend std::ostream &operator<<(std::ostream &os, const NodeMap &value) {
-    os << "{ map: { ";
-    for (auto key_value = value.map_.cbegin(); key_value != value.map_.cend();
-         ++key_value) {
-      if (key_value != value.map_.cbegin()) {
-        os << ", ";
-      }
-      os << "\"" << key_value->first << "\": ";
-      if (key_value->second != nullptr) {
-        os << *(key_value->second);
-      } else {
-        os << "nullptr";
-      }
-    }
-    return os << " } }";
-  }
-  /**
-   * @brief Converts this node map to a string
-   *
-   * @return The string with this node map in
-   */
-  [[nodiscard]] std::string to_string() const {
-    std::stringstream ss;
-    ss << *this;
-    return ss.str();
-  }
-
-private:
-  /**
-   * @brief The map of this node
-   *
-   */
-  std::map<std::string, std::unique_ptr<Node>> map_;
-};
-
-/**
- * @brief A vector of nodes which can be cast into lists
- *
- */
-class NodeList {
-public:
-  /**
-   * @brief Constructs a new node list
-   *
-   * @param list The list of this node
-   */
-  explicit NodeList(std::vector<Node> list) : list_(std::move(list)) {}
-
-  /**
-   * @brief Casts the node list to the given type, if not specialized then it
-   * will always return an error
-   *
-   * @tparam T The type to cast to
-   * @param allow_skipping if true then key-value pairs can be skipped when
-   * parsing maps, otherwise an error is thrown if all key-value pairs are not
-   * used
-   * @return A result of the given type
-   */
-  template <typename T>
-  [[nodiscard]] Result<T> to_value(bool allow_skipping = false) const {
-    return Result<T>::err(Error("Parsing not implemented for given type"));
-  }
-
-  /**
-   * @brief Checks if this node list and another node list are identical
-   *
-   * @param other The other node list to compare with
-   * @return true if they are identical, false if not
-   */
-  [[nodiscard]] bool operator==(const NodeList &other) const {
-    return list_ == other.list_;
-  }
-  /**
-   * @brief Checks if this node list and another node list are different
-   *
-   * @param other The other node list to compare with
-   * @return true if they are different, false if not
-   */
-  [[nodiscard]] bool operator!=(const NodeList &other) const {
-    return !(*this == other);
-  }
-
-  /**
-   * @brief Prints the node list to an output stream
-   *
-   * @param os The output stream to print to
-   * @param value The node list to print
-   * @return The same output stream
-   */
-  friend std::ostream &operator<<(std::ostream &os, const NodeList &value) {
-    return os << "{ list: [ ";
-    os << "[ ";
-    for (auto value_it = value.list_.cbegin(); value_it != value.list_.cend();
-         ++value_it) {
-      if (value_it != value.list_.cbegin()) {
-        os << ", ";
-      }
-      os << *value_it;
-    }
-    return os << " ] }";
-  }
-  /**
-   * @brief Converts this node list to a string
-   *
-   * @return The string with this node list in
-   */
-  [[nodiscard]] std::string to_string() const {
-    std::stringstream ss;
-    ss << *this;
-    return ss.str();
-  }
-
-private:
-  /**
-   * @brief The list of this node
-   *
-   */
-  std::vector<Node> list_;
-};
-
 /**
  * @brief A node which can be any kind
  *
@@ -671,12 +376,336 @@ private:
 class Node {
 public:
   /**
+   * @brief A single node value represented by a trimmed string
+   *
+   */
+  class Value {
+  public:
+    /**
+     * @brief Constructs a new node value with trimmed input
+     *
+     * @param value The value of this node
+     */
+    explicit Value(std::string value) {
+      // Trim the value
+      value.erase(value.begin(),
+                  std::find_if(value.begin(), value.end(), [](unsigned char ch) {
+                    return !std::isspace(ch);
+                  }));
+      value.erase(std::find_if(value.rbegin(), value.rend(),
+                              [](unsigned char ch) { return !std::isspace(ch); })
+                      .base(),
+                  value.end());
+
+      value_ = std::move(value);
+    }
+
+    /**
+     * @brief Casts the node value to the given type, if operator>> is not defined
+     * then an error occurs
+     *
+     * @tparam T The type to cast to
+     * @return A result of the given type which is always err
+     */
+    template <typename T>
+    [[nodiscard]]
+    typename std::enable_if<!has_parsing_operator<T>::value, Result<T>>::type
+    to_value() const {
+      return Result<T>::err(Error("Parsing not implemented for given type"));
+    }
+
+    /**
+     * @brief Casts the node value to the given type
+     *
+     * @tparam T The type to cast to
+     * @return A result of the given type
+     */
+    template <typename T>
+    [[nodiscard]]
+    typename std::enable_if<has_parsing_operator<T>::value, Result<T>>::type
+    to_value() const {
+      // Create the value
+      std::istringstream ss(value_);
+      T output;
+      ss >> output;
+
+      // Make sure it did not fail
+      if (ss.fail()) {
+        return Result<T>::err(Error("Unable to parse"));
+      }
+      // Make sure everything was used ie. 123et is not the integer 123
+      if (!ss.eof()) {
+        std::ostringstream error;
+        error << "Value has unused characters: \"" << ss.str() << "\"";
+        return Result<T>::err(Error(error.str()));
+      }
+
+      // Return the value
+      return Result<T>::ok(std::move(output));
+    }
+
+    /**
+     * @brief Creates a cloned copy of this node value
+     * 
+     * @return The new copy
+     *//*
+    [[nodiscard]] std::unique_ptr<std::variant<NodeValue, NodeMap, NodeList>> Clone() const {
+      return std::make_unique<std::variant<NodeValue, NodeMap, NodeList>>(NodeValue(value_));
+    }*/
+
+    /**
+     * @brief Checks if this node value and another node value are identical
+     *
+     * @param other The other node value to compare with
+     * @return true if they are identical, false if not
+     */
+    [[nodiscard]] bool operator==(const Value &other) const {
+      return value_ == other.value_;
+    }
+    /**
+     * @brief Checks if this node value and another node value are different
+     *
+     * @param other The other node value to compare with
+     * @return true if they are different, false if not
+     */
+    [[nodiscard]] bool operator!=(const Value &other) const {
+      return !(*this == other);
+    }
+
+    /**
+     * @brief Prints the node value to an output stream
+     *
+     * @param os The output stream to print to
+     * @param value The node value to print
+     * @return The same output stream
+     */
+    friend std::ostream &operator<<(std::ostream &os, const Value &value) {
+      return os << "{ value: " << value.value_ << " }";
+    }
+    /**
+     * @brief Converts this node value to a string
+     *
+     * @return The string with this node value in
+     */
+    [[nodiscard]] std::string to_string() const {
+      std::stringstream ss;
+      ss << *this;
+      return ss.str();
+    }
+
+  private:
+    /**
+     * @brief The value of this node
+     *
+     */
+    std::string value_;
+  };
+
+  /**
+   * @brief A map of nodes which can be cast into structs
+   *
+   */
+  class Map {
+  public:
+    /**
+     * @brief Constructs a new node map
+     *
+     * @param map The map of this node
+     */
+    explicit Map(std::map<std::string, Node> map)
+        : map_(std::move(map)) {}
+
+    /**
+     * @brief Casts the node map to the given type, if not specialized then it
+     * will always return an error
+     *
+     * @tparam T The type to cast to
+     * @param allow_skipping if true then key-value pairs can be skipped when
+     * parsing maps, otherwise an error is thrown if all key-value pairs are not
+     * used
+     * @return A result of the given type
+     */
+    template <typename T>
+    [[nodiscard]] Result<T> to_value(bool allow_skipping = false) const {
+      return Result<T>::err(Error("Parsing not implemented for given type"));
+    }
+
+    /**
+     * @brief Creates a cloned copy of this node map
+     * 
+     * @return The new copy
+     *//*
+    [[nodiscard]] std::unique_ptr<std::variant<NodeValue, NodeMap, NodeList>> Clone() const {
+      std::vector<std::pair<std::string, Node>> key_values;
+      std::transform(map_.cbegin(), map_.cend(), std::back_inserter(key_values), [](const std::pair<std::string, std::unique_ptr<Node>> &key_value) {
+        return std::make_pair(key_value.first, key_value.second->Clone());
+      });
+      return std::make_unique<std::variant<NodeValue, NodeMap, NodeList>>(NodeMap(std::map<std::string, std::unique_ptr<Node>>(std::make_move_iterator(key_values.begin()), std::make_move_iterator(key_values.end()))));
+    }*/
+
+    /**
+     * @brief Checks if this node map and another node map are identical
+     *
+     * @param other The other node map to compare with
+     * @return true if they are identical, false if not
+     */
+    [[nodiscard]] bool operator==(const Map &other) const {
+      return map_ == other.map_;
+    }
+    /**
+     * @brief Checks if this node map and another node map are different
+     *
+     * @param other The other node map to compare with
+     * @return true if they are different, false if not
+     */
+    [[nodiscard]] bool operator!=(const Map &other) const {
+      return !(*this == other);
+    }
+
+    /**
+     * @brief Prints the node map to an output stream
+     *
+     * @param os The output stream to print to
+     * @param value The node map to print
+     * @return The same output stream
+     */
+    friend std::ostream &operator<<(std::ostream &os, const Map &value) {
+      os << "{ map: { ";
+      for (auto key_value = value.map_.cbegin(); key_value != value.map_.cend();
+          ++key_value) {
+        if (key_value != value.map_.cbegin()) {
+          os << ", ";
+        }
+        os << "\"" << key_value->first << "\": " << key_value->second;
+      }
+      return os << " } }";
+    }
+    /**
+     * @brief Converts this node map to a string
+     *
+     * @return The string with this node map in
+     */
+    [[nodiscard]] std::string to_string() const {
+      std::stringstream ss;
+      ss << *this;
+      return ss.str();
+    }
+
+  private:
+    /**
+     * @brief The map of this node
+     *
+     */
+    std::map<std::string, Node> map_;
+  };
+
+  /**
+   * @brief A vector of nodes which can be cast into lists
+   *
+   */
+  class List {
+  public:
+    /**
+     * @brief Constructs a new node list
+     *
+     * @param list The list of this node
+     */
+    explicit List(std::vector<Node> list) : list_(std::move(list)) {}
+
+    /**
+     * @brief Casts the node list to the given type, if not specialized then it
+     * will always return an error
+     *
+     * @tparam T The type to cast to
+     * @param allow_skipping if true then key-value pairs can be skipped when
+     * parsing maps, otherwise an error is thrown if all key-value pairs are not
+     * used
+     * @return A result of the given type
+     */
+    template <typename T>
+    [[nodiscard]] Result<T> to_value(bool allow_skipping = false) const {
+      return Result<T>::err(Error("Parsing not implemented for given type"));
+    }
+
+    /**
+     * @brief Creates a cloned copy of this node list
+     * 
+     * @return The new copy
+     *//*
+    [[nodiscard]] std::unique_ptr<std::variant<NodeValue, NodeMap, NodeList>> Clone() const {
+      std::vector<Node> values;
+      std::transform(list_.cbegin(), list_.cend(), std::back_inserter(values), [](const Node &node) {
+        return node.Clone();
+      });
+      return std::make_unique<std::variant<NodeValue, NodeMap, NodeList>>(NodeList(std::move(values)));
+    }*/
+
+    /**
+     * @brief Checks if this node list and another node list are identical
+     *
+     * @param other The other node list to compare with
+     * @return true if they are identical, false if not
+     */
+    [[nodiscard]] bool operator==(const List &other) const {
+      return list_ == other.list_;
+    }
+    /**
+     * @brief Checks if this node list and another node list are different
+     *
+     * @param other The other node list to compare with
+     * @return true if they are different, false if not
+     */
+    [[nodiscard]] bool operator!=(const List &other) const {
+      return !(*this == other);
+    }
+
+    /**
+     * @brief Prints the node list to an output stream
+     *
+     * @param os The output stream to print to
+     * @param value The node list to print
+     * @return The same output stream
+     */
+    friend std::ostream &operator<<(std::ostream &os, const List &value) {
+      return os << "{ list: [ ";
+      os << "[ ";
+      for (auto value_it = value.list_.cbegin(); value_it != value.list_.cend();
+          ++value_it) {
+        if (value_it != value.list_.cbegin()) {
+          os << ", ";
+        }
+        os << *value_it;
+      }
+      return os << " ] }";
+    }
+    /**
+     * @brief Converts this node list to a string
+     *
+     * @return The string with this node list in
+     */
+    [[nodiscard]] std::string to_string() const {
+      std::stringstream ss;
+      ss << *this;
+      return ss.str();
+    }
+
+  private:
+    /**
+     * @brief The list of this node
+     *
+     */
+    std::vector<Node> list_;
+  };
+
+
+  /**
    * @brief Constructs a new node
    *
    * @param value The value of the node
    */
-  explicit Node(std::variant<NodeValue, NodeMap, NodeList> value)
+  explicit Node(std::variant<Value, Map, List> value)
       : value_(std::move(value)) {}
+  Node(const Node &node) : Node(node.value_) {}
 
   /**
    * @brief Casts the node to the given type
@@ -689,14 +718,24 @@ public:
    */
   template <typename T>
   [[nodiscard]] Result<T> to_value(bool allow_skipping = false) const {
-    if (std::holds_alternative<NodeMap>(value_)) {
-      return std::get<NodeMap>(value_).to_value<T>(allow_skipping);
+    if (std::holds_alternative<Map>(value_)) {
+      return std::get<Map>(value_).to_value<T>(allow_skipping);
     }
-    if (std::holds_alternative<NodeList>(value_)) {
-      return std::get<NodeList>(value_).to_value<T>(allow_skipping);
+    if (std::holds_alternative<List>(value_)) {
+      return std::get<List>(value_).to_value<T>(allow_skipping);
     }
-    return std::get<NodeValue>(value_).to_value<T>();
+    return std::get<Value>(value_).to_value<T>();
   }
+
+  /*[[nodiscard]] Node Clone() const {
+    if (std::holds_alternative<NodeMap>(*value_)) {
+      return Node(std::get<NodeMap>(*value_).Clone());
+    }
+    if (std::holds_alternative<NodeList>(*value_)) {
+      return Node(std::get<NodeList>(*value_).Clone());
+    }
+      return Node(std::get<NodeValue>(*value_).Clone());
+  }*/
 
   /**
    * @brief Checks if this node and another node are identical
@@ -725,13 +764,13 @@ public:
    * @return The same output stream
    */
   friend std::ostream &operator<<(std::ostream &os, const Node &value) {
-    if (std::holds_alternative<NodeMap>(value.value_)) {
-      return os << "{ Map " << std::get<NodeMap>(value.value_) << " }";
+    if (std::holds_alternative<Map>(value.value_)) {
+      return os << "{ Map " << std::get<Map>(value.value_) << " }";
     }
-    if (std::holds_alternative<NodeList>(value.value_)) {
-      return os << "{ List " << std::get<NodeList>(value.value_) << " }";
+    if (std::holds_alternative<List>(value.value_)) {
+      return os << "{ List " << std::get<List>(value.value_) << " }";
     }
-    return os << "{ Value " << std::get<NodeValue>(value.value_) << " }";
+    return os << "{ Value " << std::get<Value>(value.value_) << " }";
   }
   /**
    * @brief Converts this node to a string
@@ -749,7 +788,7 @@ private:
    * @brief The value of this node
    *
    */
-  std::variant<NodeValue, NodeMap, NodeList> value_;
+  std::variant<Value, Map, List> value_;
 };
 
 }  // namespace termite

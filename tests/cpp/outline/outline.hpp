@@ -149,7 +149,7 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 } // namespace
 
 template<>
-[[nodiscard]] Result<test::DataType1> NodeMap::to_value(bool allow_skipping) const {
+[[nodiscard]] Result<test::DataType1> Node::Map::to_value(bool allow_skipping) const {
 
 
   if (!allow_skipping) {
@@ -173,7 +173,7 @@ template<>
 }
 
 template<>
-[[nodiscard]] Result<test::DataType2> NodeMap::to_value(bool allow_skipping) const {
+[[nodiscard]] Result<test::DataType2> Node::Map::to_value(bool allow_skipping) const {
 
 
   if (!allow_skipping) {
