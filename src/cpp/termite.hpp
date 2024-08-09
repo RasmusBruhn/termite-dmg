@@ -445,15 +445,6 @@ public:
     }
 
     /**
-     * @brief Creates a cloned copy of this node value
-     * 
-     * @return The new copy
-     *//*
-    [[nodiscard]] std::unique_ptr<std::variant<NodeValue, NodeMap, NodeList>> Clone() const {
-      return std::make_unique<std::variant<NodeValue, NodeMap, NodeList>>(NodeValue(value_));
-    }*/
-
-    /**
      * @brief Checks if this node value and another node value are identical
      *
      * @param other The other node value to compare with
@@ -508,6 +499,11 @@ public:
   class Map {
   public:
     /**
+     * @brief Constructs an empty map
+     * 
+     */
+    Map() = default;
+    /**
      * @brief Constructs a new node map
      *
      * @param map The map of this node
@@ -520,28 +516,12 @@ public:
      * will always return an error
      *
      * @tparam T The type to cast to
-     * @param allow_skipping if true then key-value pairs can be skipped when
-     * parsing maps, otherwise an error is thrown if all key-value pairs are not
-     * used
      * @return A result of the given type
      */
     template <typename T>
-    [[nodiscard]] Result<T> to_value(bool allow_skipping = false) const {
+    [[nodiscard]] Result<T> to_value() const {
       return Result<T>::err(Error("Parsing not implemented for given type"));
     }
-
-    /**
-     * @brief Creates a cloned copy of this node map
-     * 
-     * @return The new copy
-     *//*
-    [[nodiscard]] std::unique_ptr<std::variant<NodeValue, NodeMap, NodeList>> Clone() const {
-      std::vector<std::pair<std::string, Node>> key_values;
-      std::transform(map_.cbegin(), map_.cend(), std::back_inserter(key_values), [](const std::pair<std::string, std::unique_ptr<Node>> &key_value) {
-        return std::make_pair(key_value.first, key_value.second->Clone());
-      });
-      return std::make_unique<std::variant<NodeValue, NodeMap, NodeList>>(NodeMap(std::map<std::string, std::unique_ptr<Node>>(std::make_move_iterator(key_values.begin()), std::make_move_iterator(key_values.end()))));
-    }*/
 
     /**
      * @brief Checks if this node map and another node map are identical
@@ -606,6 +586,11 @@ public:
   class List {
   public:
     /**
+     * @brief Constructs an empty list
+     * 
+     */
+    List() = default;
+    /**
      * @brief Constructs a new node list
      *
      * @param list The list of this node
@@ -617,28 +602,12 @@ public:
      * will always return an error
      *
      * @tparam T The type to cast to
-     * @param allow_skipping if true then key-value pairs can be skipped when
-     * parsing maps, otherwise an error is thrown if all key-value pairs are not
-     * used
      * @return A result of the given type
      */
     template <typename T>
-    [[nodiscard]] Result<T> to_value(bool allow_skipping = false) const {
+    [[nodiscard]] Result<T> to_value() const {
       return Result<T>::err(Error("Parsing not implemented for given type"));
     }
-
-    /**
-     * @brief Creates a cloned copy of this node list
-     * 
-     * @return The new copy
-     *//*
-    [[nodiscard]] std::unique_ptr<std::variant<NodeValue, NodeMap, NodeList>> Clone() const {
-      std::vector<Node> values;
-      std::transform(list_.cbegin(), list_.cend(), std::back_inserter(values), [](const Node &node) {
-        return node.Clone();
-      });
-      return std::make_unique<std::variant<NodeValue, NodeMap, NodeList>>(NodeList(std::move(values)));
-    }*/
 
     /**
      * @brief Checks if this node list and another node list are identical
@@ -711,31 +680,18 @@ public:
    * @brief Casts the node to the given type
    *
    * @tparam T The type to cast to
-   * @param allow_skipping if true then key-value pairs can be skipped when
-   * parsing maps, otherwise an error is thrown if all key-value pairs are not
-   * used
    * @return A result of the given type
    */
   template <typename T>
-  [[nodiscard]] Result<T> to_value(bool allow_skipping = false) const {
+  [[nodiscard]] Result<T> to_value() const {
     if (std::holds_alternative<Map>(value_)) {
-      return std::get<Map>(value_).to_value<T>(allow_skipping);
+      return std::get<Map>(value_).to_value<T>();
     }
     if (std::holds_alternative<List>(value_)) {
-      return std::get<List>(value_).to_value<T>(allow_skipping);
+      return std::get<List>(value_).to_value<T>();
     }
     return std::get<Value>(value_).to_value<T>();
   }
-
-  /*[[nodiscard]] Node Clone() const {
-    if (std::holds_alternative<NodeMap>(*value_)) {
-      return Node(std::get<NodeMap>(*value_).Clone());
-    }
-    if (std::holds_alternative<NodeList>(*value_)) {
-      return Node(std::get<NodeList>(*value_).Clone());
-    }
-      return Node(std::get<NodeValue>(*value_).Clone());
-  }*/
 
   /**
    * @brief Checks if this node and another node are identical

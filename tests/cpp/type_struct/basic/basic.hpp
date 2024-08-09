@@ -149,12 +149,12 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 } // namespace
 
 template<>
-[[nodiscard]] Result<test::DataType1> NodeMap::to_value(bool allow_skipping) const {
+[[nodiscard]] Result<test::DataType1> Node::Map::to_value(bool allow_skipping) const {
 
 
   if (!allow_skipping) {
     std::vector<std::string> keys;
-    std::transform(map_.cbegin(), map_.cend(), std::back_inserter(keys), [](const std::pair<const std::string, std::unique_ptr<Node>> &key_value) {
+    std::transform(map_.cbegin(), map_.cend(), std::back_inserter(keys), [](const std::pair<const std::string, Node> &key_value) {
       return key_value.first;
     });
     std::vector<std::string> leftovers;
@@ -173,12 +173,12 @@ template<>
 }
 
 template<>
-[[nodiscard]] Result<test::DataType2> NodeMap::to_value(bool allow_skipping) const {
+[[nodiscard]] Result<test::DataType2> Node::Map::to_value(bool allow_skipping) const {
 
 
   if (!allow_skipping) {
     std::vector<std::string> keys;
-    std::transform(map_.cbegin(), map_.cend(), std::back_inserter(keys), [](const std::pair<const std::string, std::unique_ptr<Node>> &key_value) {
+    std::transform(map_.cbegin(), map_.cend(), std::back_inserter(keys), [](const std::pair<const std::string, Node> &key_value) {
       return key_value.first;
     });
     std::vector<std::string> leftovers;

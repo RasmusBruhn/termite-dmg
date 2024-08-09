@@ -68,7 +68,7 @@ int main() {
     return 19;
   }
 
-  auto node1 = termite::Node(termite::NodeValue("2.5"));
+  auto node1 = termite::Node(termite::Node::Value("2.5"));
   auto read_value1 = node1.to_value<test::DataType>();
   if (!read_value1.is_ok()) {
     return 20;
@@ -76,7 +76,7 @@ int main() {
   if (read_value1.get_ok() != value1) {
     return 21;
   }
-  auto node2 = termite::Node(termite::NodeValue("3"));
+  auto node2 = termite::Node(termite::Node::Value("3"));
   auto read_value2 = node2.to_value<test::DataType>();
   if (!read_value2.is_ok()) {
     return 22;

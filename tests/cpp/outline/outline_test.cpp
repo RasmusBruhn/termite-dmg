@@ -28,25 +28,17 @@ int main() {
   std::map<std::string, termite::Node> map_many1;
   map_many1.insert({"field1", termite::Node(termite::Node(termite::Node::Value("1")))});
   termite::Node node_many1(termite::Node::Map(std::move(map_many1)));
-  auto value_read_many1 = node_many1.to_value<test::DataType1>(true);
+  auto value_read_many1 = node_many1.to_value<test::DataType1>();
   if (!value_read_many1.is_ok()) {
     return 5;
-  }
-  auto value_wrong_many1 = node_many1.to_value<test::DataType1>();
-  if (value_wrong_many1.is_ok()) {
-    return 6;
   }
 
   std::map<std::string, termite::Node> map_many2;
   map_many2.insert({"field1", termite::Node(termite::Node(termite::Node::Value("1")))});
   termite::Node node_many2(termite::Node::Map(std::move(map_many2)));
-  auto value_read_many2 = node_many2.to_value<test::DataType2>(true);
+  auto value_read_many2 = node_many2.to_value<test::DataType2>();
   if (!value_read_many2.is_ok()) {
     return 7;
-  }
-  auto value_wrong_many2 = node_many2.to_value<test::DataType2>();
-  if (value_wrong_many2.is_ok()) {
-    return 8;
   }
 
   termite::Node node_wrong1(termite::Node::Value("1.0"));

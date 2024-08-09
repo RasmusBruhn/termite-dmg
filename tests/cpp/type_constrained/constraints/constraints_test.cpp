@@ -66,7 +66,7 @@ int main() {
     return 18;
   }
 
-  auto node1 = termite::Node(termite::NodeValue("4"));
+  auto node1 = termite::Node(termite::Node::Value("4"));
   auto read_value1 = node1.to_value<test::DataType1>();
   if (!read_value1.is_ok()) {
     return 19;
@@ -74,7 +74,7 @@ int main() {
   if (read_value1.get_ok() != value1) {
     return 20;
   }
-  auto node2 = termite::Node(termite::NodeValue("1e-11"));
+  auto node2 = termite::Node(termite::Node::Value("1e-11"));
   auto read_value2 = node2.to_value<test::DataType2>();
   if (!read_value2.is_ok()) {
     return 21;
@@ -83,22 +83,22 @@ int main() {
     return 22;
   }
 
-  auto wrong_node11 = termite::Node(termite::NodeValue("0"));
+  auto wrong_node11 = termite::Node(termite::Node::Value("0"));
   auto wrong_value11 = wrong_node11.to_value<test::DataType1>();
   if (wrong_value11.is_ok()) {
     return 23;
   }
-  auto wrong_node12 = termite::Node(termite::NodeValue("1"));
+  auto wrong_node12 = termite::Node(termite::Node::Value("1"));
   auto wrong_value12 = wrong_node12.to_value<test::DataType1>();
   if (wrong_value12.is_ok()) {
     return 24;
   }
-  auto wrong_node13 = termite::Node(termite::NodeValue("1.5"));
+  auto wrong_node13 = termite::Node(termite::Node::Value("1.5"));
   auto wrong_value13 = wrong_node13.to_value<test::DataType1>();
   if (wrong_value13.is_ok()) {
     return 25;
   }
-  auto wrong_node2 = termite::Node(termite::NodeValue("1e-8"));
+  auto wrong_node2 = termite::Node(termite::Node::Value("1e-8"));
   auto wrong_value2 = wrong_node2.to_value<test::DataType1>();
   if (wrong_value2.is_ok()) {
     return 26;

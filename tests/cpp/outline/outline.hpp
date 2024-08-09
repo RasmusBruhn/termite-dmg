@@ -154,7 +154,7 @@ template<>
 
   if (!allow_skipping) {
     std::vector<std::string> keys;
-    std::transform(map_.cbegin(), map_.cend(), std::back_inserter(keys), [](const std::pair<const std::string, std::unique_ptr<Node>> &key_value) {
+    std::transform(map_.cbegin(), map_.cend(), std::back_inserter(keys), [](const std::pair<const std::string, Node> &key_value) {
       return key_value.first;
     });
     std::vector<std::string> leftovers;
@@ -178,7 +178,7 @@ template<>
 
   if (!allow_skipping) {
     std::vector<std::string> keys;
-    std::transform(map_.cbegin(), map_.cend(), std::back_inserter(keys), [](const std::pair<const std::string, std::unique_ptr<Node>> &key_value) {
+    std::transform(map_.cbegin(), map_.cend(), std::back_inserter(keys), [](const std::pair<const std::string, Node> &key_value) {
       return key_value.first;
     });
     std::vector<std::string> leftovers;

@@ -64,47 +64,25 @@ impl Struct {
     let constructor_parameters = self.fields.iter()
       .map(|field| field.get_constructor_parameter())
       .collect::<Vec<String>>()
-      .join(", ");
-
-    // Get the name for "other" parameter which is gone if there are no fields
-    let other_name = if self.fields.is_empty() {
-      "".to_string()
-    } else {
-      "x".to_string()
-    };
+      .join("");
 
     // Get the equality test
     let equality_test = self.fields.iter()
       .map(|field| field.get_equality_check())
       .collect::<Vec<String>>()
-      .join(" && ");
-    let equality_test = if equality_test.is_empty() {
-      "true".to_string()
-    } else {
-      equality_test
-    };
+      .join("");
 
     // Get the printout for the operator<< function
     let printout = self.fields.iter()
       .map(|field| field.get_printout())
       .collect::<Vec<String>>()
-      .join(" << \", \" << ");
-    let printout = if printout.is_empty() {
-      "\"\"".to_string()
-    } else {
-      printout
-    };
+      .join("");
 
     // Get the list of setters for the internal constructor
     let constructor_setters = self.fields.iter()
       .map(|field| field.get_constructor_setter())
       .collect::<Vec<String>>()
-      .join(", ");
-    let constructor_setters = if constructor_setters.is_empty() {
-      "".to_string()
-    } else {
-      format!(" : {constructor_setters}")
-    };
+      .join("");
 
     // Get the definitions of all the fields but without any initialization
     let field_definitions = self.fields.iter()
@@ -121,16 +99,16 @@ impl Struct {
       {0:indent$} * 
       {0:indent$} * {constructor_description}
       {0:indent$} */
-      {0:indent$}explicit {name}({constructor_parameters}){constructor_setters} {{}}
+      {0:indent$}explicit {name}({constructor_parameters}::termite::Node::Map extra_fields = ::termite::Node::Map()) : {constructor_setters}extra_fields(std::move(extra_fields)) {{}}
 
       {0:indent$}/**
       {0:indent$} * @brief Checks if this object and the other object are identical
       {0:indent$} * 
-      {0:indent$} * @param {other_name} The other object to compare with
+      {0:indent$} * @param x The other object to compare with
       {0:indent$} * @return true if they are identical, false if not
       {0:indent$} */
-      {0:indent$}[[nodiscard]] bool operator==(const {name} &{other_name}) {{
-      {0:indent$}{0:indent$}return {equality_test};
+      {0:indent$}[[nodiscard]] bool operator==(const {name} &x) {{
+      {0:indent$}{0:indent$}return {equality_test}extra_fields == x.extra_fields;
       {0:indent$}}}
       {0:indent$}/**
       {0:indent$} * @brief Checks if this object and the other object are different
@@ -145,14 +123,19 @@ impl Struct {
       {0:indent$} * @brief Prints the object onto the output stream
       {0:indent$} * 
       {0:indent$} * @param os The output stream to print to
-      {0:indent$} * @param {other_name} The object to print
+      {0:indent$} * @param x The object to print
       {0:indent$} * @return The output stream
       {0:indent$} */
-      {0:indent$}friend std::ostream &operator<<(std::ostream &os, const {name} &{other_name}) {{
-      {0:indent$}{0:indent$}return os << \"{{ \" << {printout} << \" }}\";
+      {0:indent$}friend std::ostream &operator<<(std::ostream &os, const {name} &x) {{
+      {0:indent$}{0:indent$}return os << \"{{ \" << {printout}\"extra_fields: \" << x.extra_fields << \" }}\";
       {0:indent$}}}
 
       {field_definitions}
+      {0:indent$}/**
+      {0:indent$} * @brief All extra fields from when reading which could not be captured
+      {0:indent$} * 
+      {0:indent$} */
+      {0:indent$}::termite::Node::Map extra_fields;
       }};", "",
     );
   }
@@ -190,31 +173,29 @@ impl Struct {
     let parameter_retrievals = self.fields.iter()
       .map(|field| field.get_parameter_retrieval())
       .collect::<Vec<String>>()
-      .join(", ");
+      .join("");
 
     return formatdoc!("
       template<>
-      [[nodiscard]] Result<{typename}> Node::Map::to_value(bool allow_skipping) const {{
+      [[nodiscard]] Result<{typename}> Node::Map::to_value() const {{
       {parsing}
 
-      {0:indent$}if (!allow_skipping) {{
-      {0:indent$}{0:indent$}std::vector<std::string> keys;
-      {0:indent$}{0:indent$}std::transform(map_.cbegin(), map_.cend(), std::back_inserter(keys), [](const std::pair<const std::string, Node> &key_value) {{
-      {0:indent$}{0:indent$}{0:indent$}return key_value.first;
-      {0:indent$}{0:indent$}}});
-      {0:indent$}{0:indent$}std::vector<std::string> leftovers;
-      {0:indent$}{0:indent$}std::copy_if(keys.cbegin(), keys.cend(), std::back_inserter(leftovers), [](const std::string &value) {{
-      {0:indent$}{0:indent$}{0:indent$}std::vector<std::string> correct = {{{field_names}}};
-      {0:indent$}{0:indent$}{0:indent$}return std::find(correct.cbegin(), correct.cend(), value) == correct.cend();
-      {0:indent$}{0:indent$}}});
-      {0:indent$}{0:indent$}if (!leftovers.empty()) {{
-      {0:indent$}{0:indent$}{0:indent$}std::ostringstream ss;
-      {0:indent$}{0:indent$}{0:indent$}ss << \"Found unused fields: \" << leftovers;
-      {0:indent$}{0:indent$}{0:indent$}return Result<{typename}>::err(Error(ss.str()));
-      {0:indent$}{0:indent$}}}
-      {0:indent$}}}
+      {0:indent$}std::vector<std::string> keys;
+      {0:indent$}std::transform(map_.cbegin(), map_.cend(), std::back_inserter(keys), [](const std::pair<const std::string, Node> &key_value) {{
+      {0:indent$}{0:indent$}return key_value.first;
+      {0:indent$}}});
+      {0:indent$}std::vector<std::string> leftovers;
+      {0:indent$}std::copy_if(keys.cbegin(), keys.cend(), std::back_inserter(leftovers), [](const std::string &value) {{
+      {0:indent$}{0:indent$}std::vector<std::string> correct = {{{field_names}}};
+      {0:indent$}{0:indent$}return std::find(correct.cbegin(), correct.cend(), value) == correct.cend();
+      {0:indent$}}});
+      {0:indent$}std::vector<std::pair<std::string, Node>> extra_fields;
+      {0:indent$}std::transform(std::make_move_iterator(leftovers.begin()), std::make_move_iterator(leftovers.end()), std::back_inserter(extra_fields), [this](std::string name) {{
+      {0:indent$}{0:indent$}auto value = map_.find(name);
+      {0:indent$}{0:indent$}return std::make_pair(std::move(name), value->second);
+      {0:indent$}}});
 
-      {0:indent$}return Result<{typename}>::ok({typename}({parameter_retrievals}));
+      {0:indent$}return Result<{typename}>::ok({typename}({parameter_retrievals}Map(std::map<std::string, Node>(std::make_move_iterator(extra_fields.begin()), std::make_move_iterator(extra_fields.end())))));
       }}",
       "",
     );
@@ -293,7 +274,7 @@ impl StructField {
   /// Get the parameter definition for the constructor including default value
   fn get_constructor_parameter(&self) -> String {
     return format!(
-      "{typename} {name}{default}",
+      "{typename} {name}{default}, ",
       typename = self.get_typename(),
       name = self.name,
       default = self.get_default(),
@@ -303,7 +284,7 @@ impl StructField {
   /// Gets the equality check for this field
   fn get_equality_check(&self) -> String {
     return format!(
-      "{name} == x.{name}",
+      "{name} == x.{name} && ",
       name = self.name,
     );
   }
@@ -311,7 +292,7 @@ impl StructField {
   /// Gets the printout of this field for the operator>> ostream function
   fn get_printout(&self) -> String {
     return format!(
-      "\"{name}: \" << x.{name}",
+      "\"{name}: \" << x.{name} << \", \" << ",
       name = self.name,
     );
   }
@@ -319,7 +300,7 @@ impl StructField {
   /// Get the setter for this field for the internal constructor
   fn get_constructor_setter(&self) -> String {
     return format!(
-      "{name}(std::move({name}))",
+      "{name}(std::move({name})), ",
       name = self.name
     );
   }
@@ -356,7 +337,7 @@ impl StructField {
       {0:indent$}if (location_{name} == map_.end()) {{
       {0:indent$}{0:indent$}return Result<{main_name}>::err(Error(\"Missing {name}\"));
       {0:indent$}}}
-      {0:indent$}Result<{typename}> raw_value_{name} = location_{name}->second->to_value<{typename}>(allow_skipping);
+      {0:indent$}Result<{typename}> raw_value_{name} = location_{name}->second.to_value<{typename}>();
       {0:indent$}if (!raw_value_{name}.is_ok()) {{
       {0:indent$}{0:indent$}Error error = raw_value_{name}.get_err();
       {0:indent$}{0:indent$}error.add_field(\"{name}\");
@@ -381,7 +362,7 @@ impl StructField {
       {0:indent$}auto location_{name} = map_.find(\"{name}\");
       {0:indent$}{typename} value_{name}{default};
       {0:indent$}if (location_{name} != map_.end()) {{
-      {0:indent$}{0:indent$}Result<{base_typename}> raw_value_{name} = location_{name}->second->to_value<{base_typename}>(allow_skipping);
+      {0:indent$}{0:indent$}Result<{base_typename}> raw_value_{name} = location_{name}->second.to_value<{base_typename}>();
       {0:indent$}{0:indent$}if (!raw_value_{name}.is_ok()) {{
       {0:indent$}{0:indent$}{0:indent$}Error error = raw_value_{name}.get_err();
       {0:indent$}{0:indent$}{0:indent$}error.add_field(\"{name}\");
@@ -418,7 +399,7 @@ impl StructField {
 
   /// Gets the value of this field when parsing after it is read
   fn get_parameter_retrieval(&self) -> String {
-    return format!("std::move(value_{name})", name = self.name);
+    return format!("std::move(value_{name}), ", name = self.name);
   }
 }
 
