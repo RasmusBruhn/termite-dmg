@@ -49,7 +49,7 @@ public:
    * @param value The value to store 
    * @return The new constrained type or an error if some constraints were not upheld
    */
-  [[nodiscard]] static termite::Result<DataType1> from_values(int value) {
+  [[nodiscard]] static termite::Result<DataType1> from_value(int value) {
     termite::Result<termite::Empty> validate_result = validate(value);
     if (!validate_result.is_ok()) {
       termite::Error error = validate_result.get_err();
@@ -156,7 +156,7 @@ public:
    * @param value The value to store 
    * @return The new constrained type or an error if some constraints were not upheld
    */
-  [[nodiscard]] static termite::Result<DataType2> from_values(float value) {
+  [[nodiscard]] static termite::Result<DataType2> from_value(float value) {
     termite::Result<termite::Empty> validate_result = validate(value);
     if (!validate_result.is_ok()) {
       termite::Error error = validate_result.get_err();
@@ -273,7 +273,7 @@ template<>
     return Result<test::DataType1>::err(Error(value.get_err()));
   }
 
-  return test::DataType1::from_values(value.get_ok());
+  return test::DataType1::from_value(value.get_ok());
 }
 
 template<>
@@ -283,7 +283,7 @@ template<>
     return Result<test::DataType2>::err(Error(value.get_err()));
   }
 
-  return test::DataType2::from_values(value.get_ok());
+  return test::DataType2::from_value(value.get_ok());
 }
 
 } // namespace termite

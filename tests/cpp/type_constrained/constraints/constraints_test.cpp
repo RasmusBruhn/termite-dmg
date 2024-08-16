@@ -2,29 +2,29 @@
 #include "constraints.hpp"
 
 int main() {
-  auto value1 = test::DataType1::from_values(2).get_ok();
-  auto value2 = test::DataType2::from_values(1e-10).get_ok();
+  auto value1 = test::DataType1::from_value(2).get_ok();
+  auto value2 = test::DataType2::from_value(1e-10).get_ok();
 
   if (value1 != value1) {
     return 1;
   }
-  if (value1 == test::DataType1::from_values(4).get_ok()) {
+  if (value1 == test::DataType1::from_value(4).get_ok()) {
     return 2;
   }
   if (value2 != value2) {
     return 3;
   }
-  if (value2 == test::DataType2::from_values(1e-11).get_ok()) {
+  if (value2 == test::DataType2::from_value(1e-11).get_ok()) {
     return 4;
   }
 
-  if (test::DataType1::from_values(0).is_ok()) {
+  if (test::DataType1::from_value(0).is_ok()) {
     return 5;
   }
-  if (test::DataType1::from_values(1).is_ok()) {
+  if (test::DataType1::from_value(1).is_ok()) {
     return 6;
   }
-  if (test::DataType2::from_values(1e-8).is_ok()) {
+  if (test::DataType2::from_value(1e-8).is_ok()) {
     return 7;
   }
 

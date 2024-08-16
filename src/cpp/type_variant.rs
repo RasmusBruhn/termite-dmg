@@ -1,7 +1,4 @@
-use std::char::{
-  ToLowercase, 
-  ToUppercase
-};
+use std::char::ToLowercase;
 
 use indoc::formatdoc;
 use super::*;
@@ -66,72 +63,6 @@ impl<'a> Iterator for ToSnakeCase<'a> {
   }
 }
 
-/// Iterator to convert an iterator of chars to camel case converting all
-/// underscores and a character to the uppercase character
-struct ToCamelCase<'a> {
-  /// The characters to convert to camel case
-  chars: &'a mut dyn Iterator<Item = char>,
-  /// The characters currently being converted to uppercase
-  set_upper: Option<ToUppercase>,
-}
-
-impl<'a> ToCamelCase<'a> {
-  /// Creates a new ToCamelCase object
-  /// 
-  /// # Parameters
-  /// 
-  /// chars: The iterator of the characters to convert
-  fn new(chars: &'a mut dyn Iterator<Item = char>) -> Self {
-    // Make sure the first character is uppercase without an underscore
-    let set_upper = if let Some(first_char) = chars.next() {
-      Some(first_char.to_uppercase())
-    } else {
-      None
-    };
-
-    return Self {
-      chars,
-      set_upper,
-    }
-  }
-}
-
-impl<'a> Iterator for ToCamelCase<'a> {
-  type Item = char;
-
-  fn next(&mut self) -> Option<Self::Item> {
-      // Set to uppercase
-      if let Some(set_upper) = &mut self.set_upper {
-        // Get the next character
-        if let Some(next_char) = set_upper.next() {
-          return Some(next_char);
-        }
-
-        // Finish up setting to uppercase
-        self.set_upper = None;
-      }
-
-      // Get next character
-      return if let Some(next_char) = self.chars.next() {
-        // Set to uppercase if it is underscore
-        if next_char == '_' {
-          if let Some(to_upper) = self.chars.next() {
-            let mut uppercase = to_upper.to_uppercase();
-            let result = uppercase.next();
-            self.set_upper = Some(uppercase);
-            result
-          } else {
-            None
-          }
-        } else {
-          Some(next_char)
-        }
-      } else {
-        None
-      }
-  }
-}
-
 /// The type specific information for a variant
 #[derive(Clone, Debug, PartialEq)]
 pub(super) struct Variant {
@@ -159,67 +90,16 @@ impl Variant {
   /// 
   /// indent: The number of spaces to use for indentation
   pub(super) fn get_source(&self, name: &str, indent: usize) -> String {
-    // Get the variants enum
-    let variant_enum = self.data_types.iter()
-      .enumerate()
-      .map(|(index, data_type)| format!(
-        "{0:indent$}{0:indent$}k{type_name} = {index},", 
-        "", 
-        type_name = ToCamelCase::new(&mut data_type.chars()).collect::<String>()
-      ))
-      .collect::<Vec<String>>()
-      .join("\n");
 
     // Create list of the variants
     let variant_list = self.data_types.join(", ");
 
-    // Get snake case naming
-    let snake_case_data_types = self.data_types.iter()
-      .map(|data_type| ToSnakeCase::new(&mut data_type.chars()).collect::<String>())
-      .collect::<Vec<String>>();
-
-    // Create the setters
-    let setters = self.data_types.iter()
-      .zip(snake_case_data_types.iter())
-      .map(|(data_type, snake_case)| formatdoc!{"
-        {0:indent$}/**
-        {0:indent$} * @brief Sets the value as a {data_type}
-        {0:indent$} * 
-        {0:indent$} * @param value The value to set
-        {0:indent$} */
-        {0:indent$}void set_{snake_case}({data_type} value) {{
-        {0:indent$}{0:indent$}value_ = std::move(value);
-        {0:indent$}}}",
-        "",
-      })
-      .collect::<Vec<String>>()
-      .join("\n");
-
-    let getters = self.data_types.iter()
-      .zip(snake_case_data_types.iter())
-      .map(|(data_type, snake_case)| formatdoc!("
-        {0:indent$}/**
-        {0:indent$} * @brief Retrieves a reference to the value as a {data_type}
-        {0:indent$} * 
-        {0:indent$} * @return The value or an error if it is the wrong type
-        {0:indent$} */
-        {0:indent$}[[nodiscard]] termite::Result<termite::Reference<{data_type}>> get_{snake_case}() {{
-        {0:indent$}{0:indent$}if (!std::holds_alternative<{data_type}>(value_)) {{
-        {0:indent$}{0:indent$}{0:indent$}return termite::Result<termite::Reference<{data_type}>>::err(termite::Error(\"Value is not a {data_type}\"));
-        {0:indent$}{0:indent$}}}
-
-        {0:indent$}{0:indent$}return termite::Result<termite::Reference<{data_type}>>::ok(termite::Reference(std::get<{data_type}>(std::move(value_))));
-        {0:indent$}}}",
-        "",
-      ))
-      .collect::<Vec<String>>()
-      .join("\n");
-
+    // Create writer
     let writer_specifiers = self.data_types.iter()
       .enumerate()
       .map(|(index, data_type)| formatdoc!("
         {0:indent$}{0:indent$}case {index}:
-        {0:indent$}{0:indent$}{0:indent$}os << \"{data_type} \" << std::get<{data_type}>(x.value_);
+        {0:indent$}{0:indent$}{0:indent$}os << \"{data_type} \" << std::get<{data_type}>(x.value);
         {0:indent$}{0:indent$}{0:indent$}break;",
         "",
       ))
@@ -230,50 +110,11 @@ impl Variant {
       class {name} {{
       public:
       {0:indent$}/**
-      {0:indent$} * @brief The types of variants
-      {0:indent$} * 
-      {0:indent$} */
-      {0:indent$}enum Variant {{
-      {variant_enum}
-      {0:indent$}}};
-
-      {0:indent$}/**
       {0:indent$} * @brief Constructs a new {name} object
       {0:indent$} * 
       {0:indent$} * @param value The value of the variant
-      {0:indent$} * @return The new variant
       {0:indent$} */
-      {0:indent$}[[nodiscard]] static {name} from_values(std::variant<{variant_list}> value) {{
-      {0:indent$}{0:indent$}return {name}(std::move(value));
-      {0:indent$}}}
-
-      {setters}
-      {0:indent$}/**
-      {0:indent$} * @brief Sets the value
-      {0:indent$} * 
-      {0:indent$} * @param value The value to set
-      {0:indent$} */
-      {0:indent$}void set_value(std::variant<{variant_list}> value) {{
-      {0:indent$}{0:indent$}value_ = std::move(value);
-      {0:indent$}}}
-
-      {0:indent$}/**
-      {0:indent$} * @brief Retrieves the type of variant stored
-      {0:indent$} * 
-      {0:indent$} * @return The type of variant
-      {0:indent$} */
-      {0:indent$}[[nodiscard]] Variant variant() const {{
-      {0:indent$}{0:indent$}return static_cast<Variant>(value_.index());
-      {0:indent$}}}
-      {getters}
-      {0:indent$}/**
-      {0:indent$} * @brief Retrieves a reference to the value
-      {0:indent$} * 
-      {0:indent$} * @return The reference or an error if it is the wrong type
-      {0:indent$} */
-      {0:indent$}[[nodiscard]] const std::variant<int, float> &get_value() const {{
-      {0:indent$}{0:indent$}return value_;
-      {0:indent$}}}
+      {0:indent$}explicit {name}(std::variant<{variant_list}> value) : value(std::move(value)) {{}}
 
       {0:indent$}/**
       {0:indent$} * @brief Checks if this object and the other object are identical
@@ -282,7 +123,7 @@ impl Variant {
       {0:indent$} * @return true if they are identical, false if not
       {0:indent$} */
       {0:indent$}[[nodiscard]] bool operator==(const DataType &x) {{
-      {0:indent$}{0:indent$}return value_ == x.value_;
+      {0:indent$}{0:indent$}return value == x.value;
       {0:indent$}}}
       {0:indent$}/**
       {0:indent$} * @brief Checks if this object and the other object are different
@@ -302,7 +143,7 @@ impl Variant {
       {0:indent$} */
       {0:indent$}friend std::ostream &operator<<(std::ostream &os, const DataType &x) {{
       {0:indent$}{0:indent$}os << \"{{ value: \";
-      {0:indent$}{0:indent$}switch (x.value_.index()) {{
+      {0:indent$}{0:indent$}switch (x.value.index()) {{
       {writer_specifiers}
       {0:indent$}{0:indent$}default:
       {0:indent$}{0:indent$}{0:indent$}os << \"Unknown\";
@@ -311,14 +152,11 @@ impl Variant {
       {0:indent$}{0:indent$}return os << \" }}\";
       {0:indent$}}}
 
-      private:
-      {0:indent$}explicit {name}(std::variant<{variant_list}> value) : value_(std::move(value)) {{}}
-
       {0:indent$}/**
       {0:indent$} * @brief The value of the variant
       {0:indent$} * 
       {0:indent$} */
-      {0:indent$}std::variant<{variant_list}> value_;
+      {0:indent$}std::variant<{variant_list}> value;
       }};",
       "",
     );
@@ -352,7 +190,7 @@ impl Variant {
       .map(|(data_type, snake_case)| formatdoc!("
         {0:indent$}Result<{data_type}> result_{snake_case} = to_value<{data_type}>();
         {0:indent$}if (result_{snake_case}.is_ok()) {{
-        {0:indent$}{0:indent$}return Result<{typename}>::ok({typename}::from_values(result_{snake_case}.get_ok()));
+        {0:indent$}{0:indent$}return Result<{typename}>::ok({typename}(result_{snake_case}.get_ok()));
         {0:indent$}}}
         {0:indent$}error << \"{data_type} {{ \" << result_{snake_case}.get_err() << \" }}\";",
       "",

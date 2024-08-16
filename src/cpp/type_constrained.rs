@@ -66,7 +66,7 @@ impl ConstrainedType {
       {0:indent$} * @param value The value to store 
       {0:indent$} * @return The new constrained type or an error if some constraints were not upheld
       {0:indent$} */
-      {0:indent$}[[nodiscard]] static termite::Result<{name}> from_values({data_type} value) {{
+      {0:indent$}[[nodiscard]] static termite::Result<{name}> from_value({data_type} value) {{
       {0:indent$}{0:indent$}termite::Result<termite::Empty> validate_result = validate(value);
       {0:indent$}{0:indent$}if (!validate_result.is_ok()) {{
       {0:indent$}{0:indent$}{0:indent$}termite::Error error = validate_result.get_err();
@@ -182,7 +182,7 @@ impl ConstrainedType {
       {0:indent$}{0:indent$}return Result<{typename}>::err(Error(value.get_err()));
       {0:indent$}}}
 
-      {0:indent$}return {typename}::from_values(value.get_ok());
+      {0:indent$}return {typename}::from_value(value.get_ok());
       }}",
       "",
       data_type = self.data_type,

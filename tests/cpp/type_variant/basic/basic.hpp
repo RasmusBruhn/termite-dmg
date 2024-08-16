@@ -44,89 +44,11 @@ operator<<(std::ostream &os, const std::optional<T> &value) {
 class DataType {
 public:
   /**
-   * @brief The types of variants
-   * 
-   */
-  enum Variant {
-    kInt = 0,
-    kFloat = 1,
-  };
-
-  /**
    * @brief Constructs a new DataType object
    * 
    * @param value The value of the variant
-   * @return The new variant
    */
-  [[nodiscard]] static DataType from_values(std::variant<int, float> value) {
-    return DataType(std::move(value));
-  }
-
-  /**
-   * @brief Sets the value as a int
-   * 
-   * @param value The value to set
-   */
-  void set_int(int value) {
-    value_ = std::move(value);
-  }
-  /**
-   * @brief Sets the value as a float
-   * 
-   * @param value The value to set
-   */
-  void set_float(float value) {
-    value_ = std::move(value);
-  }
-  /**
-   * @brief Sets the value
-   * 
-   * @param value The value to set
-   */
-  void set_value(std::variant<int, float> value) {
-    value_ = std::move(value);
-  }
-
-  /**
-   * @brief Retrieves the type of variant stored
-   * 
-   * @return The type of variant
-   */
-  [[nodiscard]] Variant variant() const {
-    return static_cast<Variant>(value_.index());
-  }
-  /**
-   * @brief Retrieves a reference to the value as a int
-   * 
-   * @return The value or an error if it is the wrong type
-   */
-  [[nodiscard]] termite::Result<termite::Reference<int>> get_int() {
-    if (!std::holds_alternative<int>(value_)) {
-      return termite::Result<termite::Reference<int>>::err(termite::Error("Value is not a int"));
-    }
-
-    return termite::Result<termite::Reference<int>>::ok(termite::Reference(std::get<int>(std::move(value_))));
-  }
-  /**
-   * @brief Retrieves a reference to the value as a float
-   * 
-   * @return The value or an error if it is the wrong type
-   */
-  [[nodiscard]] termite::Result<termite::Reference<float>> get_float() {
-    if (!std::holds_alternative<float>(value_)) {
-      return termite::Result<termite::Reference<float>>::err(termite::Error("Value is not a float"));
-    }
-
-    return termite::Result<termite::Reference<float>>::ok(termite::Reference(std::get<float>(std::move(value_))));
-  }
-  /**
-   * @brief Retrieves a reference to the value
-   * 
-   * @return The reference or an error if it is the wrong type
-   */
-  [[nodiscard]] const std::variant<int, float> &get_value() const {
-    return value_;
-  }
+  explicit DataType(std::variant<int, float> value) : value(std::move(value)) {}
 
   /**
    * @brief Checks if this object and the other object are identical
@@ -135,7 +57,7 @@ public:
    * @return true if they are identical, false if not
    */
   [[nodiscard]] bool operator==(const DataType &x) {
-    return value_ == x.value_;
+    return value == x.value;
   }
   /**
    * @brief Checks if this object and the other object are different
@@ -155,12 +77,12 @@ public:
    */
   friend std::ostream &operator<<(std::ostream &os, const DataType &x) {
     os << "{ value: ";
-    switch (x.value_.index()) {
+    switch (x.value.index()) {
     case 0:
-      os << "int " << std::get<int>(x.value_);
+      os << "int " << std::get<int>(x.value);
       break;
     case 1:
-      os << "float " << std::get<float>(x.value_);
+      os << "float " << std::get<float>(x.value);
       break;
     default:
       os << "Unknown";
@@ -169,14 +91,11 @@ public:
     return os << " }";
   }
 
-private:
-  explicit DataType(std::variant<int, float> value) : value_(std::move(value)) {}
-
   /**
    * @brief The value of the variant
    * 
    */
-  std::variant<int, float> value_;
+  std::variant<int, float> value;
 };
 
 } // namespace test
@@ -207,14 +126,14 @@ template<>
 
   Result<int> result_int = to_value<int>();
   if (result_int.is_ok()) {
-    return Result<test::DataType>::ok(test::DataType::from_values(result_int.get_ok()));
+    return Result<test::DataType>::ok(test::DataType(result_int.get_ok()));
   }
   error << "int { " << result_int.get_err() << " }";
   error << ", ";
 
   Result<float> result_float = to_value<float>();
   if (result_float.is_ok()) {
-    return Result<test::DataType>::ok(test::DataType::from_values(result_float.get_ok()));
+    return Result<test::DataType>::ok(test::DataType(result_float.get_ok()));
   }
   error << "float { " << result_float.get_err() << " }";
   error << " ]";
