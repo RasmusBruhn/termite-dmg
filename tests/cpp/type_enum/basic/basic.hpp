@@ -41,8 +41,7 @@ operator<<(std::ostream &os, const std::optional<T> &value) {
  * @brief 
  * 
  */
-class DataType {
-public:
+struct DataType {
   /**
    * @brief The values of this enum
    * 
@@ -303,25 +302,8 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 } // namespace
 
 template<>
-[[nodiscard]] Result<test::DataType> Node::to_value() const {
-  std::stringstream error;
-  error << "Unable to parse any variant: [ ";
-
-  Result<int> result_int = to_value<int>();
-  if (result_int.is_ok()) {
-    return Result<test::DataType>::ok(test::DataType(result_int.get_ok()));
-  }
-  error << "int { " << result_int.get_err() << " }";
-  error << ", ";
-
-  Result<float> result_float = to_value<float>();
-  if (result_float.is_ok()) {
-    return Result<test::DataType>::ok(test::DataType(result_float.get_ok()));
-  }
-  error << "float { " << result_float.get_err() << " }";
-  error << " ]";
-
-  return Result<test::DataType>::err(Error(error.str()));
+[[nodiscard]] Result<test::DataType> Node::Value::to_value<test::DataType>() const {
+  return Result<test::DataType>::err(Error(""));
 }
 
 } // namespace termite

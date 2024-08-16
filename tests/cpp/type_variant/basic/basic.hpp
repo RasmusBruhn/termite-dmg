@@ -41,8 +41,7 @@ operator<<(std::ostream &os, const std::optional<T> &value) {
  * @brief 
  * 
  */
-class DataType {
-public:
+struct DataType {
   /**
    * @brief Constructs a new DataType object
    * 
@@ -120,7 +119,7 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 } // namespace
 
 template<>
-[[nodiscard]] Result<test::DataType> Node::to_value() const {
+[[nodiscard]] Result<test::DataType> Node::to_value<test::DataType>() const {
   std::stringstream error;
   error << "Unable to parse any variant: [ ";
 

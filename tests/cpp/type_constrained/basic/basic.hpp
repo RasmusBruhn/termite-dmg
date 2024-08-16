@@ -253,7 +253,7 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 } // namespace
 
 template<>
-[[nodiscard]] Result<test::DataType1> Node::to_value() const {
+[[nodiscard]] Result<test::DataType1> Node::to_value<test::DataType1>() const {
   Result<int> value = to_value<int>();
   if (!value.is_ok()) {
     return Result<test::DataType1>::err(Error(value.get_err()));
@@ -263,7 +263,7 @@ template<>
 }
 
 template<>
-[[nodiscard]] Result<test::DataType2> Node::to_value() const {
+[[nodiscard]] Result<test::DataType2> Node::to_value<test::DataType2>() const {
   Result<float> value = to_value<float>();
   if (!value.is_ok()) {
     return Result<test::DataType2>::err(Error(value.get_err()));

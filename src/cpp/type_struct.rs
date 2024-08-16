@@ -178,7 +178,7 @@ impl Struct {
 
     return formatdoc!("
       template<>
-      [[nodiscard]] Result<{typename}> Node::Map::to_value() const {{
+      [[nodiscard]] Result<{typename}> Node::Map::to_value<{typename}>() const {{
       {parsing}
 
       {0:indent$}std::vector<std::string> keys;

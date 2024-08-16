@@ -120,7 +120,7 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 } // namespace
 
 template<>
-[[nodiscard]] Result<test::DataType> Node::Map::to_value() const {
+[[nodiscard]] Result<test::DataType> Node::Map::to_value<test::DataType>() const {
   auto location_field1 = map_.find("field1");
   int value_field1 = 1;
   if (location_field1 != map_.end()) {

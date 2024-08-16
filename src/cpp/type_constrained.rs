@@ -176,7 +176,7 @@ impl ConstrainedType {
 
     return formatdoc!("
       template<>
-      [[nodiscard]] Result<{typename}> Node::to_value() const {{
+      [[nodiscard]] Result<{typename}> Node::to_value<{typename}>() const {{
       {0:indent$}Result<{data_type}> value = to_value<{data_type}>();
       {0:indent$}if (!value.is_ok()) {{
       {0:indent$}{0:indent$}return Result<{typename}>::err(Error(value.get_err()));

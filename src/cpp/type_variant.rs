@@ -107,8 +107,7 @@ impl Variant {
       .join("\n");
 
     return formatdoc!("
-      class {name} {{
-      public:
+      struct {name} {{
       {0:indent$}/**
       {0:indent$} * @brief Constructs a new {name} object
       {0:indent$} * 
@@ -206,7 +205,7 @@ impl Variant {
 
     return formatdoc!("
       template<>
-      [[nodiscard]] Result<{typename}> Node::to_value() const {{
+      [[nodiscard]] Result<{typename}> Node::to_value<{typename}>() const {{
       {0:indent$}std::stringstream error;
       {0:indent$}error << \"Unable to parse any variant: [ \";
 
