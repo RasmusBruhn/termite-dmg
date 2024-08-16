@@ -70,7 +70,7 @@ struct DataType {
      * @param x The other object to compare with
      * @return true if they are identical, false if not
      */
-    [[nodiscard]] bool operator==(const TypeInt1 &x) {
+    [[nodiscard]] bool operator==(const TypeInt1 &x) const {
       return value == x.value;
     }
     /**
@@ -79,7 +79,7 @@ struct DataType {
      * @param x The other object to compare with
      * @return true if they are different, false if not
      */
-    [[nodiscard]] bool operator!=(const TypeInt1 &x) {
+    [[nodiscard]] bool operator!=(const TypeInt1 &x) const {
       return !(*this == x);
     }
     /**
@@ -90,7 +90,7 @@ struct DataType {
      * @return The output stream
      */
     friend std::ostream &operator<<(std::ostream &os, const TypeInt1 &x) {
-      os << "{ value: " << x.value << " }";
+      return os << "{ value: " << x.value << " }";
     }
   };
   /**
@@ -110,7 +110,7 @@ struct DataType {
      * @param x The other object to compare with
      * @return true if they are identical, false if not
      */
-    [[nodiscard]] bool operator==(const TypeInt2 &x) {
+    [[nodiscard]] bool operator==(const TypeInt2 &x) const {
       return value == x.value;
     }
     /**
@@ -119,7 +119,7 @@ struct DataType {
      * @param x The other object to compare with
      * @return true if they are different, false if not
      */
-    [[nodiscard]] bool operator!=(const TypeInt2 &x) {
+    [[nodiscard]] bool operator!=(const TypeInt2 &x) const {
       return !(*this == x);
     }
     /**
@@ -130,7 +130,7 @@ struct DataType {
      * @return The output stream
      */
     friend std::ostream &operator<<(std::ostream &os, const TypeInt2 &x) {
-      os << "{ value: " << x.value << " }";
+      return os << "{ value: " << x.value << " }";
     }
   };
   /**
@@ -150,7 +150,7 @@ struct DataType {
      * @param x The other object to compare with
      * @return true if they are identical, false if not
      */
-    [[nodiscard]] bool operator==(const TypeFloat &x) {
+    [[nodiscard]] bool operator==(const TypeFloat &x) const {
       return value == x.value;
     }
     /**
@@ -159,7 +159,7 @@ struct DataType {
      * @param x The other object to compare with
      * @return true if they are different, false if not
      */
-    [[nodiscard]] bool operator!=(const TypeFloat &x) {
+    [[nodiscard]] bool operator!=(const TypeFloat &x) const {
       return !(*this == x);
     }
     /**
@@ -170,7 +170,7 @@ struct DataType {
      * @return The output stream
      */
     friend std::ostream &operator<<(std::ostream &os, const TypeFloat &x) {
-      os << "{ value: " << x.value << " }";
+      return os << "{ value: " << x.value << " }";
     }
   };
   /**
@@ -186,7 +186,7 @@ struct DataType {
      * @param x The other object to compare with
      * @return true if they are identical, false if not
      */
-    [[nodiscard]] bool operator==(const TypeEmpty &x) {
+    [[nodiscard]] bool operator==(const TypeEmpty &x) const {
       return true;
     }
     /**
@@ -195,7 +195,7 @@ struct DataType {
      * @param x The other object to compare with
      * @return true if they are different, false if not
      */
-    [[nodiscard]] bool operator!=(const TypeEmpty &x) {
+    [[nodiscard]] bool operator!=(const TypeEmpty &x) const {
       return !(*this == x);
     }
     /**
@@ -206,7 +206,7 @@ struct DataType {
      * @return The output stream
      */
     friend std::ostream &operator<<(std::ostream &os, const TypeEmpty &x) {
-      os << "{  }";
+      return os << "{  }";
     }
   };
 
@@ -232,7 +232,7 @@ struct DataType {
    * @param x The other object to compare with
    * @return true if they are identical, false if not
    */
-  [[nodiscard]] bool operator==(const DataType &x) {
+  [[nodiscard]] bool operator==(const DataType &x) const {
     return value == x.value;
   }
   /**
@@ -241,7 +241,7 @@ struct DataType {
    * @param x The other object to compare with
    * @return true if they are different, false if not
    */
-  [[nodiscard]] bool operator!=(const DataType &x) {
+  [[nodiscard]] bool operator!=(const DataType &x) const {
     return !(*this == x);
   }
   /**
@@ -303,8 +303,8 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 
 template<>
 [[nodiscard]] Result<test::DataType> Node::Value::to_value<test::DataType>() const {
-  std::vector<std::pair<std::string, Node>> empty_node_values;
-  Node empty_node(Node::Map(std::map<std::string, Node>(empty_node_values.begin(), empty_node_values.end())));
+  std::map<std::string, Node> empty_map;
+  Node empty_node(Node::Map(std::move(empty_map)));
   if (value_ == "Int1") {
     Result<int> value = empty_node.to_value<int>();
     if (value.is_ok()) {

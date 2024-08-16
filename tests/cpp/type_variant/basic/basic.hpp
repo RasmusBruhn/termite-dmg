@@ -55,7 +55,7 @@ struct DataType {
    * @param x The other object to compare with
    * @return true if they are identical, false if not
    */
-  [[nodiscard]] bool operator==(const DataType &x) {
+  [[nodiscard]] bool operator==(const DataType &x) const {
     return value == x.value;
   }
   /**
@@ -64,7 +64,7 @@ struct DataType {
    * @param x The other object to compare with
    * @return true if they are different, false if not
    */
-  [[nodiscard]] bool operator!=(const DataType &x) {
+  [[nodiscard]] bool operator!=(const DataType &x) const {
     return !(*this == x);
   }
   /**

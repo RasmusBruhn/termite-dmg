@@ -107,7 +107,7 @@ impl ConstrainedType {
       {0:indent$} * @param x The other object to compare with
       {0:indent$} * @return true if they are identical, false if not
       {0:indent$} */
-      {0:indent$}[[nodiscard]] bool operator==(const {name} &x) {{
+      {0:indent$}[[nodiscard]] bool operator==(const {name} &x) const {{
       {0:indent$}{0:indent$}return value_ == x.value_;
       {0:indent$}}}
       {0:indent$}/**
@@ -116,7 +116,7 @@ impl ConstrainedType {
       {0:indent$} * @param x The other object to compare with
       {0:indent$} * @return true if they are different, false if not
       {0:indent$} */
-      {0:indent$}[[nodiscard]] bool operator!=(const {name} &x) {{
+      {0:indent$}[[nodiscard]] bool operator!=(const {name} &x) const {{
       {0:indent$}{0:indent$}return !(*this == x);
       {0:indent$}}}
       {0:indent$}/**

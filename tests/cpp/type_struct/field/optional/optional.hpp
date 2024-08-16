@@ -58,7 +58,7 @@ public:
    * @param x The other object to compare with
    * @return true if they are identical, false if not
    */
-  [[nodiscard]] bool operator==(const DataType &x) {
+  [[nodiscard]] bool operator==(const DataType &x) const {
     return field1 == x.field1 && field2 == x.field2 && extra_fields == x.extra_fields;
   }
   /**
@@ -67,7 +67,7 @@ public:
    * @param x The other object to compare with
    * @return true if they are different, false if not
    */
-  [[nodiscard]] bool operator!=(const DataType &x) {
+  [[nodiscard]] bool operator!=(const DataType &x) const {
     return !(*this == x);
   }
   /**

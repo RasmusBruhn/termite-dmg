@@ -57,7 +57,7 @@ public:
    * @param x The other object to compare with
    * @return true if they are identical, false if not
    */
-  [[nodiscard]] bool operator==(const DataType1 &x) {
+  [[nodiscard]] bool operator==(const DataType1 &x) const {
     return extra_fields == x.extra_fields;
   }
   /**
@@ -66,7 +66,7 @@ public:
    * @param x The other object to compare with
    * @return true if they are different, false if not
    */
-  [[nodiscard]] bool operator!=(const DataType1 &x) {
+  [[nodiscard]] bool operator!=(const DataType1 &x) const {
     return !(*this == x);
   }
   /**
@@ -108,7 +108,7 @@ public:
    * @param x The other object to compare with
    * @return true if they are identical, false if not
    */
-  [[nodiscard]] bool operator==(const DataType2 &x) {
+  [[nodiscard]] bool operator==(const DataType2 &x) const {
     return extra_fields == x.extra_fields;
   }
   /**
@@ -117,7 +117,7 @@ public:
    * @param x The other object to compare with
    * @return true if they are different, false if not
    */
-  [[nodiscard]] bool operator!=(const DataType2 &x) {
+  [[nodiscard]] bool operator!=(const DataType2 &x) const {
     return !(*this == x);
   }
   /**
