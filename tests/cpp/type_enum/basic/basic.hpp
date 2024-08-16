@@ -303,7 +303,74 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 
 template<>
 [[nodiscard]] Result<test::DataType> Node::Value::to_value<test::DataType>() const {
-  return Result<test::DataType>::err(Error(""));
+  std::vector<std::pair<std::string, Node>> empty_node_values;
+  Node empty_node(Node::Map(std::map<std::string, Node>(empty_node_values.begin(), empty_node_values.end())));
+  if (value_ == "Int1") {
+    Result<int> value = empty_node.to_value<int>();
+    if (value.is_ok()) {
+      return Result<test::DataType>::ok(test::DataType(test::DataType::TypeInt1{value.get_ok()}));
+    }
+    return Result<test::DataType>::err(Error("Enum type Int1 must contain a value"));
+  }
+  if (value_ == "Int2") {
+    Result<int> value = empty_node.to_value<int>();
+    if (value.is_ok()) {
+      return Result<test::DataType>::ok(test::DataType(test::DataType::TypeInt2{value.get_ok()}));
+    }
+    return Result<test::DataType>::err(Error("Enum type Int2 must contain a value"));
+  }
+  if (value_ == "Float") {
+    Result<float> value = empty_node.to_value<float>();
+    if (value.is_ok()) {
+      return Result<test::DataType>::ok(test::DataType(test::DataType::TypeFloat{value.get_ok()}));
+    }
+    return Result<test::DataType>::err(Error("Enum type Float must contain a value"));
+  }
+  if (value_ == "Empty") {
+    return Result<test::DataType>::ok(test::DataType(test::DataType::TypeEmpty{}));
+  }
+  
+  std::stringstream ss;
+  ss << "Unknown enum type \"" << value_ << "\"";
+  return Result<test::DataType>::err(Error(ss.str()));
+}
+
+template<>
+[[nodiscard]] Result<test::DataType> Node::Map::to_value<test::DataType>() const {
+  if (map_.size() != 1) {
+    std::stringstream ss;
+    ss << "There must be exactly one enum type specified but received " << map_.size();
+    return Result<test::DataType>::err(Error(ss.str()));
+  }
+
+  if (map_.cbegin()->first == "Int1") {
+    Result<int> value = map_.cbegin()->second.to_value<int>();
+    if (value.is_ok()) {
+      return Result<test::DataType>::ok(test::DataType(test::DataType::TypeInt1{value.get_ok()}));
+    }
+    return Result<test::DataType>::err(value.get_err().add_field("Int1"));
+  }
+  if (map_.cbegin()->first == "Int2") {
+    Result<int> value = map_.cbegin()->second.to_value<int>();
+    if (value.is_ok()) {
+      return Result<test::DataType>::ok(test::DataType(test::DataType::TypeInt2{value.get_ok()}));
+    }
+    return Result<test::DataType>::err(value.get_err().add_field("Int2"));
+  }
+  if (map_.cbegin()->first == "Float") {
+    Result<float> value = map_.cbegin()->second.to_value<float>();
+    if (value.is_ok()) {
+      return Result<test::DataType>::ok(test::DataType(test::DataType::TypeFloat{value.get_ok()}));
+    }
+    return Result<test::DataType>::err(value.get_err().add_field("Float"));
+  }
+  if (map_.cbegin()->first == "Empty") {
+    return Result<test::DataType>::err(Error("Enum type Empty must not include values"));
+  }
+  
+  std::stringstream ss;
+  ss << "Unknown enum type \"" << map_.cbegin()->first << "\"";
+  return Result<test::DataType>::err(Error(ss.str()));
 }
 
 } // namespace termite
