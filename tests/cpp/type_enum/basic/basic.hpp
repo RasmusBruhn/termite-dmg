@@ -44,88 +44,187 @@ operator<<(std::ostream &os, const std::optional<T> &value) {
 class DataType {
 public:
   /**
-   * @brief The types of variants
+   * @brief The values of this enum
    * 
    */
-  enum Variant {
-    kInt = 0,
-    kFloat = 1,
+  enum Enum {
+    kInt1,
+    kInt2,
+    kFloat,
+    kEmpty,
+  };
+
+  /**
+   * @brief The data for when the enum is a Int1
+   * 
+   */
+  struct TypeInt1 {
+    /**
+     * @brief The value
+     * 
+     */
+    int value;
+
+    /**
+     * @brief Checks if this object and the other object are identical
+     * 
+     * @param x The other object to compare with
+     * @return true if they are identical, false if not
+     */
+    [[nodiscard]] bool operator==(const TypeInt1 &x) {
+      return value == x.value;
+    }
+    /**
+     * @brief Checks if this object and the other object are different
+     * 
+     * @param x The other object to compare with
+     * @return true if they are different, false if not
+     */
+    [[nodiscard]] bool operator!=(const TypeInt1 &x) {
+      return !(*this == x);
+    }
+    /**
+     * @brief Prints the object onto the output stream
+     * 
+     * @param os The output stream to print to
+     * @param x The object to print
+     * @return The output stream
+     */
+    friend std::ostream &operator<<(std::ostream &os, const TypeInt1 &x) {
+      os << "{ value: " << x.value << " }";
+    }
+  };
+  /**
+   * @brief The data for when the enum is a Int2
+   * 
+   */
+  struct TypeInt2 {
+    /**
+     * @brief The value
+     * 
+     */
+    int value;
+
+    /**
+     * @brief Checks if this object and the other object are identical
+     * 
+     * @param x The other object to compare with
+     * @return true if they are identical, false if not
+     */
+    [[nodiscard]] bool operator==(const TypeInt2 &x) {
+      return value == x.value;
+    }
+    /**
+     * @brief Checks if this object and the other object are different
+     * 
+     * @param x The other object to compare with
+     * @return true if they are different, false if not
+     */
+    [[nodiscard]] bool operator!=(const TypeInt2 &x) {
+      return !(*this == x);
+    }
+    /**
+     * @brief Prints the object onto the output stream
+     * 
+     * @param os The output stream to print to
+     * @param x The object to print
+     * @return The output stream
+     */
+    friend std::ostream &operator<<(std::ostream &os, const TypeInt2 &x) {
+      os << "{ value: " << x.value << " }";
+    }
+  };
+  /**
+   * @brief The data for when the enum is a Float
+   * 
+   */
+  struct TypeFloat {
+    /**
+     * @brief The value
+     * 
+     */
+    float value;
+
+    /**
+     * @brief Checks if this object and the other object are identical
+     * 
+     * @param x The other object to compare with
+     * @return true if they are identical, false if not
+     */
+    [[nodiscard]] bool operator==(const TypeFloat &x) {
+      return value == x.value;
+    }
+    /**
+     * @brief Checks if this object and the other object are different
+     * 
+     * @param x The other object to compare with
+     * @return true if they are different, false if not
+     */
+    [[nodiscard]] bool operator!=(const TypeFloat &x) {
+      return !(*this == x);
+    }
+    /**
+     * @brief Prints the object onto the output stream
+     * 
+     * @param os The output stream to print to
+     * @param x The object to print
+     * @return The output stream
+     */
+    friend std::ostream &operator<<(std::ostream &os, const TypeFloat &x) {
+      os << "{ value: " << x.value << " }";
+    }
+  };
+  /**
+   * @brief The data for when the enum is a Empty
+   * 
+   */
+  struct TypeEmpty {
+
+
+    /**
+     * @brief Checks if this object and the other object are identical
+     * 
+     * @param x The other object to compare with
+     * @return true if they are identical, false if not
+     */
+    [[nodiscard]] bool operator==(const TypeEmpty &x) {
+      return true;
+    }
+    /**
+     * @brief Checks if this object and the other object are different
+     * 
+     * @param x The other object to compare with
+     * @return true if they are different, false if not
+     */
+    [[nodiscard]] bool operator!=(const TypeEmpty &x) {
+      return !(*this == x);
+    }
+    /**
+     * @brief Prints the object onto the output stream
+     * 
+     * @param os The output stream to print to
+     * @param x The object to print
+     * @return The output stream
+     */
+    friend std::ostream &operator<<(std::ostream &os, const TypeEmpty &x) {
+      os << "{  }";
+    }
   };
 
   /**
    * @brief Constructs a new DataType object
    * 
-   * @param value The value of the variant
-   * @return The new variant
+   * @param value The value of the enum
    */
-  [[nodiscard]] static DataType from_values(std::variant<int, float> value) {
-    return DataType(std::move(value));
-  }
+  explicit DataType(std::variant<TypeInt1, TypeInt2, TypeFloat, TypeEmpty> value) : value(std::move(value)) {}
 
   /**
-   * @brief Sets the value as a int
+   * @brief Returns the enum type that is stored
    * 
-   * @param value The value to set
+   * @return The enum type
    */
-  void set_int(int value) {
-    value_ = std::move(value);
-  }
-  /**
-   * @brief Sets the value as a float
-   * 
-   * @param value The value to set
-   */
-  void set_float(float value) {
-    value_ = std::move(value);
-  }
-  /**
-   * @brief Sets the value
-   * 
-   * @param value The value to set
-   */
-  void set_value(std::variant<int, float> value) {
-    value_ = std::move(value);
-  }
-
-  /**
-   * @brief Retrieves the type of variant stored
-   * 
-   * @return The type of variant
-   */
-  [[nodiscard]] Variant variant() const {
-    return static_cast<Variant>(value_.index());
-  }
-  /**
-   * @brief Retrieves a reference to the value as a int
-   * 
-   * @return The value or an error if it is the wrong type
-   */
-  [[nodiscard]] termite::Result<termite::Reference<int>> get_int() {
-    if (!std::holds_alternative<int>(value_)) {
-      return termite::Result<termite::Reference<int>>::err(termite::Error("Value is not a int"));
-    }
-
-    return termite::Result<termite::Reference<int>>::ok(termite::Reference(std::get<int>(std::move(value_))));
-  }
-  /**
-   * @brief Retrieves a reference to the value as a float
-   * 
-   * @return The value or an error if it is the wrong type
-   */
-  [[nodiscard]] termite::Result<termite::Reference<float>> get_float() {
-    if (!std::holds_alternative<float>(value_)) {
-      return termite::Result<termite::Reference<float>>::err(termite::Error("Value is not a float"));
-    }
-
-    return termite::Result<termite::Reference<float>>::ok(termite::Reference(std::get<float>(std::move(value_))));
-  }
-  /**
-   * @brief Retrieves a reference to the value
-   * 
-   * @return The reference or an error if it is the wrong type
-   */
-  [[nodiscard]] const std::variant<int, float> &get_value() const {
-    return value_;
+  [[nodiscard]] Enum enum_type() const {
+    return static_cast<Enum>(value.index());
   }
 
   /**
@@ -135,7 +234,7 @@ public:
    * @return true if they are identical, false if not
    */
   [[nodiscard]] bool operator==(const DataType &x) {
-    return value_ == x.value_;
+    return value == x.value;
   }
   /**
    * @brief Checks if this object and the other object are different
@@ -155,12 +254,18 @@ public:
    */
   friend std::ostream &operator<<(std::ostream &os, const DataType &x) {
     os << "{ value: ";
-    switch (x.value_.index()) {
-    case 0:
-      os << "int " << std::get<int>(x.value_);
+    switch (x.value.index()) {
+    case Enum::kInt1:
+      os << "Int1(" << std::get<TypeInt1>(x.value).value << ")";
       break;
-    case 1:
-      os << "float " << std::get<float>(x.value_);
+    case Enum::kInt2:
+      os << "Int2(" << std::get<TypeInt2>(x.value).value << ")";
+      break;
+    case Enum::kFloat:
+      os << "Float(" << std::get<TypeFloat>(x.value).value << ")";
+      break;
+    case Enum::kEmpty:
+      os << "Empty";
       break;
     default:
       os << "Unknown";
@@ -169,14 +274,11 @@ public:
     return os << " }";
   }
 
-private:
-  explicit DataType(std::variant<int, float> value) : value_(std::move(value)) {}
-
   /**
-   * @brief The value of the variant
+   * @brief The value of the enum
    * 
    */
-  std::variant<int, float> value_;
+  std::variant<TypeInt1, TypeInt2, TypeFloat, TypeEmpty> value;
 };
 
 } // namespace test
@@ -207,14 +309,14 @@ template<>
 
   Result<int> result_int = to_value<int>();
   if (result_int.is_ok()) {
-    return Result<test::DataType>::ok(test::DataType::from_values(result_int.get_ok()));
+    return Result<test::DataType>::ok(test::DataType(result_int.get_ok()));
   }
   error << "int { " << result_int.get_err() << " }";
   error << ", ";
 
   Result<float> result_float = to_value<float>();
   if (result_float.is_ok()) {
-    return Result<test::DataType>::ok(test::DataType::from_values(result_float.get_ok()));
+    return Result<test::DataType>::ok(test::DataType(result_float.get_ok()));
   }
   error << "float { " << result_float.get_err() << " }";
   error << " ]";
