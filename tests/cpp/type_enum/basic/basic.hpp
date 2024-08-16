@@ -47,9 +47,25 @@ struct DataType {
    * 
    */
   enum Enum {
+    /**
+     * @brief 
+     * 
+     */
     kInt1,
+    /**
+     * @brief 
+     * 
+     */
     kInt2,
+    /**
+     * @brief 
+     * 
+     */
     kFloat,
+    /**
+     * @brief 
+     * 
+     */
     kEmpty,
   };
 

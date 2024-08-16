@@ -56,6 +56,8 @@ pub enum DataTypeData {
   Array(Array),
   /// Describes a variant
   Variant(Variant),
+  /// Describes an enum
+  Enum(Enum),
   /// Describes a constrained type
   ConstrainedType(ConstrainedType),
 }
@@ -96,6 +98,24 @@ pub struct Array {
 pub struct Variant {
   /// The list of data types the variant can be
   pub data_types: Vec<String>,
+}
+
+/// The type specific data for an enum
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct Enum {
+  /// All the possible enum types
+  pub types: Vec<EnumType>,
+}
+
+/// Describes all data for an enum type
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub struct EnumType {
+  /// The name of this enum type
+  pub name: String,
+  /// The description describing this enum type
+  pub description: Option<String>,
+  /// The type for this enum type, may be omitted for an empty type
+  pub data_type: Option<String>,
 }
 
 /// The type specific data for a constrained type

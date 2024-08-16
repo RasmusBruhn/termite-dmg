@@ -17,11 +17,13 @@ use std::{
 mod type_struct;
 mod type_array;
 mod type_variant;
+mod type_enum;
 mod type_constrained;
 
 use type_struct::Struct;
 use type_array::Array;
 use type_variant::Variant;
+use type_enum::Enum;
 use type_constrained::ConstrainedType;
 
 /// Obtains the base termite c++ dependency required for all generated data
@@ -311,6 +313,8 @@ enum DataTypeData {
   Array(Array),
   /// Describes a variant
   Variant(Variant),
+  /// Describes an enum
+  Enum(Enum),
   /// Describes a constrained type
   ConstrainedType(ConstrainedType),
 }
@@ -326,6 +330,7 @@ impl DataTypeData {
       crate::DataTypeData::Struct(data) => DataTypeData::Struct(Struct::new(data)?),
       crate::DataTypeData::Array(data) => DataTypeData::Array(Array::new(data)?),
       crate::DataTypeData::Variant(data) => DataTypeData::Variant(Variant::new(data)?),      
+      crate::DataTypeData::Enum(data) => DataTypeData::Enum(Enum::new(data)?),      
       crate::DataTypeData::ConstrainedType(data) => DataTypeData::ConstrainedType(ConstrainedType::new(data)?),      
     };
 
@@ -344,6 +349,7 @@ impl DataTypeData {
       DataTypeData::Struct(data) => data.get_source(name, indent),
       DataTypeData::Array(data) => data.get_source(name, indent),
       DataTypeData::Variant(data) => data.get_source(name, indent),
+      DataTypeData::Enum(data) => data.get_source(name, indent),
       DataTypeData::ConstrainedType(data) => data.get_source(name, indent),
     };
   }
@@ -362,6 +368,7 @@ impl DataTypeData {
       DataTypeData::Struct(data) => data.get_parser(name, indent, namespace),
       DataTypeData::Array(data) => data.get_parser(name, indent, namespace),
       DataTypeData::Variant(data) => data.get_parser(name, indent, namespace),
+      DataTypeData::Enum(data) => data.get_parser(name, indent, namespace),
       DataTypeData::ConstrainedType(data) => data.get_parser(name, indent, namespace),
     };
   }
