@@ -48,6 +48,7 @@ public:
    * 
    * @param field1 
    * @param field2 
+   * @param extra_fields Any extra fields to attach to this struct
    */
   explicit DataType(int field1 = 1, std::optional<float> field2 = std::nullopt, ::termite::Node::Map extra_fields = ::termite::Node::Map()) : field1(std::move(field1)), field2(std::move(field2)), extra_fields(std::move(extra_fields)) {}
 

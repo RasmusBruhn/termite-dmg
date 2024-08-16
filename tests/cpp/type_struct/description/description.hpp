@@ -47,6 +47,7 @@ public:
    * @brief Constructs a new DataType1 object
    * 
    * 
+   * @param extra_fields Any extra fields to attach to this struct
    */
   explicit DataType1(::termite::Node::Map extra_fields = ::termite::Node::Map()) : extra_fields(std::move(extra_fields)) {}
 
@@ -97,6 +98,7 @@ public:
    * @brief Constructs a new DataType2 object
    * 
    * 
+   * @param extra_fields Any extra fields to attach to this struct
    */
   explicit DataType2(::termite::Node::Map extra_fields = ::termite::Node::Map()) : extra_fields(std::move(extra_fields)) {}
 

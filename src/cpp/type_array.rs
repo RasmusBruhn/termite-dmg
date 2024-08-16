@@ -117,11 +117,11 @@ impl Array {
 
     return formatdoc!("
       template<>
-      [[nodiscard]] Result<{typename}> Node::List::to_value(bool allow_skipping) const {{
+      [[nodiscard]] Result<{typename}> Node::List::to_value() const {{
       {0:indent$}std::vector<{data_type}> values;
       {0:indent$}values.reserve(list_.size());
       {0:indent$}for (auto node = list_.cbegin(); node < list_.cend(); ++node) {{
-      {0:indent$}{0:indent$}Result<{data_type}> value = node->to_value<{data_type}>(allow_skipping);
+      {0:indent$}{0:indent$}Result<{data_type}> value = node->to_value<{data_type}>();
       {0:indent$}{0:indent$}if (!value.is_ok()) {{
       {0:indent$}{0:indent$}{0:indent$}Error error = value.get_err();
       {0:indent$}{0:indent$}{0:indent$}error.add_list(node - list_.cbegin());

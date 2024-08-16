@@ -98,6 +98,7 @@ impl Struct {
       {0:indent$} * @brief Constructs a new {name} object
       {0:indent$} * 
       {0:indent$} * {constructor_description}
+      {0:indent$} * @param extra_fields Any extra fields to attach to this struct
       {0:indent$} */
       {0:indent$}explicit {name}({constructor_parameters}::termite::Node::Map extra_fields = ::termite::Node::Map()) : {constructor_setters}extra_fields(std::move(extra_fields)) {{}}
 

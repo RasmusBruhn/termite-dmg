@@ -201,18 +201,18 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 } // namespace
 
 template<>
-[[nodiscard]] Result<test::DataType> Node::to_value(bool allow_skipping) const {
+[[nodiscard]] Result<test::DataType> Node::to_value() const {
   std::stringstream error;
   error << "Unable to parse any variant: [ ";
 
-  Result<int> result_int = to_value<int>(allow_skipping);
+  Result<int> result_int = to_value<int>();
   if (result_int.is_ok()) {
     return Result<test::DataType>::ok(test::DataType::from_values(result_int.get_ok()));
   }
   error << "int { " << result_int.get_err() << " }";
   error << ", ";
 
-  Result<float> result_float = to_value<float>(allow_skipping);
+  Result<float> result_float = to_value<float>();
   if (result_float.is_ok()) {
     return Result<test::DataType>::ok(test::DataType::from_values(result_float.get_ok()));
   }

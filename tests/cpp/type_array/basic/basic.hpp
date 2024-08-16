@@ -191,11 +191,11 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 } // namespace
 
 template<>
-[[nodiscard]] Result<test::DataType1> Node::List::to_value(bool allow_skipping) const {
+[[nodiscard]] Result<test::DataType1> Node::List::to_value() const {
   std::vector<int> values;
   values.reserve(list_.size());
   for (auto node = list_.cbegin(); node < list_.cend(); ++node) {
-    Result<int> value = node->to_value<int>(allow_skipping);
+    Result<int> value = node->to_value<int>();
     if (!value.is_ok()) {
       Error error = value.get_err();
       error.add_list(node - list_.cbegin());
@@ -208,11 +208,11 @@ template<>
 }
 
 template<>
-[[nodiscard]] Result<test::DataType2> Node::List::to_value(bool allow_skipping) const {
+[[nodiscard]] Result<test::DataType2> Node::List::to_value() const {
   std::vector<float> values;
   values.reserve(list_.size());
   for (auto node = list_.cbegin(); node < list_.cend(); ++node) {
-    Result<float> value = node->to_value<float>(allow_skipping);
+    Result<float> value = node->to_value<float>();
     if (!value.is_ok()) {
       Error error = value.get_err();
       error.add_list(node - list_.cbegin());

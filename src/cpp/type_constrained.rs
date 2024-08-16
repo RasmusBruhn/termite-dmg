@@ -176,8 +176,8 @@ impl ConstrainedType {
 
     return formatdoc!("
       template<>
-      [[nodiscard]] Result<{typename}> Node::to_value(bool allow_skipping) const {{
-      {0:indent$}Result<{data_type}> value = to_value<{data_type}>(allow_skipping);
+      [[nodiscard]] Result<{typename}> Node::to_value() const {{
+      {0:indent$}Result<{data_type}> value = to_value<{data_type}>();
       {0:indent$}if (!value.is_ok()) {{
       {0:indent$}{0:indent$}return Result<{typename}>::err(Error(value.get_err()));
       {0:indent$}}}

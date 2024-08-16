@@ -350,7 +350,7 @@ impl Variant {
     let readers = self.data_types.iter()
       .zip(snake_case_data_types.iter())
       .map(|(data_type, snake_case)| formatdoc!("
-        {0:indent$}Result<{data_type}> result_{snake_case} = to_value<{data_type}>(allow_skipping);
+        {0:indent$}Result<{data_type}> result_{snake_case} = to_value<{data_type}>();
         {0:indent$}if (result_{snake_case}.is_ok()) {{
         {0:indent$}{0:indent$}return Result<{typename}>::ok({typename}::from_values(result_{snake_case}.get_ok()));
         {0:indent$}}}
@@ -368,7 +368,7 @@ impl Variant {
 
     return formatdoc!("
       template<>
-      [[nodiscard]] Result<{typename}> Node::to_value(bool allow_skipping) const {{
+      [[nodiscard]] Result<{typename}> Node::to_value() const {{
       {0:indent$}std::stringstream error;
       {0:indent$}error << \"Unable to parse any variant: [ \";
 
