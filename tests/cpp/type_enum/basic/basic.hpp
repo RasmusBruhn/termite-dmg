@@ -345,7 +345,7 @@ template<>
   if (value_ == "Empty") {
     return Result<test::DataType>::ok(test::DataType(test::DataType::TypeEmpty{}));
   }
-  
+
   std::stringstream ss;
   ss << "Unknown enum type \"" << value_ << "\"";
   return Result<test::DataType>::err(Error(ss.str()));
@@ -383,7 +383,7 @@ template<>
   if (map_.cbegin()->first == "Empty") {
     return Result<test::DataType>::err(Error("Enum type Empty must not include values"));
   }
-  
+
   std::stringstream ss;
   ss << "Unknown enum type \"" << map_.cbegin()->first << "\"";
   return Result<test::DataType>::err(Error(ss.str()));

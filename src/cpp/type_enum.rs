@@ -146,14 +146,42 @@ impl Enum {
       .join("");
     let typename = format!("{namespace}{name}");
 
+    // Get the value parser
+    let value_parsers = self.types.iter()
+      .map(|enum_type| enum_type.get_parser_value(&typename, indent))
+      .collect::<Vec<String>>()
+      .join("\n");
+
+    // Get the map parser
+    let map_parsers = self.types.iter()
+      .map(|enum_type| enum_type.get_parser_map(&typename, indent))
+      .collect::<Vec<String>>()
+      .join("\n");
+
     return formatdoc!("
       template<>
       [[nodiscard]] Result<{typename}> Node::Value::to_value<{typename}>() const {{
       {0:indent$}std::map<std::string, Node> empty_map;
       {0:indent$}Node empty_node(Node::Map(std::move(empty_map)));
+      {value_parsers}
 
       {0:indent$}std::stringstream ss;
       {0:indent$}ss << \"Unknown enum type \\\"\" << value_ << \"\\\"\";
+      {0:indent$}return Result<{typename}>::err(Error(ss.str()));
+      }}
+      
+      template<>
+      [[nodiscard]] Result<{typename}> Node::Map::to_value<{typename}>() const {{
+      {0:indent$}if (map_.size() != 1) {{
+      {0:indent$}{0:indent$}std::stringstream ss;
+      {0:indent$}{0:indent$}ss << \"There must be exactly one enum type specified but received \" << map_.size();
+      {0:indent$}{0:indent$}return Result<{typename}>::err(Error(ss.str()));
+      {0:indent$}}}
+
+      {map_parsers}
+
+      {0:indent$}std::stringstream ss;
+      {0:indent$}ss << \"Unknown enum type \\\"\" << map_.cbegin()->first << \"\\\"\";
       {0:indent$}return Result<{typename}>::err(Error(ss.str()));
       }}",
       "",
@@ -334,6 +362,36 @@ impl EnumType {
     
     return formatdoc!("
       {0:indent$}if (value_ == \"{name}\") {{
+      {internal}
+      {0:indent$}}}",
+      "",
+      name = self.name,
+    );
+  }
+
+  /// Gets the parser for the node map for this enum type
+  /// 
+  /// # Parameters
+  /// 
+  /// typename: The typename of the main type
+  /// 
+  /// indent: The indentation to use
+  fn get_parser_map(&self, typename: &str, indent: usize) -> String {
+    let internal = match &self.data_type {
+        Some(data_type) => formatdoc!("
+            {0:indent$}{0:indent$}Result<{data_type}> value = map_.cbegin()->second.to_value<{data_type}>();
+            {0:indent$}{0:indent$}if (value.is_ok()) {{
+            {0:indent$}{0:indent$}{0:indent$}return Result<{typename}>::ok({typename}({typename}::Type{name}{{value.get_ok()}}));
+            {0:indent$}{0:indent$}}}
+            {0:indent$}{0:indent$}return Result<{typename}>::err(value.get_err().add_field(\"{name}\"));",
+            "",
+            name = self.name,
+          ),
+        None => format!("{0:indent$}{0:indent$}return Result<{typename}>::err(Error(\"Enum type {name} must not include values\"));", "", name = self.name),
+    };
+    
+    return formatdoc!("
+      {0:indent$}if (map_.cbegin()->first == \"{name}\") {{
       {internal}
       {0:indent$}}}",
       "",
