@@ -48,12 +48,12 @@ struct DataType {
    */
   enum Enum {
     /**
-     * @brief 
+     * @brief An integer
      * 
      */
     kInt1,
     /**
-     * @brief 
+     * @brief Another integer
      * 
      */
     kInt2,
@@ -63,7 +63,7 @@ struct DataType {
      */
     kFloat,
     /**
-     * @brief 
+     * @brief Nothing
      * 
      */
     kEmpty,

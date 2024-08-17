@@ -512,12 +512,12 @@ mod tests {
             types: vec![
               EnumType {
                 name: "Int1".to_string(),
-                description: None,
+                description: Some("An integer".to_string()),
                 data_type: Some("int".to_string()),
               },
               EnumType {
                 name: "Int2".to_string(),
-                description: None,
+                description: Some("Another integer".to_string()),
                 data_type: Some("int".to_string()),
               },
               EnumType {
@@ -527,7 +527,7 @@ mod tests {
               },
               EnumType {
                 name: "Empty".to_string(),
-                description: None,
+                description: Some("Nothing".to_string()),
                 data_type: None,
               },
             ],
