@@ -147,7 +147,14 @@ impl Enum {
     let typename = format!("{namespace}{name}");
 
     return formatdoc!("
-      {0:indent$}
+      template<>
+      [[nodiscard]] Result<{typename}> Node::Value::to_value<{typename}>() const {{
+      {0:indent$}std::map<std::string, Node> empty_map;
+      {0:indent$}Node empty_node(Node::Map(std::move(empty_map)));
+
+      {0:indent$}std::stringstream ss;
+      {0:indent$}ss << \"Unknown enum type \\\"\" << value_ << \"\\\"\";
+      {0:indent$}return Result<{typename}>::err(Error(ss.str()));
       }}",
       "",
     );
@@ -299,6 +306,36 @@ impl EnumType {
       {0:indent$}{0:indent$}case Enum::k{name}:
       {0:indent$}{0:indent$}{0:indent$}os << {printer};
       {0:indent$}{0:indent$}{0:indent$}break;",
+      "",
+      name = self.name,
+    );
+  }
+
+  /// Gets the parser for the node value for this enum type
+  /// 
+  /// # Parameters
+  /// 
+  /// typename: The typename of the main type
+  /// 
+  /// indent: The indentation to use
+  fn get_parser_value(&self, typename: &str, indent: usize) -> String {
+    let internal = match &self.data_type {
+        Some(data_type) => formatdoc!("
+            {0:indent$}{0:indent$}Result<{data_type}> value = empty_node.to_value<{data_type}>();
+            {0:indent$}{0:indent$}if (value.is_ok()) {{
+            {0:indent$}{0:indent$}{0:indent$}return Result<{typename}>::ok({typename}({typename}::Type{name}{{value.get_ok()}}));
+            {0:indent$}{0:indent$}}}
+            {0:indent$}{0:indent$}return Result<{typename}>::err(Error(\"Enum type {name} must contain a value\"));",
+            "",
+            name = self.name,
+          ),
+        None => format!("{0:indent$}{0:indent$}return Result<{typename}>::ok({typename}({typename}::Type{name}{{}}));", "", name = self.name),
+    };
+    
+    return formatdoc!("
+      {0:indent$}if (value_ == \"{name}\") {{
+      {internal}
+      {0:indent$}}}",
       "",
       name = self.name,
     );
