@@ -1,0 +1,170 @@
+#include <termite-yaml.hpp>
+#include <optional>
+#include <string>
+#include <sstream>
+
+/**
+ * @brief Test if it can convert a scalar
+ * 
+ * @return An error string on error
+ */
+std::optional<std::string> test_scalar() {
+  termite::Node correct(termite::Node::Value("Test"));
+  YAML::Node node("Test");
+  termite::Result<termite::Node> result = termite::from_YAML(node);
+
+  if (!result.is_ok()) {
+    return result.get_err().to_string();
+  }
+
+  termite::Node result_ok = result.get_ok();
+  if (result_ok != correct) {
+    return result_ok.to_string();
+  }
+  
+  return std::nullopt;
+}
+
+/**
+ * @brief Test if it can convert a list
+ * 
+ * @return An error string on error
+ */
+std::optional<std::string> test_list() {
+  std::vector<termite::Node> list;
+  list.emplace_back(termite::Node::Value("Test1"));
+  list.emplace_back(termite::Node::Value("Test2"));
+  termite::Node correct(termite::Node::List(std::move(list)));
+  YAML::Node node;
+  node.push_back(YAML::Node("Test1"));
+  node.push_back(YAML::Node("Test2"));
+  termite::Result<termite::Node> result = termite::from_YAML(node);
+
+  if (!result.is_ok()) {
+    return result.get_err().to_string();
+  }
+
+  termite::Node result_ok = result.get_ok();
+  if (result_ok != correct) {
+    return result_ok.to_string();
+  }
+  
+  return std::nullopt;
+}
+
+/**
+ * @brief Test if it can convert a map
+ * 
+ * @return An error string on error
+ */
+std::optional<std::string> test_map() {
+  std::map<std::string, termite::Node> map;
+  map.insert(std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
+  map.insert(std::make_pair("field2", termite::Node(termite::Node::Value("Test2"))));
+  termite::Node correct(termite::Node::Map(std::move(map)));
+  YAML::Node node;
+  node["field1"] = YAML::Node("Test1");
+  node["field2"] = YAML::Node("Test2");
+  termite::Result<termite::Node> result = termite::from_YAML(node);
+
+  if (!result.is_ok()) {
+    return result.get_err().to_string();
+  }
+
+  termite::Node result_ok = result.get_ok();
+  if (result_ok != correct) {
+    return result_ok.to_string();
+  }
+  
+  return std::nullopt;
+}
+
+/**
+ * @brief Test if it can handle a type error
+ * 
+ * @return An error string on error
+ */
+std::optional<std::string> test_type_error() {
+  YAML::Node node;
+  termite::Result<termite::Node> result = termite::from_YAML(node);
+
+  std::cout << "TypeError: " << result << std::endl;
+
+  if (result.is_ok()) {
+    return "Should be an error";
+  }
+
+  return std::nullopt;
+}
+
+/**
+ * @brief Test if it can handle a list error
+ * 
+ * @return An error string on error
+ */
+std::optional<std::string> test_list_error() {
+  YAML::Node node;
+  node.push_back(YAML::Node());
+  termite::Result<termite::Node> result = termite::from_YAML(node);
+
+  std::cout << "TypeError: " << result << std::endl;
+
+  if (result.is_ok()) {
+    return "Should be an error";
+  }
+
+  return std::nullopt;
+}
+
+/**
+ * @brief Test if it can handle a map error
+ * 
+ * @return An error string on error
+ */
+std::optional<std::string> test_map_error() {
+  YAML::Node node;
+  node["field1"] = YAML::Node();
+  termite::Result<termite::Node> result = termite::from_YAML(node);
+
+  std::cout << "TypeError: " << result << std::endl;
+
+  if (result.is_ok()) {
+    return "Should be an error";
+  }
+
+  return std::nullopt;
+}
+
+int main() {
+  auto names = {
+    "test_scalar",
+    "test_list",
+    "test_map",
+    "test_type_error",
+    "test_list_error",
+    "test_map_error",
+  };
+  auto functions = {
+    test_scalar,
+    test_list,
+    test_map,
+    test_type_error,
+    test_list_error,
+    test_map_error,
+  };
+
+  std::cout << "Running " << names.size() << " tests" << std::endl;
+
+  int progress = 1;
+  auto name_it = names.begin();
+  for (auto function_it = functions.begin(); function_it < functions.end(); ++function_it, ++name_it, ++progress) {
+    if (auto error = (*function_it)()) {
+        std::cout << "Error occured at \"" << *name_it << "\": " << *error << std::endl;
+        return progress;
+    }
+  }
+
+  std::cout << "No errors" << std::endl;
+
+  return 0;
+}

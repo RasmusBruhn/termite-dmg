@@ -349,6 +349,8 @@ int main() {
     test_node_value_parse_error_class,
   };
 
+  std::cout << "Running " << names.size() << " tests" << std::endl;
+
   int progress = 1;
   auto name_it = names.begin();
   for (auto function_it = functions.begin(); function_it < functions.end(); ++function_it, ++name_it, ++progress) {
