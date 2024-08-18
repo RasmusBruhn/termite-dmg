@@ -32,6 +32,11 @@ pub fn get_termite_dependency() -> &'static str {
   return include_str!("termite.hpp");
 }
 
+/// Obtains the yaml-cpp interface header for reading yaml files
+pub fn get_yaml_interface() -> &'static str {
+  return include_str!("termite-yaml.hpp");
+}
+
 /// An entire data model
 #[derive(Clone, Debug, PartialEq)]
 pub struct DataModel {
