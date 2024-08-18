@@ -606,7 +606,7 @@ mod tests {
       process::Command::new("sh")
         .current_dir("tests/cpp/termite/build")
         .arg("-c")
-        .arg("./Debug/termite")
+        .arg("./termite")
         .output()
         .expect("failed to test")
     };
@@ -624,7 +624,7 @@ mod tests {
       process::Command::new("sh")
         .current_dir("tests/cpp/termite/build")
         .arg("-c")
-        .arg("./Debug/termite-yaml")
+        .arg("./termite-yaml")
         .output()
         .expect("failed to test")
     };
