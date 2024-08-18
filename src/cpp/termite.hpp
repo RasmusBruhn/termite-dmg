@@ -401,6 +401,15 @@ public:
     }
 
     /**
+     * @brief Retrieves the value
+     * 
+     * @return The value
+     */
+    [[nodiscard]] const std::string &get() const {
+      return value_;
+    }
+
+    /**
      * @brief Casts the node value to the given type, if operator>> is not defined
      * then an error occurs
      *
@@ -512,6 +521,15 @@ public:
         : map_(std::move(map)) {}
 
     /**
+     * @brief Retrieves the map
+     * 
+     * @return The map
+     */
+    [[nodiscard]] const std::map<std::string, Node> &get() const {
+      return map_;
+    }
+
+    /**
      * @brief Casts the node map to the given type, if not specialized then it
      * will always return an error
      *
@@ -598,6 +616,15 @@ public:
     explicit List(std::vector<Node> list) : list_(std::move(list)) {}
 
     /**
+     * @brief Retrieves the list
+     * 
+     * @return The list
+     */
+    [[nodiscard]] const std::vector<Node> &get() const {
+      return list_;
+    }
+
+    /**
      * @brief Casts the node list to the given type, if not specialized then it
      * will always return an error
      *
@@ -666,7 +693,6 @@ public:
     std::vector<Node> list_;
   };
 
-
   /**
    * @brief Constructs a new node
    *
@@ -675,6 +701,15 @@ public:
   explicit Node(std::variant<Value, Map, List> value)
       : value_(std::move(value)) {}
   Node(const Node &node) : Node(node.value_) {}
+
+  /**
+   * @brief Retrieves the value
+   * 
+   * @return The value
+   */
+  [[nodiscard]] const std::variant<Value, Map, List> &get() const {
+    return value_;
+  }
 
   /**
    * @brief Casts the node to the given type

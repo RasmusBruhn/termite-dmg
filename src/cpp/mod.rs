@@ -538,37 +538,77 @@ mod tests {
   fn termite_basis() {
     let compile_output = if cfg!(target_os = "windows") {
       process::Command::new("cmd")
+        .current_dir("tests/cpp/termite/build")
         .arg("/C")
-        .arg("g++ src/cpp/termite_test.cpp -Wall -std=c++17 -o target/debug/build/test_cpp_termite_dependency.exe")
+        .arg("cmake ..")
         .output()
         .expect("failed to compile")
     } else {
       process::Command::new("sh")
+        .current_dir("tests/cpp/termite/build")
         .arg("-c")
-        .arg("g++ src/cpp/termite_test.cpp -Wall -std=c++17 -o target/debug/build/test_cpp_termite_dependency")
+        .arg("cmake ..")
         .output()
         .expect("failed to compile")
     };
 
     assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
-    assert_eq!(compile_output.stdout.len(), 0);
     assert_eq!(compile_output.stderr.len(), 0);
+
+    let compile_output2 = if cfg!(target_os = "windows") {
+      process::Command::new("cmd")
+        .current_dir("tests/cpp/termite/build")
+        .arg("/C")
+        .arg("cmake --build .")
+        .output()
+        .expect("failed to compile")
+    } else {
+      process::Command::new("sh")
+        .current_dir("tests/cpp/termite/build")
+        .arg("-c")
+        .arg("cmake --build .")
+        .output()
+        .expect("failed to compile")
+    };
+
+    assert_eq!(compile_output2.status.code().expect("Unable to compile"), 0);
+    assert_eq!(compile_output2.stderr.len(), 0);
 
     let test_output = if cfg!(target_os = "windows") {
       process::Command::new("cmd")
+        .current_dir("tests/cpp/termite/build")
         .arg("/C")
-        .arg(".\\target\\debug\\build\\test_cpp_termite_dependency.exe")
+        .arg(".\\Debug\\termite.exe")
         .output()
         .expect("failed to test")
     } else {
       process::Command::new("sh")
+        .current_dir("tests/cpp/termite/build")
         .arg("-c")
-        .arg("./target/debug/build/test_cpp_termite_dependency")
+        .arg("./Debug/termite")
         .output()
         .expect("failed to test")
     };
 
-    assert_eq!(test_output.status.code().expect("Unable to compile"), 0);
+    assert_eq!(test_output.status.code().expect("Unable to run"), 0);
+
+    let test_output_yaml = if cfg!(target_os = "windows") {
+      process::Command::new("cmd")
+        .current_dir("tests/cpp/termite/build")
+        .arg("/C")
+        .arg(".\\Debug\\termite-yaml.exe")
+        .output()
+        .expect("failed to test")
+    } else {
+      process::Command::new("sh")
+        .current_dir("tests/cpp/termite/build")
+        .arg("-c")
+        .arg("./Debug/termite-yaml")
+        .output()
+        .expect("failed to test")
+    };
+
+    assert_eq!(test_output_yaml.status.code().expect("Unable to run"), 0);
   }
 
   #[test]

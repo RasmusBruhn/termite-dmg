@@ -135,6 +135,81 @@ std::optional<std::string> test_map_error() {
   return std::nullopt;
 }
 
+/**
+ * @brief Test if it can convert to a scalar
+ * 
+ * @return An error string on error
+ */
+std::optional<std::string> test_to_scalar() {
+  termite::Node node(termite::Node::Value("Test"));
+  YAML::Node result = termite::to_YAML(node);
+
+  if (!result.IsScalar()) {
+    return "Should be a scalar";
+  }
+  if (result.as<std::string>() != "Test") {
+    return "Wrong value";
+  }
+  
+  return std::nullopt;
+}
+
+/**
+ * @brief Test if it can convert to a list
+ * 
+ * @return An error string on error
+ */
+std::optional<std::string> test_to_list() {
+  std::vector<termite::Node> list;
+  list.emplace_back(termite::Node::Value("Test1"));
+  list.emplace_back(termite::Node::Value("Test2"));
+  termite::Node node(termite::Node::List(std::move(list)));
+  YAML::Node result = termite::to_YAML(node);
+
+  if (!result.IsSequence()) {
+    return "Should be a sequence";
+  }
+  if (result.size() != 2) {
+    return "Wrong size";
+  }
+  if (result[0].as<std::string>() != "Test1") {
+    return "Wrong value [0]";
+  }
+  if (result[1].as<std::string>() != "Test2") {
+    return "Wrong value [1]";
+  }
+  
+  return std::nullopt;
+}
+
+/**
+ * @brief Test if it can convert to a map
+ * 
+ * @return An error string on error
+ */
+std::optional<std::string> test_to_map() {
+  std::map<std::string, termite::Node> map;
+  map.insert(std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
+  map.insert(std::make_pair("field2", termite::Node(termite::Node::Value("Test2"))));
+  termite::Node node(termite::Node::Map(std::move(map)));
+  YAML::Node result = termite::to_YAML(node);
+
+  if (!result.IsMap()) {
+    return "Should be a map";
+  }
+  if (result.size() != 2) {
+    return "Wrong size";
+  }
+  if (result["field1"].as<std::string>() != "Test1") {
+    return "Wrong value [0]";
+  }
+  if (result["field2"].as<std::string>() != "Test2") {
+    return "Wrong value [1]";
+  }
+  
+  return std::nullopt;
+}
+
 int main() {
   auto names = {
     "test_scalar",
@@ -143,6 +218,9 @@ int main() {
     "test_type_error",
     "test_list_error",
     "test_map_error",
+    "test_to_scalar",
+    "test_to_list",
+    "test_to_map",
   };
   auto functions = {
     test_scalar,
@@ -151,6 +229,9 @@ int main() {
     test_type_error,
     test_list_error,
     test_map_error,
+    test_to_scalar,
+    test_to_list,
+    test_to_map,
   };
 
   std::cout << "Running " << names.size() << " tests" << std::endl;
