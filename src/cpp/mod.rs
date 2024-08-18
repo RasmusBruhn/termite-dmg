@@ -536,6 +536,22 @@ mod tests {
 
   #[test]
   fn termite_basis() {
+    let compile_output_pre = if cfg!(target_os = "windows") {
+      process::Command::new("cmd")
+        .current_dir("tests/cpp/termite")
+        .arg("/C")
+        .arg("mkdir build")
+        .output()
+        .expect("failed to compile")
+    } else {
+      process::Command::new("sh")
+        .current_dir("tests/cpp/termite")
+        .arg("-c")
+        .arg("mkdir build")
+        .output()
+        .expect("failed to compile")
+    };
+
     let compile_output = if cfg!(target_os = "windows") {
       process::Command::new("cmd")
         .current_dir("tests/cpp/termite/build")
