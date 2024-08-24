@@ -215,8 +215,6 @@ pub(super) struct StructField {
   /// Describes if the field is required or not, if optional it gives the
   /// default value
   pub(super) default: crate::DefaultType,
-  /// A list of all the constraints the field must uphold
-  pub(super) constraints: Vec<String>,
 }
 
 impl StructField {
@@ -231,7 +229,6 @@ impl StructField {
       description: data.description,
       data_type: data.data_type,
       default: data.default,
-      constraints: data.constraints,
     });
   }
 
@@ -586,14 +583,12 @@ mod tests {
                   description: None,
                   data_type: "int".to_string(),
                   default: DefaultType::Required,
-                  constraints: vec![],
                 },
                 StructField {
                   name: "field2".to_string(),
                   description: None,
                   data_type: "float".to_string(),
                   default: DefaultType::Required,
-                  constraints: vec![],
                 },
               ] 
             }),
@@ -630,14 +625,12 @@ mod tests {
                   description: Some("description1".to_string()),
                   data_type: "int".to_string(),
                   default: DefaultType::Required,
-                  constraints: vec![],
                 },
                 StructField {
                   name: "field2".to_string(),
                   description: Some("description2".to_string()),
                   data_type: "float".to_string(),
                   default: DefaultType::Required,
-                  constraints: vec![],
                 },
               ] 
             }),
@@ -674,14 +667,12 @@ mod tests {
                   description: None,
                   data_type: "int".to_string(),
                   default: DefaultType::Default("1".to_string()),
-                  constraints: vec![],
                 },
                 StructField {
                   name: "field2".to_string(),
                   description: None,
                   data_type: "float".to_string(),
                   default: DefaultType::Optional,
-                  constraints: vec![],
                 },
               ] 
             }),

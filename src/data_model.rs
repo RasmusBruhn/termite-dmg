@@ -62,14 +62,14 @@ pub enum DataTypeData {
   ConstrainedType(ConstrainedType),
 }
 
-/// The type specific information for a struct
+/// A struct which has a number of fields
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Struct {
   /// A list of all the fields of the struct
   pub fields: Vec<StructField>,
 }
 
-/// Describes all data for one field of a struct
+/// The data for a single field in a struct
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct StructField {
   /// The name of the field
@@ -80,50 +80,48 @@ pub struct StructField {
   pub data_type: String,
   /// A default value if it it not required
   pub default: DefaultType,
-  /// A list of possible constraints which should always be true
-  pub constraints: Vec<String>,
 }
 
-/// The type specific infomation for an array
+/// An array of values of the same data type
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Array {
   /// The data type for all elements
   pub data_type: String,
-  /// All the constraints that all elements must uphold
-  pub constraints: Vec<String>,
 }
 
-/// The type specific data for a variant
+/// A variant which can be any of a number of different types, when parsing it
+/// will attempt to parse all types from the start until it is successful
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Variant {
   /// The list of data types the variant can be
   pub data_types: Vec<String>,
 }
 
-/// The type specific data for an enum
+/// An enum, includes a number of enum values
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Enum {
-  /// All the possible enum types
+  /// All the possible enum values
   pub types: Vec<EnumType>,
 }
 
-/// Describes all data for an enum type
+/// An enum value, describes a specific enum type
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct EnumType {
   /// The name of this enum type
   pub name: String,
   /// The description describing this enum type
   pub description: Option<String>,
-  /// The type for this enum type, may be omitted for an empty type
+  /// The type this enum type is wrapping, may be omitted for an empty type
   pub data_type: Option<String>,
 }
 
-/// The type specific data for a constrained type
+/// A constrained type, wraps any other type and adds constraints onto them
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct ConstrainedType {
   /// The type that is constrained
   pub data_type: String,
-  /// All extra constraints for the type
+  /// All extra constraints for the type, must be written as an expression where
+  /// the constrained value is denoted x
   pub constraints: Vec<String>,
 }
 

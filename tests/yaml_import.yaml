@@ -1,0 +1,57 @@
+data_types:
+- name: PositiveDouble
+  data: !ConstrainedType
+    data_type: double
+    constraints:
+    - x > 0.0
+- name: Point
+  description: A point in 2D space
+  data: !Struct
+    fields:
+    - name: x
+      data_type: double
+      default: !Default '0.0'
+    - name: y
+      data_type: double
+      default: !Default '0.0'
+    - name: id
+      data_type: int64_t
+      default: Optional
+- name: Size
+  description: The size of a box
+  data: !Struct
+    fields:
+    - name: w
+      description: The width
+      data_type: PositiveDouble
+      default: Required
+    - name: h
+      description: The height
+      data_type: PositiveDouble
+      default: Required
+- name: SizeVariant
+  description: Is either a Size or just a PositiveDouble if it is a square
+  data: !Variant
+    data_types:
+    - PositiveDouble
+    - Size
+- name: SizeArray
+  data: !Array
+    data_type: SizeVariant
+- name: Geometry
+  data: !Enum
+    types:
+    - name: Nothing
+      description: No geometry
+    - name: Sizes
+      description: A number of sizes
+      data_type: SizeArray
+    - name: Point
+      description: A point
+      data_type: Point
+headers:
+  cpp: // My Header
+footers:
+  cpp: // My Header
+namespace:
+- my_namespace

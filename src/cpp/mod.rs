@@ -32,7 +32,7 @@ pub fn get_termite_dependency() -> &'static str {
   return include_str!("termite.hpp");
 }
 
-/// Obtains the yaml-cpp interface header for reading yaml files
+/// Obtains the yaml-cpp interface header for reading and writing yaml files
 pub fn get_yaml_interface() -> &'static str {
   return include_str!("termite-yaml.hpp");
 }
@@ -205,7 +205,7 @@ impl Headers {
   /// 
   /// data: The generic data type to convert
   fn new(mut data: HashMap<String, String>) -> Result<Self, Error> {
-    let source = match data.remove("cpp-source") {
+    let source = match data.remove("cpp") {
       Some(value) => value,
       None => String::new(),
     };
@@ -230,7 +230,7 @@ impl Footers {
   /// 
   /// data: The generic data type to convert
   fn new(mut data: HashMap<String, String>) -> Result<Self, Error> {
-    let source = match data.remove("cpp-source") {
+    let source = match data.remove("cpp") {
       Some(value) => value,
       None => String::new(),
     };
@@ -648,14 +648,12 @@ mod tests {
                 description: None,
                 data_type: "int".to_string(),
                 default: crate::DefaultType::Default("1".to_string()),
-                constraints: vec![],
               },
               crate::StructField {
                 name: "field1".to_string(),
                 description: None,
                 data_type: "int".to_string(),
                 default: crate::DefaultType::Required,
-                constraints: vec![],
               },
             ],
           }),
@@ -683,14 +681,12 @@ mod tests {
                 description: None,
                 data_type: "int".to_string(),
                 default: crate::DefaultType::Optional,
-                constraints: vec![],
               },
               crate::StructField {
                 name: "field1".to_string(),
                 description: None,
                 data_type: "int".to_string(),
                 default: crate::DefaultType::Required,
-                constraints: vec![],
               },
             ],
           }),

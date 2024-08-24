@@ -6,8 +6,6 @@ use super::*;
 pub(super) struct Array {
   /// The data type for all elements of the array
   pub(super) data_type: String,
-  /// A list of all the constraints all elements must uphold
-  pub(super) constraints: Vec<String>,
 }
 
 impl Array {
@@ -19,7 +17,6 @@ impl Array {
   pub(super) fn new(data: crate::Array) -> Result<Self, Error> {
     return Ok(Self {
       data_type: data.data_type,
-      constraints: data.constraints,
     });
   }
 
@@ -248,7 +245,6 @@ mod tests {
           description: None,
           data: DataTypeData::Array(Array {
             data_type: "int".to_string(),
-            constraints: vec![],
           }),
         },
         DataType {
@@ -256,7 +252,6 @@ mod tests {
           description: None,
           data: DataTypeData::Array(Array {
             data_type: "float".to_string(),
-            constraints: vec![],
           }),
         },
       ],
