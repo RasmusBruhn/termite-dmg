@@ -2,17 +2,17 @@
 //! The Termite Data Model Generator is a crate for generating boiler plate code
 //! for data models.
 //! 
-//! The crate consits of two parts, the first is the data model itself. This is
+//! The crate consists of two parts, the first is the data model itself. This is
 //! preferably imported from a yaml or json file into a DataModel object.
 //! 
 //! It can also be defined directly in code, however, this is not as readable or
 //! easy to write.
 //! 
 //! A DataModel object consist of a map of header and footer strings and the
-//! data types. The header and footer string are strings to add to the top of
-//! the generated files like for adding includes. The data types is a list of
-//! names and data for the user defined types defined for the data model and
-//! these are used to generated the data model file.
+//! data types. The header and footer string are strings to add to the top and
+//! bottom of the generated files like for adding includes. The data types is a
+//! list of names and data for the user defined types defined for the data model
+//! and these are used to generated the data model file.
 //! 
 //! A data type consists of a base type (like struct, variant or enum) and a
 //! description and then it has the type data which describes all the specific
@@ -111,6 +111,25 @@
 //! let termite_hpp = termite::cpp::get_termite_dependency();
 //! let termite_yaml_hpp = termite::cpp::get_yaml_interface();
 //! let model_hpp = cpp_model.get_source("HEADER_GUARD", 2);
+//! ```
+//! 
+//! YAML file for loading a Geometry::Nothing
+//! ```yaml
+//! Nothing
+//! ```
+//!
+//! YAML file for loading a Geometry::Sizes
+//! ```yaml
+//! Sizes:
+//! - 1.0
+//! - w: 2.0
+//!   h: 4.0
+//! ```
+//!
+//! YAML file for loading a Geometry::Point
+//! ```yaml
+//! Point:
+//!   x: 2.0
 //! ```
 //! 
 

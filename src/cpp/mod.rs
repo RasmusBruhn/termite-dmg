@@ -309,7 +309,7 @@ impl DataType {
   }
 }
 
-/// Supplies the type sepcific information for a data type
+/// Supplies the type specific information for a data type
 #[derive(Clone, Debug, PartialEq)]
 enum DataTypeData {
   /// Describes a struct

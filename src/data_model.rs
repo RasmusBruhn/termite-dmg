@@ -47,7 +47,7 @@ pub struct DataType {
   pub data: DataTypeData,
 }
 
-/// Supplies the type sepcific information for a data type
+/// Supplies the type specific information for a data type
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum DataTypeData {
   /// Describes a struct
@@ -63,6 +63,9 @@ pub enum DataTypeData {
 }
 
 /// A struct which has a number of fields
+/// 
+/// It will automatically add a termite::Node::Map field called extra_fields
+/// which holds all fields which were not captured when parsing
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Struct {
   /// A list of all the fields of the struct
