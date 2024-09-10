@@ -362,7 +362,7 @@ impl EnumType {
               format!("{data_type}")
             };
 
-            return formatdoc!("
+            formatdoc!("
               {0:indent$}{0:indent$}Result<{data_type}> value = empty_node.to_value<{data_type}>();
               {0:indent$}{0:indent$}if (value.is_ok()) {{
               {0:indent$}{0:indent$}{0:indent$}return Result<{typename}>::ok({typename}({typename}::Type{name}{{value.get_ok()}}));
@@ -370,7 +370,7 @@ impl EnumType {
               {0:indent$}{0:indent$}return Result<{typename}>::err(Error(\"Enum type {name} must contain a value\"));",
               "",
               name = self.name,
-            );
+            )
           },
         None => format!("{0:indent$}{0:indent$}return Result<{typename}>::ok({typename}({typename}::Type{name}{{}}));", "", name = self.name),
     };
@@ -405,7 +405,7 @@ impl EnumType {
               format!("{data_type}")
             };
 
-            return formatdoc!("
+            formatdoc!("
               {0:indent$}{0:indent$}Result<{data_type}> value = map_.cbegin()->second.to_value<{data_type}>();
               {0:indent$}{0:indent$}if (value.is_ok()) {{
               {0:indent$}{0:indent$}{0:indent$}return Result<{typename}>::ok({typename}({typename}::Type{name}{{value.get_ok()}}));
@@ -413,7 +413,7 @@ impl EnumType {
               {0:indent$}{0:indent$}return Result<{typename}>::err(value.get_err().add_field(\"{name}\"));",
               "",
               name = self.name,
-            );
+            )
           },
         None => format!("{0:indent$}{0:indent$}return Result<{typename}>::err(Error(\"Enum type {name} must not include values\"));", "", name = self.name),
     };

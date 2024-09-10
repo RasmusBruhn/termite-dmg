@@ -59,7 +59,7 @@ public:
    * @return true if they are identical, false if not
    */
   [[nodiscard]] bool operator==(const DataType &x) const {
-    return field1 == x.field1 && field2 == x.field2 && extra_fields == x.extra_fields;
+    return this->field1 == x.field1 && this->field2 == x.field2 && extra_fields == x.extra_fields;
   }
   /**
    * @brief Checks if this object and the other object are different
