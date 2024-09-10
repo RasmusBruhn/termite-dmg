@@ -116,7 +116,7 @@ YAML file for loading a Geometry::Nothing
 ```yaml
 Nothing
 ```
-//!
+
 YAML file for loading a Geometry::Sizes
 ```yaml
 Sizes:
@@ -124,10 +124,17 @@ Sizes:
 - w: 2.0
   h: 4.0
 ```
-//!
+
 YAML file for loading a Geometry::Point
 ```yaml
 Point:
   x: 2.0
 ```
 
+# Changelog
+
+## 0.1.1
+
+- Fixed bug where the namespace was not added to data types in the parsing code when those data types were custom types stopping the c++ code from compiling.
+- Fixed bug where if a struct field was called x then it could not compile.
+- Fixed bug where ContrainedType fields in structs with default values could not compile.
