@@ -140,7 +140,7 @@ impl Enum {
   /// namespace: The namespace of the enum
   /// 
   /// data_types: List of all the data types defined in the data model
-  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String], data_types: &[String]) -> String {
+  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String], data_types: &[DataType]) -> String {
     // Get the namespace name
     let namespace = namespace.iter()
       .map(|single_name| format!("{single_name}::"))
@@ -352,11 +352,11 @@ impl EnumType {
   /// data_types: List of all the data types defined in the data model
   /// 
   /// indent: The indentation to use
-  fn get_parser_value(&self, typename: &str, namespace: &str, data_types: &[String], indent: usize) -> String {
+  fn get_parser_value(&self, typename: &str, namespace: &str, data_types: &[DataType], indent: usize) -> String {
     let internal = match &self.data_type {
         Some(data_type) => {
             // Add possible namespace to the typename
-            let data_type = if let Some(_) = data_types.iter().find(|new_data_type| new_data_type == &data_type) {
+            let data_type = if let Some(_) = data_types.iter().find(|new_data_type| &new_data_type.name == data_type) {
               format!("{namespace}{data_type}")
             } else {
               format!("{data_type}")
@@ -395,11 +395,11 @@ impl EnumType {
   /// data_types: List of all the data types defined in the data model
   /// 
   /// indent: The indentation to use
-  fn get_parser_map(&self, typename: &str, namespace: &str, data_types: &[String], indent: usize) -> String {
+  fn get_parser_map(&self, typename: &str, namespace: &str, data_types: &[DataType], indent: usize) -> String {
     let internal = match &self.data_type {
         Some(data_type) => {
             // Add possible namespace to the typename
-            let data_type = if let Some(_) = data_types.iter().find(|new_data_type| new_data_type == &data_type) {
+            let data_type = if let Some(_) = data_types.iter().find(|new_data_type| &new_data_type.name == data_type) {
               format!("{namespace}{data_type}")
             } else {
               format!("{data_type}")

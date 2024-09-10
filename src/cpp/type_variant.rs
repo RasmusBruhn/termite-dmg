@@ -172,7 +172,7 @@ impl Variant {
   /// namespace: The namespace of the variant
   /// 
   /// data_types: List of all the data types defined in the data model
-  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String], data_types: &[String]) -> String {
+  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String], data_types: &[DataType]) -> String {
     // Get the namespace name
     let namespace = namespace.iter()
       .map(|single_name| format!("{single_name}::"))
@@ -190,7 +190,7 @@ impl Variant {
       .zip(snake_case_data_types.iter())
       .map(|(data_type, snake_case)| {
         // Add possible namespace to the typename
-        let data_type = if let Some(_) = data_types.iter().find(|new_data_type| new_data_type == &data_type) {
+        let data_type = if let Some(_) = data_types.iter().find(|new_data_type| &new_data_type.name == data_type) {
           format!("{namespace}{data_type}")
         } else {
           format!("{data_type}")

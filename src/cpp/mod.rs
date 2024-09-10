@@ -98,7 +98,7 @@ impl DataModel {
 
     // Get all structs
     let data_types = self.data_types.iter()
-      .map(|data_type| data_type.get_source(indent))
+      .map(|data_type| data_type.get_source(indent, &self.data_types))
       .collect::<Vec<String>>()
       .join("\n\n");
 
@@ -108,12 +108,8 @@ impl DataModel {
       .collect::<Vec<String>>()
       .join("\n\n");
 
-    let data_type_names = self.data_types.iter()
-      .map(|data_type| data_type.name.clone())
-      .collect::<Vec<String>>();
-
     let parsers = self.data_types.iter()
-      .map(|data_type| data_type.get_parser(indent, &self.namespace, &data_type_names))
+      .map(|data_type| data_type.get_parser(indent, &self.namespace, &self.data_types))
       .collect::<Vec<String>>()
       .join("\n\n");
 
@@ -289,7 +285,9 @@ impl DataType {
   /// # Parameters
   /// 
   /// indent: The number of spaces to use for indentation
-  fn get_source(&self, indent: usize) -> String {
+  /// 
+  /// data_types: List of all the data types defined in the data model
+  fn get_source(&self, indent: usize, data_types: &[DataType]) -> String {
     return formatdoc!("
       /**
        * @brief {description}
@@ -297,7 +295,7 @@ impl DataType {
        */
       {definition}",
       description = self.get_description(),
-      definition = self.data.get_source(&self.name, indent),
+      definition = self.data.get_source(&self.name, indent, data_types),
     );
   }
 
@@ -310,7 +308,7 @@ impl DataType {
   /// namespace: The namespace of the type
   /// 
   /// data_types: List of all the data types defined in the data model
-  pub(super) fn get_parser(&self, indent: usize, namespace: &[String], data_types: &[String]) -> String {
+  pub(super) fn get_parser(&self, indent: usize, namespace: &[String], data_types: &[DataType]) -> String {
     return self.data.get_parser(&self.name, indent, namespace, data_types);
   }
 }
@@ -355,9 +353,11 @@ impl DataTypeData {
   /// name: The name of the data type
   /// 
   /// indent: The number of spaces to use for indentation
-  fn get_source(&self, name: &str, indent: usize) -> String {
+  /// 
+  /// data_types: List of all the data types defined in the data model
+  fn get_source(&self, name: &str, indent: usize, data_types: &[DataType]) -> String {
     return match self {
-      DataTypeData::Struct(data) => data.get_source(name, indent),
+      DataTypeData::Struct(data) => data.get_source(name, indent, data_types),
       DataTypeData::Array(data) => data.get_source(name, indent),
       DataTypeData::Variant(data) => data.get_source(name, indent),
       DataTypeData::Enum(data) => data.get_source(name, indent),
@@ -376,7 +376,7 @@ impl DataTypeData {
   /// namespace: The namespace of the type
   /// 
   /// data_types: List of all the data types defined in the data model
-  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String], data_types: &[String]) -> String {
+  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String], data_types: &[DataType]) -> String {
     return match self {
       DataTypeData::Struct(data) => data.get_parser(name, indent, namespace, data_types),
       DataTypeData::Array(data) => data.get_parser(name, indent, namespace, data_types),

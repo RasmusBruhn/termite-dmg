@@ -53,7 +53,9 @@ impl Struct {
   /// name: The name of the struct
   /// 
   /// indent: The number of spaces to use for indentation
-  pub(super) fn get_source(&self, name: &str, indent: usize) -> String {
+  /// 
+  /// data_types: List of all the data types defined in the data model
+  pub(super) fn get_source(&self, name: &str, indent: usize, data_types: &[DataType]) -> String {
     // Get the description for the constructor
     let constructor_description = self.fields.iter()
       .map(|field| field.get_constructor_description())
@@ -62,7 +64,7 @@ impl Struct {
 
     // Get the constructor parameters
     let constructor_parameters = self.fields.iter()
-      .map(|field| field.get_constructor_parameter())
+      .map(|field| field.get_constructor_parameter(data_types))
       .collect::<Vec<String>>()
       .join("");
 
@@ -152,7 +154,7 @@ impl Struct {
   /// namespace: The namespace of the struct
   /// 
   /// data_types: List of all the data types defined in the data model
-  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String], data_types: &[String]) -> String {
+  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String], data_types: &[DataType]) -> String {
     // Get the namespace name
     let namespace = namespace.iter()
       .map(|single_name| format!("{single_name}::"))
@@ -246,11 +248,27 @@ impl StructField {
   }
   
   /// Gets the default value for this field
-  fn get_default(&self) -> String {
+  /// 
+  /// # Parameters
+  /// 
+  /// data_types: List of all the data types defined in the data model
+  fn get_default(&self, data_types: &[DataType]) -> String {
     return match &self.default {
       DefaultType::Required => "".to_string(),
       DefaultType::Optional => " = std::nullopt".to_string(),
-      DefaultType::Default(value) => format!(" = {value}"),
+      DefaultType::Default(value) => {
+        if let Some(_) = data_types.iter().find(|data_type| {
+          return if let DataTypeData::ConstrainedType(_) = data_type.data {
+            data_type.name == self.data_type
+          } else {
+            false
+          };
+        }) {
+          format!(" = {data_type}::from_value(std::move({value})).get_ok()", data_type = self.data_type)
+        } else {
+          format!(" = {value}")
+        }
+      }
     };
   }
 
@@ -272,12 +290,16 @@ impl StructField {
   }
 
   /// Get the parameter definition for the constructor including default value
-  fn get_constructor_parameter(&self) -> String {
+  /// 
+  /// # Parameters
+  /// 
+  /// data_types: List of all the data types defined in the data model
+  fn get_constructor_parameter(&self, data_types: &[DataType]) -> String {
     return format!(
       "{typename} {name}{default}, ",
       typename = self.get_typename(),
       name = self.name,
-      default = self.get_default(),
+      default = self.get_default(data_types),
     );
   }
 
@@ -335,9 +357,9 @@ impl StructField {
   /// data_types: List of all the data types defined in the data model
   /// 
   /// indent: The indentation to use
-  fn get_parsing_required(&self, main_name: &str, namespace: &str, data_types: &[String], indent: usize) -> String {
+  fn get_parsing_required(&self, main_name: &str, namespace: &str, data_types: &[DataType], indent: usize) -> String {
     // Add possible namespace to the typename
-    let typename = if let Some(_) = data_types.iter().find(|data_type| data_type == &&self.data_type) {
+    let typename = if let Some(_) = data_types.iter().find(|data_type| data_type.name == self.data_type) {
       format!("{namespace}{data_type}", data_type = self.data_type)
     } else {
       format!("{data_type}", data_type = self.data_type)
@@ -371,9 +393,9 @@ impl StructField {
   /// data_types: List of all the data types defined in the data model
   /// 
   /// indent: The indentation to use
-  fn get_parsing_optional(&self, main_name: &str, namespace: &str, data_types: &[String], indent: usize) -> String {
+  fn get_parsing_optional(&self, main_name: &str, namespace: &str, data_types: &[DataType], indent: usize) -> String {
     // Add possible namespace to the typename
-    let base_typename = if let Some(_) = data_types.iter().find(|data_type| data_type == &&self.data_type) {
+    let base_typename = if let Some(_) = data_types.iter().find(|data_type| data_type.name == self.data_type) {
       format!("{namespace}{data_type}", data_type = self.data_type)
     } else {
       format!("{data_type}", data_type = self.data_type)
@@ -382,6 +404,25 @@ impl StructField {
     let typename = match &self.default {
       DefaultType::Optional => format!("std::optional<{base_typename}>"),
       _ => base_typename.clone(),
+    };
+
+    // Get default value
+    let default = match &self.default {
+      DefaultType::Required => "".to_string(),
+      DefaultType::Optional => " = std::nullopt".to_string(),
+      DefaultType::Default(value) => {
+        if let Some(_) = data_types.iter().find(|data_type| {
+          return if let DataTypeData::ConstrainedType(_) = data_type.data {
+            data_type.name == self.data_type
+          } else {
+            false
+          };
+        }) {
+          format!(" = {base_typename}::from_value(std::move({value})).get_ok()")
+        } else {
+          format!(" = {value}")
+        }
+      }
     };
 
     return formatdoc!("
@@ -398,7 +439,6 @@ impl StructField {
       {0:indent$}}}",
       "",
       name = self.name,
-      default = self.get_default(),
     );
   }
 
@@ -413,7 +453,7 @@ impl StructField {
   /// data_types: List of all the data types defined in the data model
   /// 
   /// indent: The indentation to use
-  fn get_parsing(&self, main_name: &str, namespace: &str, data_types: &[String], indent: usize) -> String {
+  fn get_parsing(&self, main_name: &str, namespace: &str, data_types: &[DataType], indent: usize) -> String {
     return match self.default {
         DefaultType::Required => self.get_parsing_required(main_name, namespace, data_types, indent),
         _ => self.get_parsing_optional(main_name, namespace, data_types, indent),
