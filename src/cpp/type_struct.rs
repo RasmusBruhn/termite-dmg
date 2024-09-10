@@ -282,7 +282,7 @@ impl StructField {
   /// Gets the equality check for this field
   fn get_equality_check(&self) -> String {
     return format!(
-      "{name} == x.{name} && ",
+      "this->{name} == x.{name} && ",
       name = self.name,
     );
   }
