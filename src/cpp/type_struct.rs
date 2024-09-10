@@ -150,7 +150,9 @@ impl Struct {
   /// indent: The number of spaces to use for indentation
   /// 
   /// namespace: The namespace of the struct
-  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String]) -> String {
+  /// 
+  /// data_types: List of all the data types defined in the data model
+  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String], data_types: &[String]) -> String {
     // Get the namespace name
     let namespace = namespace.iter()
       .map(|single_name| format!("{single_name}::"))
@@ -160,7 +162,7 @@ impl Struct {
 
     // Get the parameter parsing
     let parsing = self.fields.iter()
-      .map(|field| field.get_parsing(&typename, indent))
+      .map(|field| field.get_parsing(&typename, &namespace, data_types, indent))
       .collect::<Vec<String>>()
       .join("\n\n");
 
@@ -328,8 +330,19 @@ impl StructField {
   /// 
   /// main_name: The name of the type which holds this field including namespace
   /// 
+  /// namespace: The namespace of the struct
+  /// 
+  /// data_types: List of all the data types defined in the data model
+  /// 
   /// indent: The indentation to use
-  fn get_parsing_required(&self, main_name: &str, indent: usize) -> String {
+  fn get_parsing_required(&self, main_name: &str, namespace: &str, data_types: &[String], indent: usize) -> String {
+    // Add possible namespace to the typename
+    let typename = if let Some(_) = data_types.iter().find(|data_type| data_type == &&self.data_type) {
+      format!("{namespace}{data_type}", data_type = self.data_type)
+    } else {
+      format!("{data_type}", data_type = self.data_type)
+    };
+    
     return formatdoc!("
       {0:indent$}auto location_{name} = map_.find(\"{name}\");
       {0:indent$}if (location_{name} == map_.end()) {{
@@ -344,7 +357,6 @@ impl StructField {
       {0:indent$}{typename} value_{name} = raw_value_{name}.get_ok();",
       "",
       name = self.name,
-      typename = self.data_type,
     );
   }
 
@@ -354,8 +366,24 @@ impl StructField {
   /// 
   /// main_name: The name of the type which holds this field including namespace
   /// 
+  /// namespace: The namespace of the struct
+  /// 
+  /// data_types: List of all the data types defined in the data model
+  /// 
   /// indent: The indentation to use
-  fn get_parsing_optional(&self, main_name: &str, indent: usize) -> String {
+  fn get_parsing_optional(&self, main_name: &str, namespace: &str, data_types: &[String], indent: usize) -> String {
+    // Add possible namespace to the typename
+    let base_typename = if let Some(_) = data_types.iter().find(|data_type| data_type == &&self.data_type) {
+      format!("{namespace}{data_type}", data_type = self.data_type)
+    } else {
+      format!("{data_type}", data_type = self.data_type)
+    };
+
+    let typename = match &self.default {
+      DefaultType::Optional => format!("std::optional<{base_typename}>"),
+      _ => base_typename.clone(),
+    };
+
     return formatdoc!("
       {0:indent$}auto location_{name} = map_.find(\"{name}\");
       {0:indent$}{typename} value_{name}{default};
@@ -370,9 +398,7 @@ impl StructField {
       {0:indent$}}}",
       "",
       name = self.name,
-      typename = self.get_typename(),
       default = self.get_default(),
-      base_typename = self.data_type,
     );
   }
 
@@ -382,11 +408,15 @@ impl StructField {
   /// 
   /// main_name: The name of the type which holds this field including namespace
   /// 
+  /// namespace: The namespace of the struct
+  /// 
+  /// data_types: List of all the data types defined in the data model
+  /// 
   /// indent: The indentation to use
-  fn get_parsing(&self, main_name: &str, indent: usize) -> String {
+  fn get_parsing(&self, main_name: &str, namespace: &str, data_types: &[String], indent: usize) -> String {
     return match self.default {
-        DefaultType::Required => self.get_parsing_required(main_name, indent),
-        _ => self.get_parsing_optional(main_name, indent),
+        DefaultType::Required => self.get_parsing_required(main_name, namespace, data_types, indent),
+        _ => self.get_parsing_optional(main_name, namespace, data_types, indent),
     };
   }
 

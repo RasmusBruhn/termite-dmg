@@ -108,8 +108,12 @@ impl DataModel {
       .collect::<Vec<String>>()
       .join("\n\n");
 
+    let data_type_names = self.data_types.iter()
+      .map(|data_type| data_type.name.clone())
+      .collect::<Vec<String>>();
+
     let parsers = self.data_types.iter()
-      .map(|data_type| data_type.get_parser(indent, &self.namespace))
+      .map(|data_type| data_type.get_parser(indent, &self.namespace, &data_type_names))
       .collect::<Vec<String>>()
       .join("\n\n");
 
@@ -304,8 +308,10 @@ impl DataType {
   /// indent: The number of spaces to use for indentation
   /// 
   /// namespace: The namespace of the type
-  pub(super) fn get_parser(&self, indent: usize, namespace: &[String]) -> String {
-    return self.data.get_parser(&self.name, indent, namespace);
+  /// 
+  /// data_types: List of all the data types defined in the data model
+  pub(super) fn get_parser(&self, indent: usize, namespace: &[String], data_types: &[String]) -> String {
+    return self.data.get_parser(&self.name, indent, namespace, data_types);
   }
 }
 
@@ -368,13 +374,15 @@ impl DataTypeData {
   /// indent: The number of spaces to use for indentation
   /// 
   /// namespace: The namespace of the type
-  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String]) -> String {
+  /// 
+  /// data_types: List of all the data types defined in the data model
+  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String], data_types: &[String]) -> String {
     return match self {
-      DataTypeData::Struct(data) => data.get_parser(name, indent, namespace),
-      DataTypeData::Array(data) => data.get_parser(name, indent, namespace),
-      DataTypeData::Variant(data) => data.get_parser(name, indent, namespace),
-      DataTypeData::Enum(data) => data.get_parser(name, indent, namespace),
-      DataTypeData::ConstrainedType(data) => data.get_parser(name, indent, namespace),
+      DataTypeData::Struct(data) => data.get_parser(name, indent, namespace, data_types),
+      DataTypeData::Array(data) => data.get_parser(name, indent, namespace, data_types),
+      DataTypeData::Variant(data) => data.get_parser(name, indent, namespace, data_types),
+      DataTypeData::Enum(data) => data.get_parser(name, indent, namespace, data_types),
+      DataTypeData::ConstrainedType(data) => data.get_parser(name, indent, namespace, data_types),
     };
   }
 }

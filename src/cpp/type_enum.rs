@@ -138,7 +138,9 @@ impl Enum {
   /// indent: The number of spaces to use for indentation
   /// 
   /// namespace: The namespace of the enum
-  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String]) -> String {
+  /// 
+  /// data_types: List of all the data types defined in the data model
+  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String], data_types: &[String]) -> String {
     // Get the namespace name
     let namespace = namespace.iter()
       .map(|single_name| format!("{single_name}::"))
@@ -148,13 +150,13 @@ impl Enum {
 
     // Get the value parser
     let value_parsers = self.types.iter()
-      .map(|enum_type| enum_type.get_parser_value(&typename, indent))
+      .map(|enum_type| enum_type.get_parser_value(&typename, &namespace, data_types, indent))
       .collect::<Vec<String>>()
       .join("\n");
 
     // Get the map parser
     let map_parsers = self.types.iter()
-      .map(|enum_type| enum_type.get_parser_map(&typename, indent))
+      .map(|enum_type| enum_type.get_parser_map(&typename, &namespace, data_types, indent))
       .collect::<Vec<String>>()
       .join("\n");
 
@@ -345,18 +347,31 @@ impl EnumType {
   /// 
   /// typename: The typename of the main type
   /// 
+  /// namespace: The namespace of the enum
+  /// 
+  /// data_types: List of all the data types defined in the data model
+  /// 
   /// indent: The indentation to use
-  fn get_parser_value(&self, typename: &str, indent: usize) -> String {
+  fn get_parser_value(&self, typename: &str, namespace: &str, data_types: &[String], indent: usize) -> String {
     let internal = match &self.data_type {
-        Some(data_type) => formatdoc!("
-            {0:indent$}{0:indent$}Result<{data_type}> value = empty_node.to_value<{data_type}>();
-            {0:indent$}{0:indent$}if (value.is_ok()) {{
-            {0:indent$}{0:indent$}{0:indent$}return Result<{typename}>::ok({typename}({typename}::Type{name}{{value.get_ok()}}));
-            {0:indent$}{0:indent$}}}
-            {0:indent$}{0:indent$}return Result<{typename}>::err(Error(\"Enum type {name} must contain a value\"));",
-            "",
-            name = self.name,
-          ),
+        Some(data_type) => {
+            // Add possible namespace to the typename
+            let data_type = if let Some(_) = data_types.iter().find(|new_data_type| new_data_type == &data_type) {
+              format!("{namespace}{data_type}")
+            } else {
+              format!("{data_type}")
+            };
+
+            return formatdoc!("
+              {0:indent$}{0:indent$}Result<{data_type}> value = empty_node.to_value<{data_type}>();
+              {0:indent$}{0:indent$}if (value.is_ok()) {{
+              {0:indent$}{0:indent$}{0:indent$}return Result<{typename}>::ok({typename}({typename}::Type{name}{{value.get_ok()}}));
+              {0:indent$}{0:indent$}}}
+              {0:indent$}{0:indent$}return Result<{typename}>::err(Error(\"Enum type {name} must contain a value\"));",
+              "",
+              name = self.name,
+            );
+          },
         None => format!("{0:indent$}{0:indent$}return Result<{typename}>::ok({typename}({typename}::Type{name}{{}}));", "", name = self.name),
     };
     
@@ -375,18 +390,31 @@ impl EnumType {
   /// 
   /// typename: The typename of the main type
   /// 
+  /// namespace: The namespace of the enum
+  /// 
+  /// data_types: List of all the data types defined in the data model
+  /// 
   /// indent: The indentation to use
-  fn get_parser_map(&self, typename: &str, indent: usize) -> String {
+  fn get_parser_map(&self, typename: &str, namespace: &str, data_types: &[String], indent: usize) -> String {
     let internal = match &self.data_type {
-        Some(data_type) => formatdoc!("
-            {0:indent$}{0:indent$}Result<{data_type}> value = map_.cbegin()->second.to_value<{data_type}>();
-            {0:indent$}{0:indent$}if (value.is_ok()) {{
-            {0:indent$}{0:indent$}{0:indent$}return Result<{typename}>::ok({typename}({typename}::Type{name}{{value.get_ok()}}));
-            {0:indent$}{0:indent$}}}
-            {0:indent$}{0:indent$}return Result<{typename}>::err(value.get_err().add_field(\"{name}\"));",
-            "",
-            name = self.name,
-          ),
+        Some(data_type) => {
+            // Add possible namespace to the typename
+            let data_type = if let Some(_) = data_types.iter().find(|new_data_type| new_data_type == &data_type) {
+              format!("{namespace}{data_type}")
+            } else {
+              format!("{data_type}")
+            };
+
+            return formatdoc!("
+              {0:indent$}{0:indent$}Result<{data_type}> value = map_.cbegin()->second.to_value<{data_type}>();
+              {0:indent$}{0:indent$}if (value.is_ok()) {{
+              {0:indent$}{0:indent$}{0:indent$}return Result<{typename}>::ok({typename}({typename}::Type{name}{{value.get_ok()}}));
+              {0:indent$}{0:indent$}}}
+              {0:indent$}{0:indent$}return Result<{typename}>::err(value.get_err().add_field(\"{name}\"));",
+              "",
+              name = self.name,
+            );
+          },
         None => format!("{0:indent$}{0:indent$}return Result<{typename}>::err(Error(\"Enum type {name} must not include values\"));", "", name = self.name),
     };
     

@@ -104,7 +104,9 @@ impl Array {
   /// indent: The number of spaces to use for indentation
   /// 
   /// namespace: The namespace of the array
-  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String]) -> String {
+  /// 
+  /// data_types: List of all the data types defined in the data model
+  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String], data_types: &[String]) -> String {
     // Get the namespace name
     let namespace = namespace.iter()
       .map(|single_name| format!("{single_name}::"))
@@ -112,6 +114,13 @@ impl Array {
       .join("");
     let typename = format!("{namespace}{name}");
 
+    // Add possible namespace to the typename
+    let data_type = if let Some(_) = data_types.iter().find(|data_type| data_type == &&self.data_type) {
+      format!("{namespace}{data_type}", data_type = self.data_type)
+    } else {
+      format!("{data_type}", data_type = self.data_type)
+    };
+    
     return formatdoc!("
       template<>
       [[nodiscard]] Result<{typename}> Node::List::to_value<{typename}>() const {{
@@ -130,7 +139,6 @@ impl Array {
       {0:indent$}return Result<{typename}>::ok({typename}(std::move(values)));
       }}",
       "",
-      data_type = self.data_type,
     );
   }
 }

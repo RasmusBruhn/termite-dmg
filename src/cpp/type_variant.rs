@@ -170,7 +170,9 @@ impl Variant {
   /// indent: The number of spaces to use for indentation
   /// 
   /// namespace: The namespace of the variant
-  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String]) -> String {
+  /// 
+  /// data_types: List of all the data types defined in the data model
+  pub(super) fn get_parser(&self, name: &str, indent: usize, namespace: &[String], data_types: &[String]) -> String {
     // Get the namespace name
     let namespace = namespace.iter()
       .map(|single_name| format!("{single_name}::"))
@@ -186,14 +188,23 @@ impl Variant {
     // Get all the readers
     let readers = self.data_types.iter()
       .zip(snake_case_data_types.iter())
-      .map(|(data_type, snake_case)| formatdoc!("
-        {0:indent$}Result<{data_type}> result_{snake_case} = to_value<{data_type}>();
-        {0:indent$}if (result_{snake_case}.is_ok()) {{
-        {0:indent$}{0:indent$}return Result<{typename}>::ok({typename}(result_{snake_case}.get_ok()));
-        {0:indent$}}}
-        {0:indent$}error << \"{data_type} {{ \" << result_{snake_case}.get_err() << \" }}\";",
-      "",
-      ))
+      .map(|(data_type, snake_case)| {
+        // Add possible namespace to the typename
+        let data_type = if let Some(_) = data_types.iter().find(|new_data_type| new_data_type == &data_type) {
+          format!("{namespace}{data_type}")
+        } else {
+          format!("{data_type}")
+        };
+
+        return formatdoc!("
+          {0:indent$}Result<{data_type}> result_{snake_case} = to_value<{data_type}>();
+          {0:indent$}if (result_{snake_case}.is_ok()) {{
+          {0:indent$}{0:indent$}return Result<{typename}>::ok({typename}(result_{snake_case}.get_ok()));
+          {0:indent$}}}
+          {0:indent$}error << \"{data_type} {{ \" << result_{snake_case}.get_err() << \" }}\";",
+        "",
+        );
+      })
       .collect::<Vec<String>>()
       .join(&formatdoc!("
           
