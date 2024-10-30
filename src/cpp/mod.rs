@@ -89,6 +89,72 @@ impl DataModel {
   /// name: The name of the header file (used for header guard so should be capslocked)
   /// 
   /// indent: The number of spaces to use for indentation
+  pub fn get_header(&self, name: &str, indent: usize) -> String {
+    // Get the namespace starts
+    let namespace_start = self.namespace.iter()
+      .map(|namespace| format!("namespace {namespace} {{"))
+      .collect::<Vec<String>>()
+      .join(" ");
+
+    // Get all structs
+    let data_types = self.data_types.iter()
+      .map(|data_type| data_type.get_header(indent, &self.data_types))
+      .collect::<Vec<String>>()
+      .join("\n\n");
+
+    // Get the namespace end
+    let namespace_end = self.namespace.iter()
+      .map(|namespace| format!("}} // namespace {namespace}"))
+      .collect::<Vec<String>>()
+      .join("\n\n");
+
+    let parsers = self.data_types.iter()
+      .map(|data_type| data_type.get_parser_header(indent, &self.namespace, &self.data_types))
+      .collect::<Vec<String>>()
+      .join("\n\n");
+
+    return formatdoc!("
+      // Generated with the Termite Data Model Generator
+      #ifndef {name}_TERMITE_H_INCLUDED
+      #define {name}_TERMITE_H_INCLUDED
+
+      #include <iostream>
+      #include <sstream>
+      #include <optional>
+      #include <variant>
+      #include <algorithm>
+      #include <termite.hpp>
+
+      {header}
+
+      {namespace_start}
+
+      {data_types}
+
+      {namespace_end}
+
+      namespace termite {{
+
+      {parsers}
+
+      }} // namespace termite
+      
+      {footer}
+      
+      #endif
+      ",
+      header = self.headers.header,
+      footer = self.footers.header,
+    );
+  }
+
+  /// Generates the source file
+  /// 
+  /// # Parameters
+  /// 
+  /// name: The file location for the associated header file (is used for #include "name")
+  /// 
+  /// indent: The number of spaces to use for indentation
   pub fn get_source(&self, name: &str, indent: usize) -> String {
     // Get the namespace starts
     let namespace_start = self.namespace.iter()
@@ -109,21 +175,13 @@ impl DataModel {
       .join("\n\n");
 
     let parsers = self.data_types.iter()
-      .map(|data_type| data_type.get_parser(indent, &self.namespace, &self.data_types))
+      .map(|data_type| data_type.get_parser_source(indent, &self.namespace, &self.data_types))
       .collect::<Vec<String>>()
       .join("\n\n");
 
     return formatdoc!("
       // Generated with the Termite Data Model Generator
-      #ifndef {name}_TERMITE_H_INCLUDED
-      #define {name}_TERMITE_H_INCLUDED
-
-      #include <iostream>
-      #include <sstream>
-      #include <optional>
-      #include <variant>
-      #include <algorithm>
-      #include <termite.hpp>
+      #include \"{name}\"
 
       {header}
 
@@ -194,6 +252,8 @@ impl DataModel {
 /// All of the headers for the different files
 #[derive(Clone, Debug, PartialEq)]
 struct Headers {
+  /// For the header file
+  header: String,
   /// For the source file
   source: String,
 }
@@ -205,12 +265,17 @@ impl Headers {
   /// 
   /// data: The generic data type to convert
   fn new(mut data: HashMap<String, String>) -> Result<Self, Error> {
-    let source = match data.remove("cpp") {
+    let source = match data.remove("cpp-source") {
+      Some(value) => value,
+      None => String::new(),
+    };
+    let header = match data.remove("cpp-header") {
       Some(value) => value,
       None => String::new(),
     };
 
     return Ok(Self {
+      header,
       source,
     });
   }
@@ -219,6 +284,8 @@ impl Headers {
 /// All of the footers for the different files
 #[derive(Clone, Debug, PartialEq)]
 struct Footers {
+  /// For the header file
+  header: String,
   /// For the source file
   source: String,
 }
@@ -230,12 +297,17 @@ impl Footers {
   /// 
   /// data: The generic data type to convert
   fn new(mut data: HashMap<String, String>) -> Result<Self, Error> {
-    let source = match data.remove("cpp") {
+    let source = match data.remove("cpp-source") {
+      Some(value) => value,
+      None => String::new(),
+    };
+    let header = match data.remove("cpp-header") {
       Some(value) => value,
       None => String::new(),
     };
 
     return Ok(Self {
+      header,
       source,
     });
   }
