@@ -105,7 +105,7 @@ impl DataModel {
         let parsers = self
             .data_types
             .iter()
-            .map(|data_type| data_type.get_parser_header(indent, &namespace, &self.data_types))
+            .map(|data_type| data_type.get_parser_header(indent, &self.namespace, &self.data_types))
             .collect::<Vec<String>>()
             .join("\n\n");
 
@@ -168,7 +168,7 @@ impl DataModel {
         let parsers = self
             .data_types
             .iter()
-            .map(|data_type| data_type.get_parser_source(indent, &namespace, &self.data_types))
+            .map(|data_type| data_type.get_parser_source(indent, &self.namespace, &self.data_types))
             .collect::<Vec<String>>()
             .join("\n\n");
 
@@ -388,7 +388,7 @@ impl DataType {
     pub(super) fn get_parser_header(
         &self,
         indent: usize,
-        namespace: &str,
+        namespace: &[String],
         data_types: &[DataType],
     ) -> String {
         return self
@@ -408,7 +408,7 @@ impl DataType {
     pub(super) fn get_parser_source(
         &self,
         indent: usize,
-        namespace: &str,
+        namespace: &[String],
         data_types: &[DataType],
     ) -> String {
         return self
@@ -505,7 +505,7 @@ impl DataTypeData {
         &self,
         name: &str,
         indent: usize,
-        namespace: &str,
+        namespace: &[String],
         data_types: &[DataType],
     ) -> String {
         return match self {
@@ -540,7 +540,7 @@ impl DataTypeData {
         &self,
         name: &str,
         indent: usize,
-        namespace: &str,
+        namespace: &[String],
         data_types: &[DataType],
     ) -> String {
         return match self {

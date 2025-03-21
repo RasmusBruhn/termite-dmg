@@ -2,8 +2,8 @@
  * @file termite.hpp
  * @brief The c++ Termite Data Model Generator code which implements errors and
  * input output to yaml and json
- * @version 0.1
- * @date 2024-06-15
+ * @version 0.2
+ * @date 2025-03-21
  *
  */
 
@@ -21,26 +21,26 @@
 
 namespace termite {
 
-namespace {
-
 // Helper trait to detect if T has operator<<
 template <typename T, typename = void>
 struct has_insertion_operator : std::false_type {};
-
 template <typename T>
 struct has_insertion_operator<
     T,
     std::void_t<decltype(std::declval<std::ostream &>() << std::declval<T>())>>
     : std::true_type {};
+template <typename T>
+constexpr bool has_insertion_operator_v = has_insertion_operator<T>::value;
 
 // Helper trait to detect if T has operator>>
 template <typename T, typename = void>
 struct has_parsing_operator : std::false_type {};
-
 template <typename T>
 struct has_parsing_operator<
     T, std::void_t<decltype(std::declval<std::istream &>() >>
                             std::declval<T &>())>> : std::true_type {};
+template <typename T>
+constexpr bool has_parsing_operator_v = has_parsing_operator<T>::value;
 
 // Helper trait to detect if T has operator==
 template <typename T, typename = void>
@@ -51,7 +51,8 @@ template <typename T>
 struct has_equality_operator<
     T, std::void_t<decltype(std::declval<T>() == std::declval<T>())>>
     : std::true_type {};
-}  // namespace
+template <typename T>
+constexpr bool has_equality_operator_v = has_equality_operator<T>::value;
 
 /**
  * @brief An empty class used as the ok value of a result if only the error
@@ -91,16 +92,19 @@ public:
 template <class T>
 class Reference {
 public:
+  /**
+   * @brief Constructs a new reference
+   *
+   * @param ref The reference to store
+   */
   explicit Reference(const T &ref) : ref_(ref) {}
 
   /**
    * @brief Gets the stored reference
-   * 
+   *
    * @return The reference
    */
-  const T &get() const {
-    return ref_;
-  }
+  const T &get() const { return ref_; }
 
   /**
    * @brief Checks if this value and the other value are identical
@@ -109,8 +113,8 @@ public:
    * @return true if they are identical, false if not
    */
   [[nodiscard]]
-  typename std::enable_if<has_equality_operator<T>::value, bool>::type
-  operator==(const Reference &other) const {
+  typename std::enable_if_t<has_equality_operator_v<T>, bool> operator==(
+      const Reference &other) const {
     return ref_ == other.ref_;
   }
   /**
@@ -119,7 +123,8 @@ public:
    * @param other The other value to compare with
    * @return true if they are different, false if not
    */
-  [[nodiscard]] bool operator!=(const Reference &other) const {
+  [[nodiscard]] typename std::enable_if_t<has_equality_operator_v<T>, bool>
+  operator!=(const Reference &other) const {
     return !(*this == other);
   }
   /**
@@ -129,13 +134,16 @@ public:
    * @param value The value to print
    * @return The same ostream
    */
-  typename std::enable_if<has_insertion_operator<T>::value,
-                          std::ostream &>::type friend
+  typename std::enable_if_t<has_insertion_operator_v<T>, std::ostream &> friend
   operator<<(std::ostream &os, const Reference &value) {
     return os << "{ " << value.ref_ << " }";
   }
 
 private:
+  /**
+   * @brief The reference stored
+   *
+   */
   const T &ref_;
 };
 
@@ -232,16 +240,6 @@ public:
     }
     return os << error.location_ << ": " << error.message_;
   }
-  /**
-   * @brief Converts this error with its location to a string
-   *
-   * @return The string with the error
-   */
-  [[nodiscard]] std::string to_string() const {
-    std::stringstream ss;
-    ss << *this;
-    return ss.str();
-  }
 
 private:
   /**
@@ -285,7 +283,7 @@ public:
    *
    * @return true if it is ok, false if it is err
    */
-  bool is_ok() const { return std::holds_alternative<T>(value_); }
+  [[nodiscard]] bool is_ok() const { return std::holds_alternative<T>(value_); }
   /**
    * @brief Retrieves the ok value, causes an exception if it is err. This
    * result is invalid after running this function
@@ -309,8 +307,8 @@ public:
    * @return true if they are identical, false otherwise
    */
   [[nodiscard]]
-  typename std::enable_if<has_equality_operator<T>::value, bool>::type
-  operator==(const Result &result) const {
+  typename std::enable_if_t<has_equality_operator_v<T>, bool> operator==(
+      const Result &result) const {
     return value_ == result.value_;
   }
   /**
@@ -320,7 +318,8 @@ public:
    * @param result The other result to compare with
    * @return true if they are not identical, false otherwise
    */
-  [[nodiscard]] bool operator!=(const Result &result) const {
+  [[nodiscard]] std::enable_if_t<has_equality_operator_v<T>, bool> operator!=(
+      const Result &result) const {
     return !(value_ == result.value_);
   }
 
@@ -332,25 +331,13 @@ public:
    * @param result The result to print
    * @return The same output stream
    */
-  typename std::enable_if<has_insertion_operator<T>::value,
-                          std::ostream &>::type friend
+  typename std::enable_if_t<has_insertion_operator_v<T>, std::ostream &> friend
   operator<<(std::ostream &os, const Result &result) {
     if (result.is_ok()) {
       return os << "Ok ( " << std::get<T>(result.value_) << " )";
     } else {
       return os << "Err ( " << std::get<Error>(result.value_) << " )";
     }
-  }
-  /**
-   * @brief Converts this result to a string, only enabled if the stream print
-   * operator exists for T
-   *
-   * @return The string with this result in
-   */
-  [[nodiscard]] std::string to_string() const {
-    std::stringstream ss;
-    ss << *this;
-    return ss.str();
   }
 
 private:
@@ -388,38 +375,37 @@ public:
      */
     explicit Value(std::string value) {
       // Trim the value
-      value.erase(value.begin(),
-                  std::find_if(value.begin(), value.end(), [](unsigned char ch) {
-                    return !std::isspace(ch);
-                  }));
-      value.erase(std::find_if(value.rbegin(), value.rend(),
-                              [](unsigned char ch) { return !std::isspace(ch); })
-                      .base(),
-                  value.end());
+      value.erase(value.begin(), std::find_if(value.begin(), value.end(),
+                                              [](unsigned char ch) {
+                                                return !std::isspace(ch);
+                                              }));
+      value.erase(
+          std::find_if(value.rbegin(), value.rend(),
+                       [](unsigned char ch) { return !std::isspace(ch); })
+              .base(),
+          value.end());
 
       value_ = std::move(value);
     }
 
     /**
      * @brief Retrieves the value
-     * 
+     *
      * @return The value
      */
-    [[nodiscard]] const std::string &get() const {
-      return value_;
-    }
+    [[nodiscard]] const std::string &get() const { return value_; }
 
     /**
-     * @brief Casts the node value to the given type, if operator>> is not defined
-     * then an error occurs
+     * @brief Casts the node value to the given type, if operator>> is not
+     * defined then an error occurs
      *
      * @tparam T The type to cast to
      * @return A result of the given type which is always err
      */
     template <typename T>
     [[nodiscard]]
-    typename std::enable_if<!has_parsing_operator<T>::value, Result<T>>::type
-    to_value() const {
+    typename std::enable_if_t<!has_parsing_operator_v<T>, Result<T>> to_value()
+        const {
       return Result<T>::err(Error("Parsing not implemented for given type"));
     }
 
@@ -431,8 +417,8 @@ public:
      */
     template <typename T>
     [[nodiscard]]
-    typename std::enable_if<has_parsing_operator<T>::value, Result<T>>::type
-    to_value() const {
+    typename std::enable_if_t<has_parsing_operator_v<T>, Result<T>> to_value()
+        const {
       // Create the value
       std::istringstream ss(value_);
       T output;
@@ -482,16 +468,6 @@ public:
     friend std::ostream &operator<<(std::ostream &os, const Value &value) {
       return os << "{ value: " << value.value_ << " }";
     }
-    /**
-     * @brief Converts this node value to a string
-     *
-     * @return The string with this node value in
-     */
-    [[nodiscard]] std::string to_string() const {
-      std::stringstream ss;
-      ss << *this;
-      return ss.str();
-    }
 
   private:
     /**
@@ -509,20 +485,19 @@ public:
   public:
     /**
      * @brief Constructs an empty map
-     * 
+     *
      */
-    Map() = default;
+    explicit Map() = default;
     /**
      * @brief Constructs a new node map
      *
      * @param map The map of this node
      */
-    explicit Map(std::map<std::string, Node> map)
-        : map_(std::move(map)) {}
+    explicit Map(std::map<std::string, Node> map) : map_(std::move(map)) {}
 
     /**
      * @brief Retrieves the map
-     * 
+     *
      * @return The map
      */
     [[nodiscard]] const std::map<std::string, Node> &get() const {
@@ -570,23 +545,13 @@ public:
     friend std::ostream &operator<<(std::ostream &os, const Map &value) {
       os << "{ map: { ";
       for (auto key_value = value.map_.cbegin(); key_value != value.map_.cend();
-          ++key_value) {
+           ++key_value) {
         if (key_value != value.map_.cbegin()) {
           os << ", ";
         }
         os << "\"" << key_value->first << "\": " << key_value->second;
       }
       return os << " } }";
-    }
-    /**
-     * @brief Converts this node map to a string
-     *
-     * @return The string with this node map in
-     */
-    [[nodiscard]] std::string to_string() const {
-      std::stringstream ss;
-      ss << *this;
-      return ss.str();
     }
 
   private:
@@ -605,9 +570,9 @@ public:
   public:
     /**
      * @brief Constructs an empty list
-     * 
+     *
      */
-    List() = default;
+    explicit List() = default;
     /**
      * @brief Constructs a new node list
      *
@@ -617,12 +582,10 @@ public:
 
     /**
      * @brief Retrieves the list
-     * 
+     *
      * @return The list
      */
-    [[nodiscard]] const std::vector<Node> &get() const {
-      return list_;
-    }
+    [[nodiscard]] const std::vector<Node> &get() const { return list_; }
 
     /**
      * @brief Casts the node list to the given type, if not specialized then it
@@ -666,23 +629,13 @@ public:
       return os << "{ list: [ ";
       os << "[ ";
       for (auto value_it = value.list_.cbegin(); value_it != value.list_.cend();
-          ++value_it) {
+           ++value_it) {
         if (value_it != value.list_.cbegin()) {
           os << ", ";
         }
         os << *value_it;
       }
       return os << " ] }";
-    }
-    /**
-     * @brief Converts this node list to a string
-     *
-     * @return The string with this node list in
-     */
-    [[nodiscard]] std::string to_string() const {
-      std::stringstream ss;
-      ss << *this;
-      return ss.str();
     }
 
   private:
@@ -700,11 +653,11 @@ public:
    */
   explicit Node(std::variant<Value, Map, List> value)
       : value_(std::move(value)) {}
-  Node(const Node &node) : Node(node.value_) {}
+  Node(const Node &node) = default;
 
   /**
    * @brief Retrieves the value
-   * 
+   *
    * @return The value
    */
   [[nodiscard]] const std::variant<Value, Map, List> &get() const {
@@ -719,13 +672,8 @@ public:
    */
   template <typename T>
   [[nodiscard]] Result<T> to_value() const {
-    if (std::holds_alternative<Map>(value_)) {
-      return std::get<Map>(value_).to_value<T>();
-    }
-    if (std::holds_alternative<List>(value_)) {
-      return std::get<List>(value_).to_value<T>();
-    }
-    return std::get<Value>(value_).to_value<T>();
+    return std::visit([](const auto &value) { return value.to_value<T>(); },
+                      value_);
   }
 
   /**
@@ -762,16 +710,6 @@ public:
       return os << "{ List " << std::get<List>(value.value_) << " }";
     }
     return os << "{ Value " << std::get<Value>(value.value_) << " }";
-  }
-  /**
-   * @brief Converts this node to a string
-   *
-   * @return The string with this node in
-   */
-  [[nodiscard]] std::string to_string() const {
-    std::stringstream ss;
-    ss << *this;
-    return ss.str();
   }
 
 private:

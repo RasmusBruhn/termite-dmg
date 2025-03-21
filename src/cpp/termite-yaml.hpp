@@ -2,22 +2,23 @@
  * @file termite_yaml.hpp
  * @brief The c++ Termite Data Model Generator yaml-cpp interface allowing for
  * converting between a YAML::Node and a termite::Node
- * @version 0.1
- * @date 2024-06-15
+ * @version 0.2
+ * @date 2025-03-25
  *
  */
 
 #ifndef TERMITE_YAML_H_INCLUDED
 #define TERMITE_YAML_H_INCLUDED
 
-#include "termite.hpp"
 #include <yaml-cpp/yaml.h>
+
+#include "termite.hpp"
 
 namespace termite {
 
 /**
  * @brief Converts a YAML::Node to a termite::Node
- * 
+ *
  * @param node The node to convert
  * @return The termite node or an error if the node is not compatible
  */
@@ -54,7 +55,8 @@ Result<Node> from_YAML(const YAML::Node &node) {
   if (node.IsSequence()) {
     std::vector<Node> list;
     size_t index = 0;
-    for (YAML::const_iterator value_it = node.begin(); value_it != node.end(); ++value_it, ++index) {
+    for (YAML::const_iterator value_it = node.begin(); value_it != node.end();
+         ++value_it, ++index) {
       // Get the value
       Result<Node> value = from_YAML(*value_it);
       if (!value.is_ok()) {
@@ -86,46 +88,38 @@ Result<Node> from_YAML(const YAML::Node &node) {
   }
 
   // Return an error
-  return Result<Node>::err(Error("Unknown node type, must be either Scalar, Map or Sequence"));
+  return Result<Node>::err(
+      Error("Unknown node type, must be either Scalar, Map or Sequence"));
 }
 
 /**
  * @brief Converts a termite::Node to a YAML::Node
- * 
+ *
  * @param node The node to convert
  * @return The yaml node
  */
 YAML::Node to_YAML(const Node &node) {
-  // Convert a map
-  switch (node.get().index()) {
-  // Convert a value
-  case 0: {
+  if (std::holds_alternative<Node::Value>(node.get())) {
     return YAML::Node(std::get<Node::Value>(node.get()).get());
-  } break;
-
-  // Convert a map
-  case 1: {
+  }
+  if (std::holds_alternative<Node::Map>(node.get())) {
     YAML::Node map;
-    for (const std::pair<std::string, Node> &key_value : std::get<Node::Map>(node.get()).get()) {
+    for (const std::pair<std::string, Node> &key_value :
+         std::get<Node::Map>(node.get()).get()) {
       map[key_value.first] = to_YAML(key_value.second);
     }
     return map;
-  } break;
-
-  // Convert a list
-  case 2: {
+  }
+  if (std::holds_alternative<Node::List>(node.get())) {
     YAML::Node list;
     for (const Node &key_value : std::get<Node::List>(node.get()).get()) {
       list.push_back(to_YAML(key_value));
     }
     return list;
-  } break;
-
-  default:
-    return YAML::Node();
   }
+  return YAML::Node();
 }
 
-}
+}  // namespace termite
 
 #endif
