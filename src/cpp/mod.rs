@@ -235,6 +235,8 @@ impl DataModel {
 
             {header}
 
+            namespace {namespace} {{
+
             namespace {{
 
             // Code to make printing easier
@@ -268,8 +270,6 @@ impl DataModel {
 
             }} // namespace
 
-            namespace {namespace} {{
-            
             {data_types}
 
             }} // namespace {namespace}
@@ -412,12 +412,7 @@ impl DataType {
     fn get_definition_source(&self, indent: usize) -> String {
         return formatdoc!(
             "
-            /**
-             * @brief {description}
-             * 
-             */
             {definition}",
-            description = self.get_description(),
             definition = self.data.get_definition_source(&self.name, indent),
         );
     }
@@ -731,7 +726,12 @@ pub(crate) mod test_utils {
                 .output()
                 .expect("failed to compile")
         };
-
+        println!(
+            "g++ {} {} -Isrc/cpp -Wall -std=c++17 -o {}.exe",
+            source_path.to_str().unwrap(),
+            test_path.to_str().unwrap(),
+            exe_path.to_str().unwrap()
+        );
         // Make sure it comiled without any warnings
         assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
         assert_eq!(compile_output.stdout.len(), 0);

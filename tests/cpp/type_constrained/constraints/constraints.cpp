@@ -3,6 +3,8 @@
 
 
 
+namespace test {
+
 namespace {
 
 // Code to make printing easier
@@ -35,13 +37,7 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 }
 
 } // namespace
-
-namespace test {
-
-/**
- * @brief
- *
- */
+    
 [[nodiscard]] termite::Result<DataType1> DataType1::from_value(int value) {
   termite::Result<termite::Empty> validate_result = validate(value);
   if (!validate_result.is_ok()) {
@@ -71,20 +67,16 @@ std::ostream &operator<<(std::ostream &os, const DataType1 &x) {
 
 [[nodiscard]] termite::Result<termite::Empty> DataType1::validate(const int &x) {
   if (!(x > 0)) {
-    return termite::Result<termite::Empty>::err(termite::Error("Did not pass constaint: x > 0"));
+    return termite::Result<termite::Empty>::err(termite::Error("Did not pass constraint: x > 0"));
   }
 
   if (!(x % 2 == 0)) {
-    return termite::Result<termite::Empty>::err(termite::Error("Did not pass constaint: x % 2 == 0"));
+    return termite::Result<termite::Empty>::err(termite::Error("Did not pass constraint: x % 2 == 0"));
   }
 
   return termite::Result<termite::Empty>::ok(termite::Empty());
 }
 
-/**
- * @brief
- *
- */
 [[nodiscard]] termite::Result<DataType2> DataType2::from_value(float value) {
   termite::Result<termite::Empty> validate_result = validate(value);
   if (!validate_result.is_ok()) {
@@ -114,7 +106,7 @@ std::ostream &operator<<(std::ostream &os, const DataType2 &x) {
 
 [[nodiscard]] termite::Result<termite::Empty> DataType2::validate(const float &x) {
   if (!(std::abs(x) < 1e-9)) {
-    return termite::Result<termite::Empty>::err(termite::Error("Did not pass constaint: std::abs(x) < 1e-9"));
+    return termite::Result<termite::Empty>::err(termite::Error("Did not pass constraint: std::abs(x) < 1e-9"));
   }
 
   return termite::Result<termite::Empty>::ok(termite::Empty());

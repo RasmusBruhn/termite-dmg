@@ -1,8 +1,8 @@
 #include <iostream>
-#include "optional.hpp"
+#include "optional.h"
 
 int main() {
-  auto value1 = test::DataType();
+  auto value1 = test::DataType(test::DataType::default_field1(), test::DataType::default_field2());
   auto value2 = test::DataType(-2, 3.5);
   if (value1 != value1) {
     return 1;

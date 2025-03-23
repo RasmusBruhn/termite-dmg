@@ -141,7 +141,7 @@ impl Enum {
         let printers = self
             .types
             .iter()
-            .map(|enum_type| enum_type.get_printer(indent))
+            .map(|enum_type| enum_type.get_printer(name, indent))
             .collect::<Vec<String>>()
             .join("\n");
 
@@ -153,9 +153,9 @@ impl Enum {
             {0:indent$}return value == x.value;
             }}
 
-            std::ostream &{name}::operator<<(std::ostream &os, const {name} &x) {{
+            std::ostream &operator<<(std::ostream &os, const {name} &x) {{
             {0:indent$}os << \"{{ value: \";
-            {0:indent$}switch (x.value.index()) {{
+            {0:indent$}switch (static_cast<{name}::Enum>(x.value.index())) {{
             {printers}
             {0:indent$}default:
             {0:indent$}{0:indent$}os << \"Unknown (\" << x.value.index() << \")\";
@@ -330,7 +330,7 @@ impl EnumType {
                 {0:indent$}{0:indent$} * @brief The value
                 {0:indent$}{0:indent$} * 
                 {0:indent$}{0:indent$} */
-                {0:indent$}{0:indent$}{data_type} value;",
+                {0:indent$}{0:indent$}{data_type} value;\n\n",
                 "",
             ),
             None => "".to_string(),
@@ -342,9 +342,7 @@ impl EnumType {
             {0:indent$} * 
             {0:indent$} */
             {0:indent$}struct Type{name} {{
-            {type_definition}
-
-            {0:indent$}{0:indent$}/**
+            {type_definition}{0:indent$}{0:indent$}/**
             {0:indent$}{0:indent$} * @brief Checks if this object and the other object are identical
             {0:indent$}{0:indent$} * 
             {0:indent$}{0:indent$} * @param x The other object to compare with
@@ -422,12 +420,14 @@ impl EnumType {
     ///
     /// # Parameters
     ///
+    /// main_name: The name of the main enum
+    ///
     /// indent: The indentation to use
-    fn get_printer(&self, indent: usize) -> String {
+    fn get_printer(&self, main_name: &str, indent: usize) -> String {
         // Get what it should print
         let printer = match self.data_type {
             Some(_) => format!(
-                "\"{name}(\" << std::get<Type{name}>(x.value).value << \")\"",
+                "\"{name}(\" << std::get<{main_name}::Type{name}>(x.value).value << \")\"",
                 name = self.name
             ),
             None => "\"Empty\"".to_string(),
@@ -435,7 +435,7 @@ impl EnumType {
 
         return formatdoc!(
             "
-            {0:indent$}case Enum::k{name}:
+            {0:indent$}case {main_name}::Enum::k{name}:
             {0:indent$}{0:indent$}os << {printer};
             {0:indent$}{0:indent$}break;",
             "",
@@ -527,62 +527,65 @@ impl EnumType {
     }
 }
 
-/*#[cfg(test)]
+#[cfg(test)]
 mod tests {
-  use super::*;
-  use std::{
-    fs,
-    path,
-    process,
-  };
+    use super::*;
+    use crate::cpp::test_utils::*;
 
-  #[test]
-  fn basic() {
-    // Check c++ code
-    compile_and_test("type_enum/basic");
+    #[test]
+    fn basic() {
+        // Check c++ code
+        compile_and_test("type_enum/basic");
 
-    // Make sure it generates the correct code
-    let data_model = DataModel {
-      headers: Headers { source: "".to_string() },
-      footers: Footers { source: "".to_string() },
-      data_types: vec![
-        DataType {
-          name: "DataType".to_string(),
-          description: None,
-          data: DataTypeData::Enum(Enum {
-            types: vec![
-              EnumType {
-                name: "Int1".to_string(),
-                description: Some("An integer".to_string()),
-                data_type: Some("int".to_string()),
-              },
-              EnumType {
-                name: "Int2".to_string(),
-                description: Some("Another integer".to_string()),
-                data_type: Some("int".to_string()),
-              },
-              EnumType {
-                name: "Float".to_string(),
+        // Make sure it generates the correct code
+        let data_model = DataModel {
+            headers: Headers {
+                header: "".to_string(),
+                source: "".to_string(),
+            },
+            footers: Footers {
+                header: "".to_string(),
+                source: "".to_string(),
+            },
+            data_types: vec![DataType {
+                name: "DataType".to_string(),
                 description: None,
-                data_type: Some("float".to_string()),
-              },
-              EnumType {
-                name: "Empty".to_string(),
-                description: Some("Nothing".to_string()),
-                data_type: None,
-              },
-            ],
-          }),
-        },
-      ],
-      namespace: vec!["test".to_string()],
-    };
+                data: DataTypeData::Enum(Enum {
+                    types: vec![
+                        EnumType {
+                            name: "Int1".to_string(),
+                            description: Some("An integer".to_string()),
+                            data_type: Some("int".to_string()),
+                        },
+                        EnumType {
+                            name: "Int2".to_string(),
+                            description: Some("Another integer".to_string()),
+                            data_type: Some("int".to_string()),
+                        },
+                        EnumType {
+                            name: "Float".to_string(),
+                            description: None,
+                            data_type: Some("float".to_string()),
+                        },
+                        EnumType {
+                            name: "Empty".to_string(),
+                            description: Some("Nothing".to_string()),
+                            data_type: None,
+                        },
+                    ],
+                }),
+            }],
+            namespace: vec!["test".to_string()],
+        };
 
-    // Create the header file
-    let header_file = data_model.get_source("HEADER", 2);
-    let expected = include_str!("../../tests/cpp/type_enum/basic/basic.hpp");
+        // Create the header file
+        let header_file = data_model.get_header("HEADER", 2);
+        let source_file = data_model.get_source("basic", 2);
+        let expected_header = include_str!("../../tests/cpp/type_enum/basic/basic.h");
+        let expected_source = include_str!("../../tests/cpp/type_enum/basic/basic.cpp");
 
-    // Check that they are the same
-    assert_eq!(str_diff(&header_file, &expected), None);
-  }
-}*/
+        // Check that they are the same
+        assert_eq!(str_diff(&header_file, &expected_header), None);
+        assert_eq!(str_diff(&source_file, &expected_source), None);
+    }
+}

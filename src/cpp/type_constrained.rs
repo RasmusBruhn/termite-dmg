@@ -110,7 +110,7 @@ impl ConstrainedType {
             {0:indent$}explicit {name}({data_type} value, void *) : value_(std::move(value)) {{}}
 
             {0:indent$}/**
-            {0:indent$} * @brief Validates if value is correct using the following constaints:{constraints}
+            {0:indent$} * @brief Validates if value is correct using the following constraints:{constraints}
             {0:indent$} * 
             {0:indent$} * @param x The value of the parameter to validate
             {0:indent$} */
@@ -139,7 +139,7 @@ impl ConstrainedType {
         let tests = self.constraints.iter()
             .map(|constraint| formatdoc!("
                 {0:indent$}if (!({constraint})) {{
-                {0:indent$}{0:indent$}return termite::Result<termite::Empty>::err(termite::Error(\"Did not pass constaint: {constraint}\"));
+                {0:indent$}{0:indent$}return termite::Result<termite::Empty>::err(termite::Error(\"Did not pass constraint: {constraint}\"));
                 {0:indent$}}}\n\n",
                 "",
             ))

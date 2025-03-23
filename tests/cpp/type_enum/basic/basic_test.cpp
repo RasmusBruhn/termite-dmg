@@ -1,5 +1,5 @@
 #include <iostream>
-#include "basic.hpp"
+#include "basic.h"
 
 int main() {
   auto value1 = test::DataType(test::DataType::TypeInt1{1});
@@ -38,16 +38,16 @@ int main() {
     return 10;
   }
 
-  if (value1.enum_type() != test::DataType::kInt1) {
+  if (value1.enum_type() != test::DataType::Enum::kInt1) {
     return 11;
   }
-  if (value2.enum_type() != test::DataType::kInt2) {
+  if (value2.enum_type() != test::DataType::Enum::kInt2) {
     return 12;
   }
-  if (value3.enum_type() != test::DataType::kFloat) {
+  if (value3.enum_type() != test::DataType::Enum::kFloat) {
     return 13;
   }
-  if (value4.enum_type() != test::DataType::kEmpty) {
+  if (value4.enum_type() != test::DataType::Enum::kEmpty) {
     return 14;
   }
 

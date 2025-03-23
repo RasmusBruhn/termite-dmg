@@ -3,6 +3,8 @@
 
 
 
+namespace test {
+
 namespace {
 
 // Code to make printing easier
@@ -35,13 +37,7 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 }
 
 } // namespace
-
-namespace test {
-
-/**
- * @brief
- *
- */
+    
 [[nodiscard]] termite::Result<DataType1> DataType1::from_value(int value) {
   termite::Result<termite::Empty> validate_result = validate(value);
   if (!validate_result.is_ok()) {
@@ -73,10 +69,6 @@ std::ostream &operator<<(std::ostream &os, const DataType1 &x) {
   return termite::Result<termite::Empty>::ok(termite::Empty());
 }
 
-/**
- * @brief
- *
- */
 [[nodiscard]] termite::Result<DataType2> DataType2::from_value(float value) {
   termite::Result<termite::Empty> validate_result = validate(value);
   if (!validate_result.is_ok()) {

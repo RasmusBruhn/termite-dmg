@@ -87,7 +87,7 @@ private:
   explicit DataType1(int value, void *) : value_(std::move(value)) {}
 
   /**
-   * @brief Validates if value is correct using the following constaints:
+   * @brief Validates if value is correct using the following constraints:
    * - x > 0
    * - x % 2 == 0
    *
@@ -175,7 +175,7 @@ private:
   explicit DataType2(float value, void *) : value_(std::move(value)) {}
 
   /**
-   * @brief Validates if value is correct using the following constaints:
+   * @brief Validates if value is correct using the following constraints:
    * - std::abs(x) < 1e-9
    *
    * @param x The value of the parameter to validate

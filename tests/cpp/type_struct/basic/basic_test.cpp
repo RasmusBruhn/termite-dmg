@@ -1,5 +1,5 @@
 #include <iostream>
-#include "basic.hpp"
+#include "basic.h"
 
 int main() {
   auto type1 = test::DataType1();

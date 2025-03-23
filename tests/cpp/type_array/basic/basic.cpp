@@ -3,6 +3,8 @@
 
 
 
+namespace test {
+
 namespace {
 
 // Code to make printing easier
@@ -36,12 +38,6 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 
 } // namespace
 
-namespace test {
-
-/**
- * @brief
- *
- */
 bool DataType1::operator==(const DataType1 &x) const {
   if (values.size() != x.values.size()) {
     return false;
@@ -67,10 +63,6 @@ std::ostream &operator<<(std::ostream &os, const DataType1 &x) {
   return os << " ] }";
 }
 
-/**
- * @brief
- *
- */
 bool DataType2::operator==(const DataType2 &x) const {
   if (values.size() != x.values.size()) {
     return false;
