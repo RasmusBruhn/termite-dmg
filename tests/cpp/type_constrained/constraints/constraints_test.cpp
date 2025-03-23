@@ -1,5 +1,5 @@
 #include <iostream>
-#include "constraints.hpp"
+#include "constraints.h"
 
 int main() {
   auto value1 = test::DataType1::from_value(2).get_ok();

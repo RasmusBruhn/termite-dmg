@@ -101,7 +101,13 @@ impl ConstrainedType {
             {0:indent$}friend std::ostream &operator<<(std::ostream &os, const {name} &x);
 
             private:
-            {0:indent$}explicit {name}({data_type} value) : value_(std::move(value)) {{}}
+            {0:indent$}/**
+            {0:indent$} * @brief Constructs a new {name} object
+            {0:indent$} * 
+            {0:indent$} * @param value The value to store
+            {0:indent$} * @param _ A nullptr
+            {0:indent$} */
+            {0:indent$}explicit {name}({data_type} value, void *) : value_(std::move(value)) {{}}
 
             {0:indent$}/**
             {0:indent$} * @brief Validates if value is correct using the following constaints:{constraints}
@@ -134,11 +140,11 @@ impl ConstrainedType {
             .map(|constraint| formatdoc!("
                 {0:indent$}if (!({constraint})) {{
                 {0:indent$}{0:indent$}return termite::Result<termite::Empty>::err(termite::Error(\"Did not pass constaint: {constraint}\"));
-                {0:indent$}}}",
+                {0:indent$}}}\n\n",
                 "",
             ))
             .collect::<Vec<String>>()
-            .join("\n\n");
+            .join("");
 
         // The name of the validation parameter, should not exist if there are no constraints
         let param_name = if self.constraints.is_empty() {
@@ -155,7 +161,7 @@ impl ConstrainedType {
             {0:indent$}{0:indent$}return termite::Result<{name}>::err(std::move(error));
             {0:indent$}}}
 
-            {0:indent$}return termite::Result<{name}>::ok({name}(std::move(value)));
+            {0:indent$}return termite::Result<{name}>::ok({name}(std::move(value), nullptr));
             }}
 
             [[nodiscard]] termite::Result<termite::Empty> {name}::set({data_type} value) {{
@@ -175,10 +181,8 @@ impl ConstrainedType {
             {0:indent$}return os << x.value_;
             }}
 
-            [[nodiscard]] static termite::Result<termite::Empty> validate(const {data_type} &{param_name}) {{
-            {tests}
-
-            {0:indent$}return termite::Result<termite::Empty>::ok(termite::Empty());
+            [[nodiscard]] termite::Result<termite::Empty> {name}::validate(const {data_type} &{param_name}) {{
+            {tests}{0:indent$}return termite::Result<termite::Empty>::ok(termite::Empty());
             }}",
             "",
             data_type = self.data_type,
@@ -260,89 +264,102 @@ impl ConstrainedType {
     }
 }
 
-/*#[cfg(test)]
+#[cfg(test)]
 mod tests {
     use super::*;
-    use std::{fs, path, process};
+    use crate::cpp::test_utils::*;
 
     #[test]
     fn basic() {
-      // Check c++ code
-      compile_and_test("type_constrained/basic");
+        // Check c++ code
+        compile_and_test("type_constrained/basic");
 
-      // Make sure it generates the correct code
-      let data_model = DataModel {
-        headers: Headers { source: "".to_string() },
-        footers: Footers { source: "".to_string() },
-        data_types: vec![
-          DataType {
-            name: "DataType1".to_string(),
-            description: None,
-            data: DataTypeData::ConstrainedType(ConstrainedType {
-              data_type: "int".to_string(),
-              constraints: vec![],
-            }),
-          },
-          DataType {
-            name: "DataType2".to_string(),
-            description: None,
-            data: DataTypeData::ConstrainedType(ConstrainedType {
-              data_type: "float".to_string(),
-              constraints: vec![],
-            }),
-          },
-        ],
-        namespace: vec!["test".to_string()],
-      };
+        // Make sure it generates the correct code
+        let data_model = DataModel {
+            headers: Headers {
+                header: "".to_string(),
+                source: "".to_string(),
+            },
+            footers: Footers {
+                header: "".to_string(),
+                source: "".to_string(),
+            },
+            data_types: vec![
+                DataType {
+                    name: "DataType1".to_string(),
+                    description: None,
+                    data: DataTypeData::ConstrainedType(ConstrainedType {
+                        data_type: "int".to_string(),
+                        constraints: vec![],
+                    }),
+                },
+                DataType {
+                    name: "DataType2".to_string(),
+                    description: None,
+                    data: DataTypeData::ConstrainedType(ConstrainedType {
+                        data_type: "float".to_string(),
+                        constraints: vec![],
+                    }),
+                },
+            ],
+            namespace: vec!["test".to_string()],
+        };
 
-      // Create the header file
-      let header_file = data_model.get_source("HEADER", 2);
-      let expected = include_str!("../../tests/cpp/type_constrained/basic/basic.hpp");
+        // Create the header file
+        let header_file = data_model.get_header("HEADER", 2);
+        let source_file = data_model.get_source("basic", 2);
+        let expected_header = include_str!("../../tests/cpp/type_constrained/basic/basic.h");
+        let expected_source = include_str!("../../tests/cpp/type_constrained/basic/basic.cpp");
 
-      // Check that they are the same
-      assert_eq!(str_diff(&header_file, &expected), None);
+        // Check that they are the same
+        assert_eq!(str_diff(&header_file, &expected_header), None);
+        assert_eq!(str_diff(&source_file, &expected_source), None);
     }
 
     #[test]
     fn constraints() {
-      // Check c++ code
-      compile_and_test("type_constrained/constraints");
+        // Check c++ code
+        compile_and_test("type_constrained/constraints");
 
-      // Make sure it generates the correct code
-      let data_model = DataModel {
-        headers: Headers { source: "".to_string() },
-        footers: Footers { source: "".to_string() },
-        data_types: vec![
-          DataType {
-            name: "DataType1".to_string(),
-            description: None,
-            data: DataTypeData::ConstrainedType(ConstrainedType {
-              data_type: "int".to_string(),
-              constraints: vec![
-                "x > 0".to_string(),
-                "x % 2 == 0".to_string(),
-              ],
-            }),
-          },
-          DataType {
-            name: "DataType2".to_string(),
-            description: None,
-            data: DataTypeData::ConstrainedType(ConstrainedType {
-              data_type: "float".to_string(),
-              constraints: vec![
-                "std::abs(x) < 1e-9".to_string(),
-              ],
-            }),
-          },
-        ],
-        namespace: vec!["test".to_string()],
-      };
+        // Make sure it generates the correct code
+        let data_model = DataModel {
+            headers: Headers {
+                header: "".to_string(),
+                source: "".to_string(),
+            },
+            footers: Footers {
+                header: "".to_string(),
+                source: "".to_string(),
+            },
+            data_types: vec![
+                DataType {
+                    name: "DataType1".to_string(),
+                    description: None,
+                    data: DataTypeData::ConstrainedType(ConstrainedType {
+                        data_type: "int".to_string(),
+                        constraints: vec!["x > 0".to_string(), "x % 2 == 0".to_string()],
+                    }),
+                },
+                DataType {
+                    name: "DataType2".to_string(),
+                    description: None,
+                    data: DataTypeData::ConstrainedType(ConstrainedType {
+                        data_type: "float".to_string(),
+                        constraints: vec!["std::abs(x) < 1e-9".to_string()],
+                    }),
+                },
+            ],
+            namespace: vec!["test".to_string()],
+        };
 
-      // Create the header file
-      let header_file = data_model.get_source("HEADER", 2);
-      let expected = include_str!("../../tests/cpp/type_constrained/constraints/constraints.hpp");
+        // Create the header file
+        let header_file = data_model.get_header("HEADER", 2);
+        let source_file = data_model.get_source("constraints", 2);
+        let expected_header = include_str!("../../tests/cpp/type_constrained/constraints/constraints.h");
+        let expected_source = include_str!("../../tests/cpp/type_constrained/constraints/constraints.cpp");
 
-      // Check that they are the same
-      assert_eq!(str_diff(&header_file, &expected), None);
+        // Check that they are the same
+        assert_eq!(str_diff(&header_file, &expected_header), None);
+        assert_eq!(str_diff(&source_file, &expected_source), None);
     }
-}*/
+}
