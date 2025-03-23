@@ -1,6 +1,6 @@
 [package]
 name = "termite-dmg"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 description = "Termite Data Model Generator is a crate meant to generate boiler plate code for data models."
 license = "MIT OR Apache-2.0"

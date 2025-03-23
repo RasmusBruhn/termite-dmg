@@ -45,6 +45,12 @@ impl ConstrainedType {
             class {name} {{
             public:
             {0:indent$}/**
+            {0:indent$} * @brief Constructs a new {name} object, it must be valid or an exception will be thrown
+            {0:indent$} * 
+            {0:indent$} * @param value The value to store 
+            {0:indent$} */
+            {0:indent$}explicit {name}({data_type} value) : {name}(from_value(std::move(value)).get_ok()) {{}}
+            {0:indent$}/**
             {0:indent$} * @brief Constructs a new {name} object
             {0:indent$} * 
             {0:indent$} * @param value The value to store 
@@ -185,11 +191,7 @@ impl ConstrainedType {
     ///
     /// name: The name of the variant
     ///
-    /// indent: The number of spaces to use for indentation
-    ///
     /// namespace: The namespace of the variant
-    ///
-    /// data_types: List of all the data types defined in the data model
     pub(super) fn get_parser_header(&self, name: &str, namespace: &[String]) -> String {
         // Get the namespace name
         let namespace = namespace
@@ -258,110 +260,11 @@ impl ConstrainedType {
     }
 }
 
-#[cfg(test)]
+/*#[cfg(test)]
 mod tests {
     use super::*;
     use std::{fs, path, process};
 
-    fn str_diff(lhs: &str, rhs: &str) -> Option<(usize, String, String)> {
-        if let Some(error) = lhs
-            .lines()
-            .zip(rhs.lines())
-            .enumerate()
-            .filter_map(|(index, (lhs, rhs))| {
-                return if lhs == rhs {
-                    None
-                } else {
-                    Some((index + 1, lhs.to_string(), rhs.to_string()))
-                };
-            })
-            .next()
-        {
-            return Some(error);
-        }
-
-        if lhs.lines().count() != rhs.lines().count() {
-            return Some((0, "".to_string(), "".to_string()));
-        }
-
-        return None;
-    }
-
-    fn get_source_path(name: &str) -> path::PathBuf {
-        // Get the filename
-        let filename = path::Path::new(name).file_name().unwrap().to_str().unwrap();
-
-        return path::Path::new("tests/cpp")
-            .join(format!("{name}"))
-            .join(format!("{filename}_test.cpp"));
-    }
-
-    fn get_exe_path(name: &str) -> path::PathBuf {
-        // Get the filename
-        let filename = path::Path::new(name).file_name().unwrap().to_str().unwrap();
-
-        return path::Path::new("target/tests/cpp")
-            .join(format!("{name}"))
-            .join(filename);
-    }
-
-    fn compile_and_test(name: &str) {
-        // Get the paths
-        let source_path = get_source_path(name);
-        let exe_path = get_exe_path(name);
-
-        // Create the output directory
-        fs::create_dir_all(exe_path.parent().unwrap()).unwrap();
-
-        // Compile code
-        let compile_output = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .arg("/C")
-                .arg(format!(
-                    "g++ {} -Isrc/cpp -Wall -std=c++17 -o {}.exe",
-                    source_path.to_str().unwrap(),
-                    exe_path.to_str().unwrap()
-                ))
-                .output()
-                .expect("failed to compile")
-        } else {
-            process::Command::new("sh")
-                .arg("-c")
-                .arg(format!(
-                    "g++ {} -Isrc/cpp -Wall -std=c++17 -o {}",
-                    source_path.to_str().unwrap(),
-                    exe_path.to_str().unwrap()
-                ))
-                .output()
-                .expect("failed to compile")
-        };
-
-        // Make sure it comiled without any warnings
-        assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
-        assert_eq!(compile_output.stdout.len(), 0);
-        assert_eq!(compile_output.stderr.len(), 0);
-
-        // Run the test executable
-        let test_output = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .arg("/C")
-                .arg(format!(
-                    ".\\{}.exe",
-                    exe_path.to_str().unwrap().replace('/', "\\")
-                ))
-                .output()
-                .expect("failed to test")
-        } else {
-            process::Command::new("sh")
-                .arg("-c")
-                .arg(format!("./{}", exe_path.to_str().unwrap()))
-                .output()
-                .expect("failed to test")
-        };
-
-        assert_eq!(test_output.status.code().expect("Unable to run test"), 0);
-    }
-    /*
     #[test]
     fn basic() {
       // Check c++ code
@@ -441,5 +344,5 @@ mod tests {
 
       // Check that they are the same
       assert_eq!(str_diff(&header_file, &expected), None);
-    } */
-}
+    }
+}*/

@@ -672,8 +672,11 @@ public:
    */
   template <typename T>
   [[nodiscard]] Result<T> to_value() const {
-    return std::visit([](const auto &value) { return value.to_value<T>(); },
-                      value_);
+    return std::visit(
+        [](const auto &value) -> Result<T> {
+          return value.template to_value<T>();
+        },
+        value_);
   }
 
   /**

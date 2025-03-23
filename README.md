@@ -135,8 +135,24 @@ Point:
 
 ## 0.2.0
 
+### Major changes
+
+- Split the hpp file into a .h and .cpp file to fix linker issues when including
+  in several compilation blocks.
+- Removed default values from constructor for Structs and instead added static
+  methods for constructors of all the fields with default values.
+
+### Minor changes
+
+- Slightly changed the code style of the cpp code.
+- Fixed bug where default value for a field in a Struct of a type defined in
+  this data model could not comile if namespaces were used.
+
 ## 0.1.1
 
-- Fixed bug where the namespace was not added to data types in the parsing code when those data types were custom types stopping the c++ code from compiling.
+### Minor changes
+
+- Fixed bug where the namespace was not added to data types in the parsing code
+  when those data types were custom types stopping the c++ code from compiling.
 - Fixed bug where if a struct field was called x then it could not compile.
 - Fixed bug where ConstrainedType fields in structs with default values could not compile.

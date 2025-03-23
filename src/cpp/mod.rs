@@ -9,7 +9,7 @@
 //!
 
 use indoc::formatdoc;
-use std::{collections::HashMap, fmt};
+use std::{char::ToLowercase, collections::HashMap, fmt};
 
 mod type_array;
 mod type_constrained;
@@ -22,6 +22,63 @@ use type_constrained::ConstrainedType;
 use type_enum::Enum;
 use type_struct::Struct;
 use type_variant::Variant;
+
+/// Iterator to convert an iterator of chars to snake case converting all
+/// uppercase characters to an underscore and the lowercase character
+struct ToSnakeCase<'a> {
+    /// The characters to convert to snake case
+    chars: &'a mut dyn Iterator<Item = char>,
+    /// The characters currently being converted to lowercase
+    set_lower: Option<ToLowercase>,
+}
+
+impl<'a> ToSnakeCase<'a> {
+    /// Creates a new ToSnakeCase object
+    ///
+    /// # Parameters
+    ///
+    /// chars: The iterator of the characters to convert
+    fn new(chars: &'a mut dyn Iterator<Item = char>) -> Self {
+        // Make sure the first character is lowercase without an underscore
+        let set_lower = if let Some(first_char) = chars.next() {
+            Some(first_char.to_lowercase())
+        } else {
+            None
+        };
+
+        return Self { chars, set_lower };
+    }
+}
+
+impl<'a> Iterator for ToSnakeCase<'a> {
+    type Item = char;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        // Set to lower case
+        if let Some(set_lower) = &mut self.set_lower {
+            // Get the next character
+            if let Some(next_char) = set_lower.next() {
+                return Some(next_char);
+            }
+
+            // Finish up setting to lowercase
+            self.set_lower = None;
+        }
+
+        // Get next character
+        return if let Some(next_char) = self.chars.next() {
+            // Set to lowercase if it is uppercase
+            if next_char.is_uppercase() {
+                self.set_lower = Some(next_char.to_lowercase());
+                Some('_')
+            } else {
+                Some(next_char)
+            }
+        } else {
+            None
+        };
+    }
+}
 
 /// Obtains the base termite c++ dependency required for all generated data
 /// models
@@ -97,7 +154,7 @@ impl DataModel {
         let data_types = self
             .data_types
             .iter()
-            .map(|data_type| data_type.get_definition_header(indent, &self.data_types))
+            .map(|data_type| data_type.get_definition_header(indent))
             .collect::<Vec<String>>()
             .join("\n\n");
 
@@ -105,7 +162,7 @@ impl DataModel {
         let parsers = self
             .data_types
             .iter()
-            .map(|data_type| data_type.get_parser_header(indent, &self.namespace, &self.data_types))
+            .map(|data_type| data_type.get_parser_header(&self.namespace))
             .collect::<Vec<String>>()
             .join("\n\n");
 
@@ -160,7 +217,7 @@ impl DataModel {
         let data_types = self
             .data_types
             .iter()
-            .map(|data_type| data_type.get_definition_source(indent, &self.data_types))
+            .map(|data_type| data_type.get_definition_source(indent))
             .collect::<Vec<String>>()
             .join("\n\n");
 
@@ -174,7 +231,7 @@ impl DataModel {
 
         return formatdoc!("
             // Generated with the Termite Data Model Generator
-            #include \"{name}\"
+            #include \"{name}.h\"
 
             {header}
 
@@ -183,7 +240,6 @@ impl DataModel {
             // Code to make printing easier
             template <typename T, typename = void>
             struct has_insertion_operator : std::false_type {{}};
-
             template <typename T>
             struct has_insertion_operator<T, std::void_t<decltype(std::declval<std::ostream &>() << std::declval<T>())>> : std::true_type {{}};
 
@@ -225,8 +281,6 @@ impl DataModel {
             }} // namespace termite
             
             {footer}
-            
-            #endif
             ",
             "",
             header = self.headers.source,
@@ -337,9 +391,7 @@ impl DataType {
     /// # Parameters
     ///
     /// indent: The number of spaces to use for indentation
-    ///
-    /// data_types: List of all the data types defined in the data model
-    fn get_definition_header(&self, indent: usize, data_types: &[DataType]) -> String {
+    fn get_definition_header(&self, indent: usize) -> String {
         return formatdoc!(
             "
             /**
@@ -348,9 +400,7 @@ impl DataType {
              */
             {definition}",
             description = self.get_description(),
-            definition = self
-                .data
-                .get_definition_header(&self.name, indent, data_types),
+            definition = self.data.get_definition_header(&self.name, indent),
         );
     }
 
@@ -359,9 +409,7 @@ impl DataType {
     /// # Parameters
     ///
     /// indent: The number of spaces to use for indentation
-    ///
-    /// data_types: List of all the data types defined in the data model
-    fn get_definition_source(&self, indent: usize, data_types: &[DataType]) -> String {
+    fn get_definition_source(&self, indent: usize) -> String {
         return formatdoc!(
             "
             /**
@@ -370,9 +418,7 @@ impl DataType {
              */
             {definition}",
             description = self.get_description(),
-            definition = self
-                .data
-                .get_definition_source(&self.name, indent, data_types),
+            definition = self.data.get_definition_source(&self.name, indent),
         );
     }
 
@@ -380,20 +426,9 @@ impl DataType {
     ///
     /// # Parameters
     ///
-    /// indent: The number of spaces to use for indentation
-    ///
     /// namespace: The namespace of the type
-    ///
-    /// data_types: List of all the data types defined in the data model
-    pub(super) fn get_parser_header(
-        &self,
-        indent: usize,
-        namespace: &[String],
-        data_types: &[DataType],
-    ) -> String {
-        return self
-            .data
-            .get_parser_header(&self.name, indent, namespace, data_types);
+    pub(super) fn get_parser_header(&self, namespace: &[String]) -> String {
+        return self.data.get_parser_header(&self.name, namespace);
     }
 
     /// Gets the source code for the parser for this type allowing it to be read from a file
@@ -459,11 +494,9 @@ impl DataTypeData {
     /// name: The name of the data type
     ///
     /// indent: The number of spaces to use for indentation
-    ///
-    /// data_types: List of all the data types defined in the data model
-    fn get_definition_header(&self, name: &str, indent: usize, data_types: &[DataType]) -> String {
+    fn get_definition_header(&self, name: &str, indent: usize) -> String {
         return match self {
-            DataTypeData::Struct(data) => data.get_definition_header(name, indent, data_types),
+            DataTypeData::Struct(data) => data.get_definition_header(name, indent),
             DataTypeData::Array(data) => data.get_definition_header(name, indent),
             DataTypeData::Variant(data) => data.get_definition_header(name, indent),
             DataTypeData::Enum(data) => data.get_definition_header(name, indent),
@@ -478,11 +511,9 @@ impl DataTypeData {
     /// name: The name of the data type
     ///
     /// indent: The number of spaces to use for indentation
-    ///
-    /// data_types: List of all the data types defined in the data model
-    fn get_definition_source(&self, name: &str, indent: usize, data_types: &[DataType]) -> String {
+    fn get_definition_source(&self, name: &str, indent: usize) -> String {
         return match self {
-            DataTypeData::Struct(data) => data.get_definition_source(name, indent, data_types),
+            DataTypeData::Struct(data) => data.get_definition_source(name, indent),
             DataTypeData::Array(data) => data.get_definition_source(name, indent),
             DataTypeData::Variant(data) => data.get_definition_source(name, indent),
             DataTypeData::Enum(data) => data.get_definition_source(name, indent),
@@ -496,32 +527,14 @@ impl DataTypeData {
     ///
     /// name: The name of the type
     ///
-    /// indent: The number of spaces to use for indentation
-    ///
     /// namespace: The namespace of the type
-    ///
-    /// data_types: List of all the data types defined in the data model
-    pub(super) fn get_parser_header(
-        &self,
-        name: &str,
-        indent: usize,
-        namespace: &[String],
-        data_types: &[DataType],
-    ) -> String {
+    pub(super) fn get_parser_header(&self, name: &str, namespace: &[String]) -> String {
         return match self {
-            DataTypeData::Struct(data) => {
-                data.get_parser_header(name, indent, namespace, data_types)
-            }
-            DataTypeData::Array(data) => {
-                data.get_parser_header(name, indent, namespace, data_types)
-            }
-            DataTypeData::Variant(data) => {
-                data.get_parser_header(name, indent, namespace, data_types)
-            }
-            DataTypeData::Enum(data) => data.get_parser_header(name, indent, namespace, data_types),
-            DataTypeData::ConstrainedType(data) => {
-                data.get_parser_header(name, indent, namespace, data_types)
-            }
+            DataTypeData::Struct(data) => data.get_parser_header(name, namespace),
+            DataTypeData::Array(data) => data.get_parser_header(name, namespace),
+            DataTypeData::Variant(data) => data.get_parser_header(name, namespace),
+            DataTypeData::Enum(data) => data.get_parser_header(name, namespace),
+            DataTypeData::ConstrainedType(data) => data.get_parser_header(name, namespace),
         };
     }
 
@@ -620,26 +633,26 @@ impl fmt::Display for Error {
 /// Errors for when converting generic data models into c++ data models
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum ErrorCore {
-    /// A required field was found after an optional one
-    #[error("The required field \"{}\" was placed after an optional field", .0)]
-    StructFieldOrder(String),
+    /// No error has occured
+    #[error("No error has occured")]
+    NoError(),
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use std::{collections::HashMap, fs, path, process};
+pub(crate) mod test_utils {
+    use std::{fs, path, process};
 
-    fn str_diff(lhs: &str, rhs: &str) -> Option<(usize, String, String)> {
+    pub(crate) fn str_diff(lhs: &str, rhs: &str) -> Option<(usize, String, String)> {
         if let Some(error) = lhs
+            .trim()
             .lines()
-            .zip(rhs.lines())
+            .zip(rhs.trim().lines())
             .enumerate()
             .filter_map(|(index, (lhs, rhs))| {
-                return if lhs == rhs {
+                return if lhs.trim() == rhs.trim() {
                     None
                 } else {
-                    Some((index + 1, lhs.to_string(), rhs.to_string()))
+                    Some((index + 1, lhs.trim().to_string(), rhs.trim().to_string()))
                 };
             })
             .next()
@@ -647,14 +660,27 @@ mod tests {
             return Some(error);
         }
 
-        if lhs.lines().count() != rhs.lines().count() {
-            return Some((0, "".to_string(), "".to_string()));
+        if lhs.trim().lines().count() != rhs.trim().lines().count() {
+            return Some((
+                0,
+                format!("{}", lhs.trim().lines().count()),
+                format!("{}", rhs.trim().lines().count()),
+            ));
         }
 
         return None;
     }
 
     fn get_source_path(name: &str) -> path::PathBuf {
+        // Get the filename
+        let filename = path::Path::new(name).file_name().unwrap().to_str().unwrap();
+
+        return path::Path::new("tests/cpp")
+            .join(format!("{name}"))
+            .join(format!("{filename}.cpp"));
+    }
+
+    fn get_test_path(name: &str) -> path::PathBuf {
         // Get the filename
         let filename = path::Path::new(name).file_name().unwrap().to_str().unwrap();
 
@@ -672,9 +698,10 @@ mod tests {
             .join(filename);
     }
 
-    fn compile_and_test(name: &str) {
+    pub(crate) fn compile_and_test(name: &str) {
         // Get the paths
         let source_path = get_source_path(name);
+        let test_path = get_test_path(name);
         let exe_path = get_exe_path(name);
 
         // Create the output directory
@@ -685,8 +712,9 @@ mod tests {
             process::Command::new("cmd")
                 .arg("/C")
                 .arg(format!(
-                    "g++ {} -Isrc/cpp -Wall -std=c++17 -o {}.exe",
+                    "g++ {} {} -Isrc/cpp -Wall -std=c++17 -o {}.exe",
                     source_path.to_str().unwrap(),
+                    test_path.to_str().unwrap(),
                     exe_path.to_str().unwrap()
                 ))
                 .output()
@@ -695,8 +723,9 @@ mod tests {
             process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "g++ {} -Isrc/cpp -Wall -std=c++17 -o {}",
+                    "g++ {} {} -Isrc/cpp -Wall -std=c++17 -o {}",
                     source_path.to_str().unwrap(),
+                    test_path.to_str().unwrap(),
                     exe_path.to_str().unwrap()
                 ))
                 .output()
@@ -728,7 +757,13 @@ mod tests {
 
         assert_eq!(test_output.status.code().expect("Unable to run test"), 0);
     }
-    /*
+}
+
+/*#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::{collections::HashMap, fs, path, process};
+
        #[test]
        fn termite_basis() {
            if cfg!(target_os = "windows") {
@@ -994,5 +1029,4 @@ mod tests {
            // Check that they are the same
            assert_eq!(str_diff(&header_file, &expected), None);
        }
-    */
-}
+}*/

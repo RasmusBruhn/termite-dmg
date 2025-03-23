@@ -78,6 +78,6 @@
         "valarray": "cpp",
         "xhash": "cpp"
     },
-    "editor.tabSize": 2,
+    "editor.tabSize": 4,
     "cmake.configureOnOpen": false,
 }
