@@ -1,29 +1,17 @@
 // Generated with the Termite Data Model Generator
-#ifndef HEADER_TERMITE_H_INCLUDED
-#define HEADER_TERMITE_H_INCLUDED
+#include "header.h"
 
-#include <iostream>
-#include <sstream>
-#include <optional>
-#include <variant>
-#include <algorithm>
-#include <termite.hpp>
+// header source
 
 
 
 namespace {
 
+// Code to make printing easier
 template <typename T, typename = void>
 struct has_insertion_operator : std::false_type {};
-
 template <typename T>
 struct has_insertion_operator<T, std::void_t<decltype(std::declval<std::ostream &>() << std::declval<T>())>> : std::true_type {};
-
-} // namespace
-
-
-
-namespace {
 
 template <typename T>
 typename std::enable_if<has_insertion_operator<T>::value, std::ostream &>::type
@@ -34,16 +22,6 @@ operator<<(std::ostream &os, const std::optional<T> &value) {
     return os << "nullopt";
   }
 }
-
-} // namespace
-
-
-
-
-
-namespace termite {
-
-namespace {
 
 template <typename T>
 typename std::enable_if<has_insertion_operator<T>::value, std::ostream &>::type
@@ -62,8 +40,12 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 
 
 
+
+
+namespace termite {
+
+
+
 } // namespace termite
 
-// footer data
 
-#endif

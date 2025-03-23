@@ -1,5 +1,5 @@
 #include <iostream>
-#include "header.hpp"
+#include "header.h"
 
 int main() {
   std::cout << "Done" << std::endl;

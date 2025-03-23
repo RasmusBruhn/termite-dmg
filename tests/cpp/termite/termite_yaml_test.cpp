@@ -1,11 +1,11 @@
-#include <termite-yaml.hpp>
 #include <optional>
-#include <string>
 #include <sstream>
+#include <string>
+#include <termite-yaml.hpp>
 
 /**
  * @brief Test if it can convert a scalar
- * 
+ *
  * @return An error string on error
  */
 std::optional<std::string> test_scalar() {
@@ -14,20 +14,24 @@ std::optional<std::string> test_scalar() {
   termite::Result<termite::Node> result = termite::from_YAML(node);
 
   if (!result.is_ok()) {
-    return result.get_err().to_string();
+    std::stringstream ss;
+    ss << result.get_err();
+    return ss.str();
   }
 
   termite::Node result_ok = result.get_ok();
   if (result_ok != correct) {
-    return result_ok.to_string();
+    std::stringstream ss;
+    ss << result_ok;
+    return ss.str();
   }
-  
+
   return std::nullopt;
 }
 
 /**
  * @brief Test if it can convert a list
- * 
+ *
  * @return An error string on error
  */
 std::optional<std::string> test_list() {
@@ -41,26 +45,32 @@ std::optional<std::string> test_list() {
   termite::Result<termite::Node> result = termite::from_YAML(node);
 
   if (!result.is_ok()) {
-    return result.get_err().to_string();
+    std::stringstream ss;
+    ss << result.get_err();
+    return ss.str();
   }
 
   termite::Node result_ok = result.get_ok();
   if (result_ok != correct) {
-    return result_ok.to_string();
+    std::stringstream ss;
+    ss << result_ok;
+    return ss.str();
   }
-  
+
   return std::nullopt;
 }
 
 /**
  * @brief Test if it can convert a map
- * 
+ *
  * @return An error string on error
  */
 std::optional<std::string> test_map() {
   std::map<std::string, termite::Node> map;
-  map.insert(std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
-  map.insert(std::make_pair("field2", termite::Node(termite::Node::Value("Test2"))));
+  map.insert(
+      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
+  map.insert(
+      std::make_pair("field2", termite::Node(termite::Node::Value("Test2"))));
   termite::Node correct(termite::Node::Map(std::move(map)));
   YAML::Node node;
   node["field1"] = YAML::Node("Test1");
@@ -68,20 +78,24 @@ std::optional<std::string> test_map() {
   termite::Result<termite::Node> result = termite::from_YAML(node);
 
   if (!result.is_ok()) {
-    return result.get_err().to_string();
+    std::stringstream ss;
+    ss << result.get_err();
+    return ss.str();
   }
 
   termite::Node result_ok = result.get_ok();
   if (result_ok != correct) {
-    return result_ok.to_string();
+    std::stringstream ss;
+    ss << result_ok;
+    return ss.str();
   }
-  
+
   return std::nullopt;
 }
 
 /**
  * @brief Test if it can handle a type error
- * 
+ *
  * @return An error string on error
  */
 std::optional<std::string> test_type_error() {
@@ -99,7 +113,7 @@ std::optional<std::string> test_type_error() {
 
 /**
  * @brief Test if it can handle a list error
- * 
+ *
  * @return An error string on error
  */
 std::optional<std::string> test_list_error() {
@@ -118,7 +132,7 @@ std::optional<std::string> test_list_error() {
 
 /**
  * @brief Test if it can handle a map error
- * 
+ *
  * @return An error string on error
  */
 std::optional<std::string> test_map_error() {
@@ -137,7 +151,7 @@ std::optional<std::string> test_map_error() {
 
 /**
  * @brief Test if it can convert to a scalar
- * 
+ *
  * @return An error string on error
  */
 std::optional<std::string> test_to_scalar() {
@@ -150,13 +164,13 @@ std::optional<std::string> test_to_scalar() {
   if (result.as<std::string>() != "Test") {
     return "Wrong value";
   }
-  
+
   return std::nullopt;
 }
 
 /**
  * @brief Test if it can convert to a list
- * 
+ *
  * @return An error string on error
  */
 std::optional<std::string> test_to_list() {
@@ -178,19 +192,21 @@ std::optional<std::string> test_to_list() {
   if (result[1].as<std::string>() != "Test2") {
     return "Wrong value [1]";
   }
-  
+
   return std::nullopt;
 }
 
 /**
  * @brief Test if it can convert to a map
- * 
+ *
  * @return An error string on error
  */
 std::optional<std::string> test_to_map() {
   std::map<std::string, termite::Node> map;
-  map.insert(std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
-  map.insert(std::make_pair("field2", termite::Node(termite::Node::Value("Test2"))));
+  map.insert(
+      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
+  map.insert(
+      std::make_pair("field2", termite::Node(termite::Node::Value("Test2"))));
   termite::Node node(termite::Node::Map(std::move(map)));
   YAML::Node result = termite::to_YAML(node);
 
@@ -206,42 +222,32 @@ std::optional<std::string> test_to_map() {
   if (result["field2"].as<std::string>() != "Test2") {
     return "Wrong value [1]";
   }
-  
+
   return std::nullopt;
 }
 
 int main() {
   auto names = {
-    "test_scalar",
-    "test_list",
-    "test_map",
-    "test_type_error",
-    "test_list_error",
-    "test_map_error",
-    "test_to_scalar",
-    "test_to_list",
-    "test_to_map",
+      "test_scalar",     "test_list",       "test_map",
+      "test_type_error", "test_list_error", "test_map_error",
+      "test_to_scalar",  "test_to_list",    "test_to_map",
   };
   auto functions = {
-    test_scalar,
-    test_list,
-    test_map,
-    test_type_error,
-    test_list_error,
-    test_map_error,
-    test_to_scalar,
-    test_to_list,
-    test_to_map,
+      test_scalar,     test_list,       test_map,
+      test_type_error, test_list_error, test_map_error,
+      test_to_scalar,  test_to_list,    test_to_map,
   };
 
   std::cout << "Running " << names.size() << " tests" << std::endl;
 
   int progress = 1;
   auto name_it = names.begin();
-  for (auto function_it = functions.begin(); function_it < functions.end(); ++function_it, ++name_it, ++progress) {
+  for (auto function_it = functions.begin(); function_it < functions.end();
+       ++function_it, ++name_it, ++progress) {
     if (auto error = (*function_it)()) {
-        std::cout << "Error occured at \"" << *name_it << "\": " << *error << std::endl;
-        return progress;
+      std::cout << "Error occured at \"" << *name_it << "\": " << *error
+                << std::endl;
+      return progress;
     }
   }
 

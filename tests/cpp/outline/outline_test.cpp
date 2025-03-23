@@ -1,5 +1,5 @@
 #include <iostream>
-#include "outline.hpp"
+#include "outline.h"
 
 int main() {
   auto type1 = test::DataType1();

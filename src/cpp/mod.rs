@@ -149,6 +149,16 @@ impl DataModel {
     pub fn get_header(&self, name: &str, indent: usize) -> String {
         // Get the namespace
         let namespace = self.namespace.join("::");
+        let namespace_begin = if namespace.is_empty() {
+            format!("")
+        } else {
+            format!("namespace {namespace} {{")
+        };
+        let namespace_end = if namespace.is_empty() {
+            format!("")
+        } else {
+            format!("}} // namespace {namespace}")
+        };
 
         // Get all structs
         let data_types = self
@@ -181,11 +191,11 @@ impl DataModel {
 
             {header}
 
-            namespace {namespace} {{
+            {namespace_begin}
 
             {data_types}
 
-            }} // namespace {namespace}
+            {namespace_end}
 
             namespace termite {{
 
@@ -212,6 +222,16 @@ impl DataModel {
     pub fn get_source(&self, name: &str, indent: usize) -> String {
         // Get the namespace
         let namespace = self.namespace.join("::");
+        let namespace_begin = if namespace.is_empty() {
+            format!("")
+        } else {
+            format!("namespace {namespace} {{")
+        };
+        let namespace_end = if namespace.is_empty() {
+            format!("")
+        } else {
+            format!("}} // namespace {namespace}")
+        };
 
         // Get all structs
         let data_types = self
@@ -235,7 +255,7 @@ impl DataModel {
 
             {header}
 
-            namespace {namespace} {{
+            {namespace_begin}
 
             namespace {{
 
@@ -272,7 +292,7 @@ impl DataModel {
 
             {data_types}
 
-            }} // namespace {namespace}
+            {namespace_end}
 
             namespace termite {{
             
@@ -759,274 +779,233 @@ pub(crate) mod test_utils {
     }
 }
 
-/*#[cfg(test)]
+#[cfg(test)]
 mod tests {
     use super::*;
-    use std::{collections::HashMap, fs, path, process};
+    use crate::cpp::test_utils::*;
+    use std::process;
 
-       #[test]
-       fn termite_basis() {
-           if cfg!(target_os = "windows") {
-               process::Command::new("cmd")
-                   .current_dir("tests/cpp/termite")
-                   .arg("/C")
-                   .arg("mkdir build")
-                   .output()
-                   .expect("failed to compile");
-           } else {
-               process::Command::new("sh")
-                   .current_dir("tests/cpp/termite")
-                   .arg("-c")
-                   .arg("mkdir build")
-                   .output()
-                   .expect("failed to compile");
-           };
+    #[test]
+    fn termite_basis() {
+        if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir("tests/cpp/termite")
+                .arg("/C")
+                .arg("mkdir build")
+                .output()
+                .expect("failed to compile");
+        } else {
+            process::Command::new("sh")
+                .current_dir("tests/cpp/termite")
+                .arg("-c")
+                .arg("mkdir build")
+                .output()
+                .expect("failed to compile");
+        };
 
-           let compile_output = if cfg!(target_os = "windows") {
-               process::Command::new("cmd")
-                   .current_dir("tests/cpp/termite/build")
-                   .arg("/C")
-                   .arg("cmake ..")
-                   .output()
-                   .expect("failed to compile")
-           } else {
-               process::Command::new("sh")
-                   .current_dir("tests/cpp/termite/build")
-                   .arg("-c")
-                   .arg("cmake ..")
-                   .output()
-                   .expect("failed to compile")
-           };
+        let compile_output = if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir("tests/cpp/termite/build")
+                .arg("/C")
+                .arg("cmake ..")
+                .output()
+                .expect("failed to compile")
+        } else {
+            process::Command::new("sh")
+                .current_dir("tests/cpp/termite/build")
+                .arg("-c")
+                .arg("cmake ..")
+                .output()
+                .expect("failed to compile")
+        };
 
-           assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
-           assert_eq!(compile_output.stderr.len(), 0);
+        assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
+        assert_eq!(compile_output.stderr.len(), 0);
 
-           let compile_output2 = if cfg!(target_os = "windows") {
-               process::Command::new("cmd")
-                   .current_dir("tests/cpp/termite/build")
-                   .arg("/C")
-                   .arg("cmake --build .")
-                   .output()
-                   .expect("failed to compile")
-           } else {
-               process::Command::new("sh")
-                   .current_dir("tests/cpp/termite/build")
-                   .arg("-c")
-                   .arg("cmake --build .")
-                   .output()
-                   .expect("failed to compile")
-           };
+        let compile_output2 = if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir("tests/cpp/termite/build")
+                .arg("/C")
+                .arg("cmake --build .")
+                .output()
+                .expect("failed to compile")
+        } else {
+            process::Command::new("sh")
+                .current_dir("tests/cpp/termite/build")
+                .arg("-c")
+                .arg("cmake --build .")
+                .output()
+                .expect("failed to compile")
+        };
 
-           assert_eq!(compile_output2.status.code().expect("Unable to compile"), 0);
-           assert_eq!(compile_output2.stderr.len(), 0);
+        assert_eq!(compile_output2.status.code().expect("Unable to compile"), 0);
+        assert_eq!(compile_output2.stderr.len(), 0);
 
-           let test_output = if cfg!(target_os = "windows") {
-               process::Command::new("cmd")
-                   .current_dir("tests/cpp/termite/build")
-                   .arg("/C")
-                   .arg(".\\Debug\\termite.exe")
-                   .output()
-                   .expect("failed to test")
-           } else {
-               process::Command::new("sh")
-                   .current_dir("tests/cpp/termite/build")
-                   .arg("-c")
-                   .arg("./termite")
-                   .output()
-                   .expect("failed to test")
-           };
+        let test_output = if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir("tests/cpp/termite/build")
+                .arg("/C")
+                .arg(".\\Debug\\termite.exe")
+                .output()
+                .expect("failed to test")
+        } else {
+            process::Command::new("sh")
+                .current_dir("tests/cpp/termite/build")
+                .arg("-c")
+                .arg("./termite")
+                .output()
+                .expect("failed to test")
+        };
 
-           assert_eq!(test_output.status.code().expect("Unable to run"), 0);
+        assert_eq!(test_output.status.code().expect("Unable to run"), 0);
 
-           let test_output_yaml = if cfg!(target_os = "windows") {
-               process::Command::new("cmd")
-                   .current_dir("tests/cpp/termite/build")
-                   .arg("/C")
-                   .arg(".\\Debug\\termite-yaml.exe")
-                   .output()
-                   .expect("failed to test")
-           } else {
-               process::Command::new("sh")
-                   .current_dir("tests/cpp/termite/build")
-                   .arg("-c")
-                   .arg("./termite-yaml")
-                   .output()
-                   .expect("failed to test")
-           };
+        let test_output_yaml = if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir("tests/cpp/termite/build")
+                .arg("/C")
+                .arg(".\\Debug\\termite-yaml.exe")
+                .output()
+                .expect("failed to test")
+        } else {
+            process::Command::new("sh")
+                .current_dir("tests/cpp/termite/build")
+                .arg("-c")
+                .arg("./termite-yaml")
+                .output()
+                .expect("failed to test")
+        };
 
-           assert_eq!(test_output_yaml.status.code().expect("Unable to run"), 0);
-       }
+        assert_eq!(test_output_yaml.status.code().expect("Unable to run"), 0);
+    }
 
-       #[test]
-       fn default_order() {
-           let data = crate::DataModel {
-               headers: HashMap::new(),
-               footers: HashMap::new(),
-               data_types: vec![crate::DataType {
-                   name: "DataType".to_string(),
-                   description: None,
-                   data: crate::DataTypeData::Struct(crate::Struct {
-                       fields: vec![
-                           crate::StructField {
-                               name: "field1".to_string(),
-                               description: None,
-                               data_type: "int".to_string(),
-                               default: crate::DefaultType::Default("1".to_string()),
-                           },
-                           crate::StructField {
-                               name: "field1".to_string(),
-                               description: None,
-                               data_type: "int".to_string(),
-                               default: crate::DefaultType::Required,
-                           },
-                       ],
-                   }),
-               }],
-               namespace: vec![],
-           };
+    #[test]
+    fn header() {
+        // Check c++ code
+        compile_and_test("header");
 
-           assert!(DataModel::new(data).is_err());
-       }
+        // Make sure it generates the correct code
+        let data_model = DataModel {
+            headers: Headers {
+                header: "// header header".to_string(),
+                source: "// header source".to_string(),
+            },
+            footers: Footers {
+                header: "".to_string(),
+                source: "".to_string(),
+            },
+            data_types: vec![],
+            namespace: vec![],
+        };
 
-       #[test]
-       fn optional_order() {
-           let data = crate::DataModel {
-               headers: HashMap::new(),
-               footers: HashMap::new(),
-               data_types: vec![crate::DataType {
-                   name: "DataType".to_string(),
-                   description: None,
-                   data: crate::DataTypeData::Struct(crate::Struct {
-                       fields: vec![
-                           crate::StructField {
-                               name: "field1".to_string(),
-                               description: None,
-                               data_type: "int".to_string(),
-                               default: crate::DefaultType::Optional,
-                           },
-                           crate::StructField {
-                               name: "field1".to_string(),
-                               description: None,
-                               data_type: "int".to_string(),
-                               default: crate::DefaultType::Required,
-                           },
-                       ],
-                   }),
-               }],
-               namespace: vec![],
-           };
+        // Create the header file
+        let header_file = data_model.get_header("HEADER", 2);
+        let source_file = data_model.get_source("header", 2);
+        let expected_header = include_str!("../../tests/cpp/header/header.h");
+        let expected_source = include_str!("../../tests/cpp/header/header.cpp");
 
-           assert!(DataModel::new(data).is_err());
-       }
+        // Check that they are the same
+        assert_eq!(str_diff(&header_file, &expected_header), None);
+        assert_eq!(str_diff(&source_file, &expected_source), None);
+    }
 
-       #[test]
-       fn header() {
-           // Check c++ code
-           compile_and_test("header");
+    #[test]
+    fn footer() {
+        // Check c++ code
+        compile_and_test("footer");
 
-           // Make sure it generates the correct code
-           let data_model = DataModel {
-               headers: Headers {
-                   source: "// header data".to_string(),
-               },
-               footers: Footers {
-                   source: "".to_string(),
-               },
-               data_types: vec![],
-               namespace: vec![],
-           };
+        // Make sure it generates the correct code
+        let data_model = DataModel {
+            headers: Headers {
+                header: "".to_string(),
+                source: "".to_string(),
+            },
+            footers: Footers {
+                header: "// footer header".to_string(),
+                source: "// footer source".to_string(),
+            },
+            data_types: vec![],
+            namespace: vec![],
+        };
 
-           // Create the header file
-           let header_file = data_model.get_source("HEADER", 2);
-           let expected = include_str!("../../tests/cpp/header/header.hpp");
+        // Create the header file
+        let header_file = data_model.get_header("HEADER", 2);
+        let source_file = data_model.get_source("footer", 2);
+        let expected_header = include_str!("../../tests/cpp/footer/footer.h");
+        let expected_source = include_str!("../../tests/cpp/footer/footer.cpp");
 
-           // Check that they are the same
-           assert_eq!(str_diff(&header_file, &expected), None);
-       }
+        // Check that they are the same
+        assert_eq!(str_diff(&header_file, &expected_header), None);
+        assert_eq!(str_diff(&source_file, &expected_source), None);
+    }
 
-       #[test]
-       fn footer() {
-           // Check c++ code
-           compile_and_test("footer");
+    #[test]
+    fn namespace() {
+        // Check c++ code
+        compile_and_test("namespace");
 
-           // Make sure it generates the correct code
-           let data_model = DataModel {
-               headers: Headers {
-                   source: "".to_string(),
-               },
-               footers: Footers {
-                   source: "// footer data".to_string(),
-               },
-               data_types: vec![],
-               namespace: vec![],
-           };
+        // Make sure it generates the correct code
+        let data_model = DataModel {
+            headers: Headers {
+                header: "".to_string(),
+                source: "".to_string(),
+            },
+            footers: Footers {
+                header: "".to_string(),
+                source: "".to_string(),
+            },
+            data_types: vec![],
+            namespace: vec!["test1".to_string(), "test2".to_string()],
+        };
 
-           // Create the header file
-           let header_file = data_model.get_source("HEADER", 2);
-           let expected = include_str!("../../tests/cpp/footer/footer.hpp");
+        // Create the header file
+        let header_file = data_model.get_header("HEADER", 2);
+        let source_file = data_model.get_source("namespace", 2);
+        let expected_header = include_str!("../../tests/cpp/namespace/namespace.h");
+        let expected_source = include_str!("../../tests/cpp/namespace/namespace.cpp");
 
-           // Check that they are the same
-           assert_eq!(str_diff(&header_file, &expected), None);
-       }
+        // Check that they are the same
+        assert_eq!(str_diff(&header_file, &expected_header), None);
+        assert_eq!(str_diff(&source_file, &expected_source), None);
+    }
 
-       #[test]
-       fn namespace() {
-           // Check c++ code
-           compile_and_test("namespace");
+    #[test]
+    fn outline() {
+        // Check c++ code
+        compile_and_test("outline");
 
-           // Make sure it generates the correct code
-           let data_model = DataModel {
-               headers: Headers {
-                   source: "".to_string(),
-               },
-               footers: Footers {
-                   source: "".to_string(),
-               },
-               data_types: vec![],
-               namespace: vec!["test1".to_string(), "test2".to_string()],
-           };
+        // Make sure it generates the correct code
+        let data_model = DataModel {
+            headers: Headers {
+                header: "// Header header".to_string(),
+                source: "// Header source".to_string(),
+            },
+            footers: Footers {
+                header: "// Footer header".to_string(),
+                source: "// Footer source".to_string(),
+            },
+            data_types: vec![
+                DataType {
+                    name: "DataType1".to_string(),
+                    description: Some("description1".to_string()),
+                    data: DataTypeData::Struct(Struct { fields: vec![] }),
+                },
+                DataType {
+                    name: "DataType2".to_string(),
+                    description: Some("description2".to_string()),
+                    data: DataTypeData::Struct(Struct { fields: vec![] }),
+                },
+            ],
+            namespace: vec!["test".to_string()],
+        };
 
-           // Create the header file
-           let header_file = data_model.get_source("HEADER", 2);
-           let expected = include_str!("../../tests/cpp/namespace/namespace.hpp");
+        // Create the header file
+        let header_file = data_model.get_header("HEADER", 2);
+        let source_file = data_model.get_source("outline", 2);
+        let expected_header = include_str!("../../tests/cpp/outline/outline.h");
+        let expected_source = include_str!("../../tests/cpp/outline/outline.cpp");
 
-           // Check that they are the same
-           assert_eq!(str_diff(&header_file, &expected), None);
-       }
-
-       #[test]
-       fn outline() {
-           // Check c++ code
-           compile_and_test("outline");
-
-           // Make sure it generates the correct code
-           let data_model = DataModel {
-               headers: Headers {
-                   source: "// Header".to_string(),
-               },
-               footers: Footers {
-                   source: "// Footer".to_string(),
-               },
-               data_types: vec![
-                   DataType {
-                       name: "DataType1".to_string(),
-                       description: Some("description1".to_string()),
-                       data: DataTypeData::Struct(Struct { fields: vec![] }),
-                   },
-                   DataType {
-                       name: "DataType2".to_string(),
-                       description: Some("description2".to_string()),
-                       data: DataTypeData::Struct(Struct { fields: vec![] }),
-                   },
-               ],
-               namespace: vec!["test".to_string()],
-           };
-
-           // Create the header file
-           let header_file = data_model.get_source("HEADER", 2);
-           let expected = include_str!("../../tests/cpp/outline/outline.hpp");
-
-           // Check that they are the same
-           assert_eq!(str_diff(&header_file, &expected), None);
-       }
-}*/
+        // Check that they are the same
+        assert_eq!(str_diff(&header_file, &expected_header), None);
+        assert_eq!(str_diff(&source_file, &expected_source), None);
+    }
+}

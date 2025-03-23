@@ -1,5 +1,5 @@
 #include <iostream>
-#include "namespace.hpp"
+#include "namespace.h"
 
 int main() {
   std::cout << "Done" << std::endl;

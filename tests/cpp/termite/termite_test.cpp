@@ -1,11 +1,12 @@
 #include "termite.hpp"
+
 #include <optional>
-#include <string>
 #include <sstream>
+#include <string>
 
 /**
  * @brief Test if the error message is set correctly
- * 
+ *
  * @return An error string on error
  */
 std::optional<std::string> test_error_message() {
@@ -21,7 +22,7 @@ std::optional<std::string> test_error_message() {
 
 /**
  * @brief Test if the default error location is set correctly
- * 
+ *
  * @return An error string on error
  */
 std::optional<std::string> test_error_location_default() {
@@ -37,7 +38,7 @@ std::optional<std::string> test_error_location_default() {
 
 /**
  * @brief Test if the error location is set correctly
- * 
+ *
  * @return An error string on error
  */
 std::optional<std::string> test_error_location() {
@@ -53,7 +54,7 @@ std::optional<std::string> test_error_location() {
 
 /**
  * @brief Test adding a field to an error
- * 
+ *
  * @return An error string on error
  */
 std::optional<std::string> test_error_add_field() {
@@ -79,7 +80,7 @@ std::optional<std::string> test_error_add_field() {
 
 /**
  * @brief Test adding a list to an error
- * 
+ *
  * @return An error string on error
  */
 std::optional<std::string> test_error_add_list() {
@@ -107,17 +108,15 @@ std::optional<std::string> test_error_add_list() {
 
 /**
  * @brief Test if results can print
- * 
+ *
  * @return An error string on error
  */
 std::optional<std::string> test_result_print() {
   auto result_ok = termite::Result<int>::ok(1);
   std::cout << "test_result_print ok: " << result_ok << std::endl;
-  std::cout << "test_result_print ok: " << result_ok.to_string() << std::endl;
 
   auto result_err = termite::Result<int>::err(termite::Error("Error"));
   std::cout << "test_result_print err: " << result_err << std::endl;
-  std::cout << "test_result_print err: " << result_err.to_string() << std::endl;
 
   return std::nullopt;
 }
@@ -127,11 +126,10 @@ std::optional<std::string> test_result_print() {
  *
  * @return An error string on error
  */
-std::optional<std::string> test_result_equality()
-{
+std::optional<std::string> test_result_equality() {
   auto result_ok = termite::Result<int>::ok(1);
   auto result_err = termite::Result<int>::err(termite::Error("Error"));
-  
+
   if (result_ok == termite::Result<int>::ok(0)) {
     return "1 != 0";
   }
@@ -159,8 +157,7 @@ std::optional<std::string> test_result_equality()
  *
  * @return An error string on error
  */
-std::optional<std::string> test_result_is_ok()
-{
+std::optional<std::string> test_result_is_ok() {
   auto result_ok = termite::Result<int>::ok(1);
   if (!result_ok.is_ok()) {
     return "Not Ok";
@@ -179,8 +176,7 @@ std::optional<std::string> test_result_is_ok()
  *
  * @return An error string on error
  */
-std::optional<std::string> test_result_get()
-{
+std::optional<std::string> test_result_get() {
   int correct_ok = 1;
   int result_ok = termite::Result<int>::ok(correct_ok).get_ok();
   if (correct_ok != result_ok) {
@@ -191,8 +187,7 @@ std::optional<std::string> test_result_get()
 
   termite::Error correct_err("Error");
   termite::Error result_err = termite::Result<int>::err(correct_err).get_err();
-  if (correct_err != result_err)
-  {
+  if (correct_err != result_err) {
     std::stringstream ss;
     ss << result_err;
     return ss.str();
@@ -206,13 +201,14 @@ std::optional<std::string> test_result_get()
  *
  * @return An error string on error
  */
-std::optional<std::string> test_node_value_parse_simple()
-{
+std::optional<std::string> test_node_value_parse_simple() {
   termite::Node node(termite::Node::Value("123"));
 
   auto value = node.to_value<int>();
   if (!value.is_ok()) {
-    return value.get_err().to_string();
+    std::stringstream ss;
+    ss << value.get_err();
+    return ss.str();
   }
 
   if (value.get_ok() != 123) {
@@ -227,13 +223,14 @@ std::optional<std::string> test_node_value_parse_simple()
  *
  * @return An error string on error
  */
-std::optional<std::string> test_node_value_parse_spaces()
-{
+std::optional<std::string> test_node_value_parse_spaces() {
   termite::Node node(termite::Node::Value(" 123 "));
 
   auto value = node.to_value<int>();
   if (!value.is_ok()) {
-    return value.get_err().to_string();
+    std::stringstream ss;
+    ss << value.get_err();
+    return ss.str();
   }
 
   if (value.get_ok() != 123) {
@@ -248,8 +245,7 @@ std::optional<std::string> test_node_value_parse_spaces()
  *
  * @return An error string on error
  */
-std::optional<std::string> test_node_value_parse_error_begin()
-{
+std::optional<std::string> test_node_value_parse_error_begin() {
   termite::Node node(termite::Node::Value(".123"));
 
   auto value = node.to_value<int>();
@@ -267,8 +263,7 @@ std::optional<std::string> test_node_value_parse_error_begin()
  *
  * @return An error string on error
  */
-std::optional<std::string> test_node_value_parse_error_end()
-{
+std::optional<std::string> test_node_value_parse_error_end() {
   termite::Node node(termite::Node::Value("123."));
 
   auto value = node.to_value<int>();
@@ -286,8 +281,7 @@ std::optional<std::string> test_node_value_parse_error_end()
  *
  * @return An error string on error
  */
-std::optional<std::string> test_node_value_parse_error_class()
-{
+std::optional<std::string> test_node_value_parse_error_class() {
   termite::Node node(termite::Node::Value("123"));
 
   auto value = node.to_value<termite::Empty>();
@@ -303,8 +297,7 @@ std::optional<std::string> test_node_value_parse_error_class()
  *
  * @return An error string on error
  */
-std::optional<std::string> test_node_copy()
-{
+std::optional<std::string> test_node_copy() {
   termite::Node node(termite::Node::Value("123"));
   termite::Node node2 = node;
 
@@ -317,46 +310,48 @@ std::optional<std::string> test_node_copy()
 
 int main() {
   auto names = {
-    "test_error_message",
-    "test_error_location_default",
-    "test_error_location",
-    "test_error_add_field",
-    "test_error_add_list",
-    "test_result_print",
-    "test_result_equality",
-    "test_result_is_ok",
-    "test_result_get",
-    "test_node_value_parse_simple",
-    "test_node_value_parse_spaces",
-    "test_node_value_parse_error_begin",
-    "test_node_value_parse_error_end",
-    "test_node_value_parse_error_class",
+      "test_error_message",
+      "test_error_location_default",
+      "test_error_location",
+      "test_error_add_field",
+      "test_error_add_list",
+      "test_result_print",
+      "test_result_equality",
+      "test_result_is_ok",
+      "test_result_get",
+      "test_node_value_parse_simple",
+      "test_node_value_parse_spaces",
+      "test_node_value_parse_error_begin",
+      "test_node_value_parse_error_end",
+      "test_node_value_parse_error_class",
   };
   auto functions = {
-    test_error_message,
-    test_error_location_default,
-    test_error_location,
-    test_error_add_field,
-    test_error_add_list,
-    test_result_print,
-    test_result_equality,
-    test_result_is_ok,
-    test_result_get,
-    test_node_value_parse_simple,
-    test_node_value_parse_spaces,
-    test_node_value_parse_error_begin,
-    test_node_value_parse_error_end,
-    test_node_value_parse_error_class,
+      test_error_message,
+      test_error_location_default,
+      test_error_location,
+      test_error_add_field,
+      test_error_add_list,
+      test_result_print,
+      test_result_equality,
+      test_result_is_ok,
+      test_result_get,
+      test_node_value_parse_simple,
+      test_node_value_parse_spaces,
+      test_node_value_parse_error_begin,
+      test_node_value_parse_error_end,
+      test_node_value_parse_error_class,
   };
 
   std::cout << "Running " << names.size() << " tests" << std::endl;
 
   int progress = 1;
   auto name_it = names.begin();
-  for (auto function_it = functions.begin(); function_it < functions.end(); ++function_it, ++name_it, ++progress) {
+  for (auto function_it = functions.begin(); function_it < functions.end();
+       ++function_it, ++name_it, ++progress) {
     if (auto error = (*function_it)()) {
-        std::cout << "Error occured at \"" << *name_it << "\": " << *error << std::endl;
-        return progress;
+      std::cout << "Error occured at \"" << *name_it << "\": " << *error
+                << std::endl;
+      return progress;
     }
   }
 

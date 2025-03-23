@@ -1,5 +1,5 @@
 #include <iostream>
-#include "footer.hpp"
+#include "footer.h"
 
 int main() {
   std::cout << "Done" << std::endl;
