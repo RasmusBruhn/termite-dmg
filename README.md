@@ -97,9 +97,11 @@ let yaml_model = formatdoc!("
         description: A point
         data_type: Point
   headers:
-    cpp: // My Header
+    cpp-header: // My .h Header
+    cpp-source: // My .cpp Header
   footers:
-    cpp: // My Header
+    cpp-header: // My .h Footer
+    cpp-source: // My .cpp Footer
   namespace:
   - my_namespace
 ");
@@ -109,7 +111,8 @@ let cpp_model = termite::cpp::DataModel::new(model).unwrap();
 
 let termite_hpp = termite::cpp::get_termite_dependency();
 let termite_yaml_hpp = termite::cpp::get_yaml_interface();
-let model_hpp = cpp_model.get_source("HEADER_GUARD", 2);
+let model_h = cpp_model.get_header("HEADER_GUARD", 2);
+let model_cpp = cpp_model.get_source("model", 2);
 ```
 
 YAML file for loading a Geometry::Nothing
@@ -130,6 +133,8 @@ YAML file for loading a Geometry::Point
 Point:
   x: 2.0
 ```
+
+For a larger example see tests/cpp/full_example
 
 # Changelog
 

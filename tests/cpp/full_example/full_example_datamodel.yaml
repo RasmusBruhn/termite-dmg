@@ -1,0 +1,30 @@
+data_types:
+- name: VersionString
+  description: A string that represents a version number
+  data: !ConstrainedType
+    data_type: String
+    constraints:
+    - custom::is_valid_version_string(x)
+- name: DataModel
+  description: The main data model
+  data: !Struct
+    fields:
+    - name: version
+      description: The version string for the data model
+      data_type: VersionString
+      default: Required
+headers:
+- cpp-header: |
+    // This is my .h file
+    #include <custom.h>
+    #include <string>
+
+    using String = std::string;
+- cpp-source: // This is my .cpp file
+footers:
+- cpp-header: // This is the end of my .h file
+- cpp-source: // This is the end of my .cpp file
+namespace:
+- test
+- name
+- space
