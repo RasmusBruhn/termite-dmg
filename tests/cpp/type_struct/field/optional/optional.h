@@ -28,7 +28,17 @@ public:
    */
   explicit DataType(int field1, std::optional<float> field2, ::termite::Node::Map extra_fields = ::termite::Node::Map()) : field1(std::move(field1)), field2(std::move(field2)), extra_fields(std::move(extra_fields)) {}
 
+  /**
+   * @brief Gets the default value for field1
+   * 
+   * @return The default value for field1
+   */
   [[nodiscard]] static int default_field1();
+  /**
+   * @brief Gets the default value for field2
+   * 
+   * @return The default value for field2
+   */
   [[nodiscard]] static std::optional<float> default_field2();
 
   /**

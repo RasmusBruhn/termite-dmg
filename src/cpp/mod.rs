@@ -746,12 +746,7 @@ pub(crate) mod test_utils {
                 .output()
                 .expect("failed to compile")
         };
-        println!(
-            "g++ {} {} -Isrc/cpp -Wall -std=c++17 -o {}.exe",
-            source_path.to_str().unwrap(),
-            test_path.to_str().unwrap(),
-            exe_path.to_str().unwrap()
-        );
+
         // Make sure it comiled without any warnings
         assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
         assert_eq!(compile_output.stdout.len(), 0);
@@ -1003,6 +998,27 @@ mod tests {
         let source_file = data_model.get_source("outline", 2);
         let expected_header = include_str!("../../tests/cpp/outline/outline.h");
         let expected_source = include_str!("../../tests/cpp/outline/outline.cpp");
+
+        // Check that they are the same
+        assert_eq!(str_diff(&header_file, &expected_header), None);
+        assert_eq!(str_diff(&source_file, &expected_source), None);
+    }
+
+    #[test]
+    fn full_example() {
+        // Check c++ code
+        compile_and_test("full_example");
+
+        // Make sure it generates the correct code
+        let yaml_model = include_str!("../../tests/cpp/full_example/full_example_datamodel.yaml");
+        let model = crate::DataModel::import_yaml(yaml_model).unwrap();
+        let data_model = DataModel::new(model).unwrap();
+
+        // Create the header file
+        let header_file = data_model.get_header("FULL_EXAMPLE", 2);
+        let source_file = data_model.get_source("full_example", 2);
+        let expected_header = include_str!("../../tests/cpp/full_example/full_example.h");
+        let expected_source = include_str!("../../tests/cpp/full_example/full_example.cpp");
 
         // Check that they are the same
         assert_eq!(str_diff(&header_file, &expected_header), None);

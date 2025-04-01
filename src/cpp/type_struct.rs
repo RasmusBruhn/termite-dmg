@@ -322,10 +322,15 @@ impl StructField {
             DefaultType::Required => format!(""),
             _ => formatdoc!(
                 "
-                {0:indent$}[[nodiscard]] static {typename} default_{snake_case}();\n",
+                {0:indent$}/**
+                {0:indent$} * @brief Gets the default value for {name}
+                {0:indent$} * 
+                {0:indent$} * @return The default value for {name}
+                {0:indent$} */
+                {0:indent$}[[nodiscard]] static {typename} default_{name}();\n",
                 "",
                 typename = self.get_typename(),
-                snake_case = ToSnakeCase::new(&mut self.name.chars()).collect::<String>(),
+                name = self.name,
             ),
         };
     }

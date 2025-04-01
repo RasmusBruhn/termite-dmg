@@ -330,8 +330,16 @@ impl EnumType {
                 {0:indent$}{0:indent$} * @brief The value
                 {0:indent$}{0:indent$} * 
                 {0:indent$}{0:indent$} */
-                {0:indent$}{0:indent$}{data_type} value;\n\n",
+                {0:indent$}{0:indent$}{data_type} value;
+
+                {0:indent$}{0:indent$}/**
+                {0:indent$}{0:indent$} * @brief Constructs a new {name} object
+                {0:indent$}{0:indent$} * 
+                {0:indent$}{0:indent$} * @param value The value of the enum
+                {0:indent$}{0:indent$} */
+                {0:indent$}{0:indent$}explicit Type{name}({data_type} value) : value(std::move(value)) {{}}\n\n",
                 "",
+                name = self.name,
             ),
             None => "".to_string(),
         };

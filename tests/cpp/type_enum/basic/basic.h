@@ -57,6 +57,13 @@ struct DataType {
     int value;
 
     /**
+     * @brief Constructs a new Int1 object
+     * 
+     * @param value The value of the enum
+     */
+    explicit TypeInt1(int value) : value(std::move(value)) {}
+
+    /**
      * @brief Checks if this object and the other object are identical
      *
      * @param x The other object to compare with
@@ -94,6 +101,13 @@ struct DataType {
     int value;
 
     /**
+     * @brief Constructs a new Int2 object
+     * 
+     * @param value The value of the enum
+     */
+    explicit TypeInt2(int value) : value(std::move(value)) {}
+
+    /**
      * @brief Checks if this object and the other object are identical
      *
      * @param x The other object to compare with
@@ -129,6 +143,13 @@ struct DataType {
      *
      */
     float value;
+
+    /**
+     * @brief Constructs a new Float object
+     * 
+     * @param value The value of the enum
+     */
+    explicit TypeFloat(float value) : value(std::move(value)) {}
 
     /**
      * @brief Checks if this object and the other object are identical

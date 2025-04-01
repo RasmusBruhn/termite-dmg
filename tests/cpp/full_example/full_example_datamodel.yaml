@@ -5,6 +5,99 @@ data_types:
     data_type: String
     constraints:
     - custom::is_valid_version_string(x)
+- name: SizeValue
+  description: A single size value
+  data: !ConstrainedType
+    data_type: int
+    constraints:
+    - x > 0
+- name: Size
+  description: The size of a geometry
+  data: !Struct
+    fields:
+    - name: w
+      description: The width of the geometry
+      data_type: SizeValue
+      default: Required
+    - name: h
+      description: The height of the geometry
+      data_type: SizeValue
+      default: Required
+- name: Point
+  description: A point in 2D space
+  data: !Struct
+    fields:
+    - name: x
+      description: The x coordinate of the point
+      data_type: int
+      default: Required
+    - name: y
+      description: The y coordinate of the point
+      data_type: int
+      default: Required
+- name: State
+  description: The state of a geometry
+  data: !Enum
+    types:
+    - name: Filled
+      description: The geometry is filled
+    - name: Edge
+      description: The geometry is inactive
+      data_type: SizeValue
+- name: DefaultValues
+  description: All global default values
+  data: !Struct
+    fields:
+    - name: state
+      description: The state of a geometry
+      data_type: State
+      default: !Default State::TypeEdge(SizeValue(1))
+    - name: size
+      description: The default size of the geometry
+      data_type: Size
+      default: Required
+- name: Rectangle
+  description: A rectangle geometry
+  data: !Struct
+    fields:
+    - name: center
+      description: The center point of the rectangle
+      data_type: Point
+      default: Required
+    - name: size
+      description: The size of the rectangle
+      data_type: Size
+      default: Optional
+    - name: state
+      description: The state of the circle
+      data_type: State
+      default: Optional
+- name: Circle
+  description: A circle geometry
+  data: !Struct
+    fields:
+    - name: center
+      description: The center point of the circle
+      data_type: Point
+      default: Required
+    - name: radius
+      description: The radius of the circle
+      data_type: SizeValue
+      default: Required
+    - name: state
+      description: The state of the circle
+      data_type: State
+      default: Optional
+- name: Geometry
+  description: A geometry that can be a rectangle or a circle
+  data: !Variant
+    data_types:
+    - Rectangle
+    - Circle
+- name: GeometryList
+  description: A list of geometries
+  data: !Array
+    data_type: Geometry
 - name: DataModel
   description: The main data model
   data: !Struct
@@ -12,18 +105,26 @@ data_types:
     - name: version
       description: The version string for the data model
       data_type: VersionString
+      default: !Default '"1.0.0"'
+    - name: defaults
+      description: The default values for the data model
+      data_type: DefaultValues
+      default: Required
+    - name: geometries
+      description: A list of geometries
+      data_type: GeometryList
       default: Required
 headers:
-- cpp-header: |
+  cpp-header: |
     // This is my .h file
-    #include <custom.h>
+    #include "custom.h"
     #include <string>
 
     using String = std::string;
-- cpp-source: // This is my .cpp file
+  cpp-source: // This is my .cpp file
 footers:
-- cpp-header: // This is the end of my .h file
-- cpp-source: // This is the end of my .cpp file
+  cpp-header: // This is the end of my .h file
+  cpp-source: // This is the end of my .cpp file
 namespace:
 - test
 - name

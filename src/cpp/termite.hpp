@@ -680,6 +680,21 @@ public:
   }
 
   /**
+   * @brief Constructs a node from a given value
+   *
+   * @tparam T The type of the value
+   * @param value The value to convert to a node
+   * @return The node
+   */
+  template <typename T>
+  [[nodiscard]] static Node from_value(const T &value) {
+    static_assert(has_insertion_operator_v<T>, "Type must have operator<<");
+    std::stringstream ss;
+    ss << value;
+    return Node(Value(ss.str()));
+  }
+
+  /**
    * @brief Checks if this node and another node are identical
    *
    * @param other The other node to compare with
