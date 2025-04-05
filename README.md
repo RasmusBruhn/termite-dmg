@@ -146,6 +146,8 @@ For a larger example see tests/cpp/full_example
   in several compilation blocks.
 - Removed default values from constructor for Structs and instead added static
   methods for constructors of all the fields with default values.
+- Added a from_value static template method for termite::Node to convert any
+  data model back into a node
 
 ### Minor changes
 
