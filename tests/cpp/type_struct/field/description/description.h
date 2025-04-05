@@ -78,6 +78,9 @@ namespace termite {
 template<>
 [[nodiscard]] Result<test::DataType> Node::Map::to_value<test::DataType>() const;
 
+template<>
+[[nodiscard]] Node Node::from_value<test::DataType>(const test::DataType &value);
+
 } // namespace termite
 
 

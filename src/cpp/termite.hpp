@@ -626,7 +626,7 @@ public:
      * @return The same output stream
      */
     friend std::ostream &operator<<(std::ostream &os, const List &value) {
-      return os << "{ list: [ ";
+      os << "{ list: [ ";
       os << "[ ";
       for (auto value_it = value.list_.cbegin(); value_it != value.list_.cend();
            ++value_it) {

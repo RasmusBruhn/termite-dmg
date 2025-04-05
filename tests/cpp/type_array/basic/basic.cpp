@@ -110,6 +110,16 @@ template<>
 }
 
 template<>
+[[nodiscard]] Node Node::from_value<test::DataType1>(const test::DataType1 &value) {
+  std::vector<Node> list;
+  list.reserve(value.values.size());
+  std::transform(value.values.cbegin(), value.values.cend(), std::back_inserter(list), [](const int &value) {
+    return Node::from_value(value);
+  });
+  return Node(Node::List(std::move(list)));
+}
+
+template<>
 [[nodiscard]] Result<test::DataType2> Node::List::to_value<test::DataType2>() const {
   std::vector<float> values;
   values.reserve(list_.size());
@@ -126,5 +136,16 @@ template<>
   return Result<test::DataType2>::ok(test::DataType2(std::move(values)));
 }
 
+template<>
+[[nodiscard]] Node Node::from_value<test::DataType2>(const test::DataType2 &value) {
+  std::vector<Node> list;
+  list.reserve(value.values.size());
+  std::transform(value.values.cbegin(), value.values.cend(), std::back_inserter(list), [](const float &value) {
+    return Node::from_value(value);
+  });
+  return Node(Node::List(std::move(list)));
+}
+
 } // namespace termite
+
 

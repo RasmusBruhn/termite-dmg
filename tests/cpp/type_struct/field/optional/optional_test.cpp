@@ -62,6 +62,24 @@ int main() {
     return 20;
   }
 
+  termite::Node converted_node1 = termite::Node::from_value(value1);
+  auto converted_value1 = converted_node1.to_value<test::DataType>();
+  if (!converted_value1.is_ok()) {
+    return 21;
+  }
+  if (converted_value1.get_ok() != value1) {
+    return 22;
+  }
+
+  termite::Node converted_node2 = termite::Node::from_value(value2);
+  auto converted_value2 = converted_node2.to_value<test::DataType>();
+  if (!converted_value2.is_ok()) {
+    return 23;
+  }
+  if (converted_value2.get_ok() != value2) {
+    return 24;
+  }
+
   std::cout << "Done" << std::endl;
 
   return 0;

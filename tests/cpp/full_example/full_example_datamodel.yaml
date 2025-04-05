@@ -92,8 +92,8 @@ data_types:
   description: A geometry that can be a rectangle or a circle
   data: !Variant
     data_types:
-    - Rectangle
     - Circle
+    - Rectangle
 - name: GeometryList
   description: A list of geometries
   data: !Array

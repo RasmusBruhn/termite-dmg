@@ -144,7 +144,10 @@ impl Variant {
         return formatdoc!(
             "
             template<>
-            [[nodiscard]] Result<{typename}> Node::to_value<{typename}>() const;",
+            [[nodiscard]] Result<{typename}> Node::to_value<{typename}>() const;
+
+            template<>
+            [[nodiscard]] Node Node::from_value<{typename}>(const {typename} &value);",
         );
     }
 
@@ -222,6 +225,13 @@ impl Variant {
             {0:indent$}error << \" ]\";
 
             {0:indent$}return Result<{typename}>::err(Error(error.str()));
+            }}
+
+            template<>
+            [[nodiscard]] Node Node::from_value<{typename}>(const {typename} &value) {{
+            {0:indent$}return std::visit([](const auto &x) {{
+            {0:indent$}{0:indent$}return Node::from_value(x);
+            {0:indent$}}}, value.value);
             }}",
             "",
         );
@@ -263,6 +273,8 @@ mod tests {
         let source_file = data_model.get_source("basic", 2);
         let expected_header = include_str!("../../tests/cpp/type_variant/basic/basic.h");
         let expected_source = include_str!("../../tests/cpp/type_variant/basic/basic.cpp");
+        //println!("header:\n{header_file}\n---\n");
+        //println!("source:\n{source_file}\n---\n");
 
         // Check that they are the same
         assert_eq!(str_diff(&header_file, &expected_header), None);

@@ -184,7 +184,10 @@ impl Struct {
         return formatdoc!(
             "
             template<>
-            [[nodiscard]] Result<{typename}> Node::Map::to_value<{typename}>() const;",
+            [[nodiscard]] Result<{typename}> Node::Map::to_value<{typename}>() const;
+
+            template<>
+            [[nodiscard]] Node Node::from_value<{typename}>(const {typename} &value);",
         );
     }
 
@@ -222,6 +225,13 @@ impl Struct {
             .collect::<Vec<String>>()
             .join("");
 
+        let parsing_export = self
+            .fields
+            .iter()
+            .map(|field| field.get_parsing_export(indent))
+            .collect::<Vec<String>>()
+            .join("");
+
         // Get the parameter list for when retrieving them to return at the end
         let parameter_retrievals = self
             .fields
@@ -236,6 +246,13 @@ impl Struct {
             {0:indent$}std::map<std::string, Node> map = map_;
             {parsing}
             {0:indent$}return Result<{typename}>::ok({typename}({parameter_retrievals}Map(std::move(map))));
+            }}
+ 
+            template<>
+            [[nodiscard]] Node Node::from_value<{typename}>(const {typename} &value) {{
+            {0:indent$}std::map<std::string, Node> map = value.extra_fields.get();
+            {parsing_export}
+            {0:indent$}return Node(Node::Map(std::move(map)));
             }}",
             "",
         );
@@ -533,6 +550,30 @@ impl StructField {
         };
     }
 
+    /// Gets the parsing export function for this field
+    ///
+    /// # Parameters
+    ///
+    /// indent: The indentation to use
+    fn get_parsing_export(&self, indent: usize) -> String {
+        return match self.default {
+            DefaultType::Optional => formatdoc!(
+                "
+                \n{0:indent$}if (value.{name}) {{
+                {0:indent$}{0:indent$}map.insert({{\"{name}\", Node::from_value(*value.{name})}});
+                {0:indent$}}}\n",
+                "",
+                name = self.name,
+            ),
+            _ => formatdoc!(
+                "
+                \n{0:indent$}map.insert({{\"{name}\", Node::from_value(value.{name})}});\n",
+                "",
+                name = self.name,
+            ),
+        };
+    }
+
     /// Gets the value of this field when parsing after it is read
     fn get_parameter_retrieval(&self) -> String {
         return format!("std::move(value_{name}), ", name = self.name);
@@ -579,6 +620,8 @@ mod tests {
         let source_file = data_model.get_source("basic", 2);
         let expected_header = include_str!("../../tests/cpp/type_struct/basic/basic.h");
         let expected_source = include_str!("../../tests/cpp/type_struct/basic/basic.cpp");
+        //println!("header:\n{header_file}\n---\n");
+        //println!("source:\n{source_file}\n---\n");
 
         // Check that they are the same
         assert_eq!(str_diff(&header_file, &expected_header), None);
@@ -619,7 +662,10 @@ mod tests {
         let header_file = data_model.get_header("HEADER", 2);
         let source_file = data_model.get_source("description", 2);
         let expected_header = include_str!("../../tests/cpp/type_struct/description/description.h");
-        let expected_source = include_str!("../../tests/cpp/type_struct/description/description.cpp");
+        let expected_source =
+            include_str!("../../tests/cpp/type_struct/description/description.cpp");
+        //println!("header:\n{header_file}\n---\n");
+        //println!("source:\n{source_file}\n---\n");
 
         // Check that they are the same
         assert_eq!(str_diff(&header_file, &expected_header), None);
@@ -672,6 +718,8 @@ mod tests {
             let source_file = data_model.get_source("basic", 2);
             let expected_header = include_str!("../../tests/cpp/type_struct/field/basic/basic.h");
             let expected_source = include_str!("../../tests/cpp/type_struct/field/basic/basic.cpp");
+            //println!("header:\n{header_file}\n---\n");
+            //println!("source:\n{source_file}\n---\n");
 
             // Check that they are the same
             assert_eq!(str_diff(&header_file, &expected_header), None);
@@ -719,8 +767,12 @@ mod tests {
             // Create the header file
             let header_file = data_model.get_header("HEADER", 2);
             let source_file = data_model.get_source("description", 2);
-            let expected_header = include_str!("../../tests/cpp/type_struct/field/description/description.h");
-            let expected_source = include_str!("../../tests/cpp/type_struct/field/description/description.cpp");
+            let expected_header =
+                include_str!("../../tests/cpp/type_struct/field/description/description.h");
+            let expected_source =
+                include_str!("../../tests/cpp/type_struct/field/description/description.cpp");
+            //println!("header:\n{header_file}\n---\n");
+            //println!("source:\n{source_file}\n---\n");
 
             // Check that they are the same
             assert_eq!(str_diff(&header_file, &expected_header), None);
@@ -768,8 +820,12 @@ mod tests {
             // Create the header file
             let header_file = data_model.get_header("HEADER", 2);
             let source_file = data_model.get_source("optional", 2);
-            let expected_header = include_str!("../../tests/cpp/type_struct/field/optional/optional.h");
-            let expected_source = include_str!("../../tests/cpp/type_struct/field/optional/optional.cpp");
+            let expected_header =
+                include_str!("../../tests/cpp/type_struct/field/optional/optional.h");
+            let expected_source =
+                include_str!("../../tests/cpp/type_struct/field/optional/optional.cpp");
+            //println!("header:\n{header_file}\n---\n");
+            //println!("source:\n{source_file}\n---\n");
 
             // Check that they are the same
             assert_eq!(str_diff(&header_file, &expected_header), None);

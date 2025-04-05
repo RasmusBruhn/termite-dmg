@@ -208,7 +208,10 @@ impl ConstrainedType {
         return formatdoc!(
             "
             template<>
-            [[nodiscard]] Result<{typename}> Node::to_value<{typename}>() const;",
+            [[nodiscard]] Result<{typename}> Node::to_value<{typename}>() const;
+
+            template<>
+            [[nodiscard]] Node Node::from_value<{typename}>(const {typename} &value);",
         );
     }
 
@@ -258,6 +261,11 @@ impl ConstrainedType {
             {0:indent$}}}
 
             {0:indent$}return {typename}::from_value(value.get_ok());
+            }}
+
+            template<>
+            [[nodiscard]] Node Node::from_value<{typename}>(const {typename} &value) {{
+            {0:indent$}return Node::from_value(value.get());
             }}",
             "",
         );
@@ -310,6 +318,8 @@ mod tests {
         let source_file = data_model.get_source("basic", 2);
         let expected_header = include_str!("../../tests/cpp/type_constrained/basic/basic.h");
         let expected_source = include_str!("../../tests/cpp/type_constrained/basic/basic.cpp");
+        //println!("header:\n{header_file}\n---\n");
+        //println!("source:\n{source_file}\n---\n");
 
         // Check that they are the same
         assert_eq!(str_diff(&header_file, &expected_header), None);
@@ -357,6 +367,8 @@ mod tests {
         let source_file = data_model.get_source("constraints", 2);
         let expected_header = include_str!("../../tests/cpp/type_constrained/constraints/constraints.h");
         let expected_source = include_str!("../../tests/cpp/type_constrained/constraints/constraints.cpp");
+        //println!("header:\n{header_file}\n---\n");
+        //println!("source:\n{source_file}\n---\n");
 
         // Check that they are the same
         assert_eq!(str_diff(&header_file, &expected_header), None);

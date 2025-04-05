@@ -208,10 +208,10 @@ std::ostream &operator<<(std::ostream &os, const Geometry &x) {
   os << "{ value: ";
   switch (x.value.index()) {
   case 0:
-    os << "Rectangle " << std::get<Rectangle>(x.value);
+    os << "Circle " << std::get<Circle>(x.value);
     break;
   case 1:
-    os << "Circle " << std::get<Circle>(x.value);
+    os << "Rectangle " << std::get<Rectangle>(x.value);
     break;
   default:
     os << "Unknown(" << x.value.index() << ")";
@@ -272,6 +272,11 @@ template<>
 }
 
 template<>
+[[nodiscard]] Node Node::from_value<test::name::space::VersionString>(const test::name::space::VersionString &value) {
+  return Node::from_value(value.get());
+}
+
+template<>
 [[nodiscard]] Result<test::name::space::SizeValue> Node::to_value<test::name::space::SizeValue>() const {
   Result<int> value = to_value<int>();
   if (!value.is_ok()) {
@@ -279,6 +284,11 @@ template<>
   }
 
   return test::name::space::SizeValue::from_value(value.get_ok());
+}
+
+template<>
+[[nodiscard]] Node Node::from_value<test::name::space::SizeValue>(const test::name::space::SizeValue &value) {
+  return Node::from_value(value.get());
 }
 
 template<>
@@ -315,6 +325,17 @@ template<>
 }
 
 template<>
+[[nodiscard]] Node Node::from_value<test::name::space::Size>(const test::name::space::Size &value) {
+  std::map<std::string, Node> map = value.extra_fields.get();
+
+  map.insert({"w", Node::from_value(value.w)});
+
+  map.insert({"h", Node::from_value(value.h)});
+
+  return Node(Node::Map(std::move(map)));
+}
+
+template<>
 [[nodiscard]] Result<test::name::space::Point> Node::Map::to_value<test::name::space::Point>() const {
   std::map<std::string, Node> map = map_;
 
@@ -345,6 +366,17 @@ template<>
   map.erase(location_y);
 
   return Result<test::name::space::Point>::ok(test::name::space::Point(std::move(value_x), std::move(value_y), Map(std::move(map))));
+}
+
+template<>
+[[nodiscard]] Node Node::from_value<test::name::space::Point>(const test::name::space::Point &value) {
+  std::map<std::string, Node> map = value.extra_fields.get();
+
+  map.insert({"x", Node::from_value(value.x)});
+
+  map.insert({"y", Node::from_value(value.y)});
+
+  return Node(Node::Map(std::move(map)));
 }
 
 template<>
@@ -386,6 +418,23 @@ template<>
 }
 
 template<>
+[[nodiscard]] Node Node::from_value<test::name::space::State>(const test::name::space::State &value) {
+  std::map<std::string, Node> map;
+  switch (value.enum_type()) {
+  case test::name::space::State::Enum::kFilled:
+    return Node(Node::Value("Filled"));
+  case test::name::space::State::Enum::kEdge:
+    map.insert({
+      "Edge",
+      Node::from_value(std::get<test::name::space::State::TypeEdge>(value.value).value)
+    });
+    return Node(Node::Map(std::move(map)));
+  default:
+    return Node(Node::Value(""));
+  }
+}
+
+template<>
 [[nodiscard]] Result<test::name::space::DefaultValues> Node::Map::to_value<test::name::space::DefaultValues>() const {
   std::map<std::string, Node> map = map_;
 
@@ -416,6 +465,17 @@ template<>
   map.erase(location_size);
 
   return Result<test::name::space::DefaultValues>::ok(test::name::space::DefaultValues(std::move(value_state), std::move(value_size), Map(std::move(map))));
+}
+
+template<>
+[[nodiscard]] Node Node::from_value<test::name::space::DefaultValues>(const test::name::space::DefaultValues &value) {
+  std::map<std::string, Node> map = value.extra_fields.get();
+
+  map.insert({"state", Node::from_value(value.state)});
+
+  map.insert({"size", Node::from_value(value.size)});
+
+  return Node(Node::Map(std::move(map)));
 }
 
 template<>
@@ -465,6 +525,23 @@ template<>
 }
 
 template<>
+[[nodiscard]] Node Node::from_value<test::name::space::Rectangle>(const test::name::space::Rectangle &value) {
+  std::map<std::string, Node> map = value.extra_fields.get();
+
+  map.insert({"center", Node::from_value(value.center)});
+
+  if (value.size) {
+    map.insert({"size", Node::from_value(*value.size)});
+  }
+
+  if (value.state) {
+    map.insert({"state", Node::from_value(*value.state)});
+  }
+
+  return Node(Node::Map(std::move(map)));
+}
+
+template<>
 [[nodiscard]] Result<test::name::space::Circle> Node::Map::to_value<test::name::space::Circle>() const {
   std::map<std::string, Node> map = map_;
 
@@ -511,26 +588,48 @@ template<>
 }
 
 template<>
+[[nodiscard]] Node Node::from_value<test::name::space::Circle>(const test::name::space::Circle &value) {
+  std::map<std::string, Node> map = value.extra_fields.get();
+
+  map.insert({"center", Node::from_value(value.center)});
+
+  map.insert({"radius", Node::from_value(value.radius)});
+
+  if (value.state) {
+    map.insert({"state", Node::from_value(*value.state)});
+  }
+
+  return Node(Node::Map(std::move(map)));
+}
+
+template<>
 [[nodiscard]] Result<test::name::space::Geometry> Node::to_value<test::name::space::Geometry>() const {
   std::stringstream error;
   error << "Unable to parse any variant: [ ";
-
-  Result<test::name::space::Rectangle> result_rectangle = to_value<test::name::space::Rectangle>();
-  if (result_rectangle.is_ok()) {
-    return Result<test::name::space::Geometry>::ok(test::name::space::Geometry(result_rectangle.get_ok()));
-  }
-  error << "test::name::space::Rectangle { " << result_rectangle.get_err() << " }";
-  error << ", ";
 
   Result<test::name::space::Circle> result_circle = to_value<test::name::space::Circle>();
   if (result_circle.is_ok()) {
     return Result<test::name::space::Geometry>::ok(test::name::space::Geometry(result_circle.get_ok()));
   }
   error << "test::name::space::Circle { " << result_circle.get_err() << " }";
+  error << ", ";
+
+  Result<test::name::space::Rectangle> result_rectangle = to_value<test::name::space::Rectangle>();
+  if (result_rectangle.is_ok()) {
+    return Result<test::name::space::Geometry>::ok(test::name::space::Geometry(result_rectangle.get_ok()));
+  }
+  error << "test::name::space::Rectangle { " << result_rectangle.get_err() << " }";
 
   error << " ]";
 
   return Result<test::name::space::Geometry>::err(Error(error.str()));
+}
+
+template<>
+[[nodiscard]] Node Node::from_value<test::name::space::Geometry>(const test::name::space::Geometry &value) {
+  return std::visit([](const auto &x) {
+    return Node::from_value(x);
+  }, value.value);
 }
 
 template<>
@@ -548,6 +647,16 @@ template<>
   }
 
   return Result<test::name::space::GeometryList>::ok(test::name::space::GeometryList(std::move(values)));
+}
+
+template<>
+[[nodiscard]] Node Node::from_value<test::name::space::GeometryList>(const test::name::space::GeometryList &value) {
+  std::vector<Node> list;
+  list.reserve(value.values.size());
+  std::transform(value.values.cbegin(), value.values.cend(), std::back_inserter(list), [](const test::name::space::Geometry &value) {
+    return Node::from_value(value);
+  });
+  return Node(Node::List(std::move(list)));
 }
 
 template<>
@@ -594,6 +703,19 @@ template<>
   map.erase(location_geometries);
 
   return Result<test::name::space::DataModel>::ok(test::name::space::DataModel(std::move(value_version), std::move(value_defaults), std::move(value_geometries), Map(std::move(map))));
+}
+
+template<>
+[[nodiscard]] Node Node::from_value<test::name::space::DataModel>(const test::name::space::DataModel &value) {
+  std::map<std::string, Node> map = value.extra_fields.get();
+
+  map.insert({"version", Node::from_value(value.version)});
+
+  map.insert({"defaults", Node::from_value(value.defaults)});
+
+  map.insert({"geometries", Node::from_value(value.geometries)});
+
+  return Node(Node::Map(std::move(map)));
 }
 
 } // namespace termite

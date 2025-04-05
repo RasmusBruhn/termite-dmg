@@ -1007,7 +1007,77 @@ mod tests {
     #[test]
     fn full_example() {
         // Check c++ code
-        compile_and_test("full_example");
+        if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir("tests/cpp/full_example")
+                .arg("/C")
+                .arg("mkdir build")
+                .output()
+                .expect("failed to compile");
+        } else {
+            process::Command::new("sh")
+                .current_dir("tests/cpp/full_example")
+                .arg("-c")
+                .arg("mkdir build")
+                .output()
+                .expect("failed to compile");
+        };
+
+        let compile_output = if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir("tests/cpp/full_example/build")
+                .arg("/C")
+                .arg("cmake ..")
+                .output()
+                .expect("failed to compile")
+        } else {
+            process::Command::new("sh")
+                .current_dir("tests/cpp/full_example/build")
+                .arg("-c")
+                .arg("cmake ..")
+                .output()
+                .expect("failed to compile")
+        };
+
+        assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
+        assert_eq!(compile_output.stderr.len(), 0);
+
+        let compile_output2 = if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir("tests/cpp/full_example/build")
+                .arg("/C")
+                .arg("cmake --build .")
+                .output()
+                .expect("failed to compile")
+        } else {
+            process::Command::new("sh")
+                .current_dir("tests/cpp/full_example/build")
+                .arg("-c")
+                .arg("cmake --build .")
+                .output()
+                .expect("failed to compile")
+        };
+
+        assert_eq!(compile_output2.status.code().expect("Unable to compile"), 0);
+        assert_eq!(compile_output2.stderr.len(), 0);
+
+        let test_output = if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir("tests/cpp/full_example/build")
+                .arg("/C")
+                .arg(".\\Debug\\full_example.exe")
+                .output()
+                .expect("failed to test")
+        } else {
+            process::Command::new("sh")
+                .current_dir("tests/cpp/full_example/build")
+                .arg("-c")
+                .arg("./full_example")
+                .output()
+                .expect("failed to test")
+        };
+
+        assert_eq!(test_output.status.code().expect("Unable to run"), 0);
 
         // Make sure it generates the correct code
         let yaml_model = include_str!("../../tests/cpp/full_example/full_example_datamodel.yaml");
@@ -1019,6 +1089,8 @@ mod tests {
         let source_file = data_model.get_source("full_example", 2);
         let expected_header = include_str!("../../tests/cpp/full_example/full_example.h");
         let expected_source = include_str!("../../tests/cpp/full_example/full_example.cpp");
+        //std::fs::write("tests/cpp/full_example/full_example.h", &header_file).unwrap();
+        //std::fs::write("tests/cpp/full_example/full_example.cpp", &source_file).unwrap();
 
         // Check that they are the same
         assert_eq!(str_diff(&header_file, &expected_header), None);

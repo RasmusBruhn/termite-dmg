@@ -197,7 +197,13 @@ template<>
 [[nodiscard]] Result<test::DataType1> Node::to_value<test::DataType1>() const;
 
 template<>
+[[nodiscard]] Node Node::from_value<test::DataType1>(const test::DataType1 &value);
+
+template<>
 [[nodiscard]] Result<test::DataType2> Node::to_value<test::DataType2>() const;
+
+template<>
+[[nodiscard]] Node Node::from_value<test::DataType2>(const test::DataType2 &value);
 
 } // namespace termite
 

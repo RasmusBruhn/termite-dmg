@@ -189,7 +189,10 @@ impl Enum {
             [[nodiscard]] Result<{typename}> Node::Value::to_value<{typename}>() const;
             
             template<>
-            [[nodiscard]] Result<{typename}> Node::Map::to_value<{typename}>() const;",
+            [[nodiscard]] Result<{typename}> Node::Map::to_value<{typename}>() const;
+
+            template<>
+            [[nodiscard]] Node Node::from_value<{typename}>(const {typename} &value);",
         );
     }
 
@@ -235,6 +238,14 @@ impl Enum {
             .collect::<Vec<String>>()
             .join("\n");
 
+        // Get the export parser
+        let export_parsers = self
+            .types
+            .iter()
+            .map(|enum_type| enum_type.get_parser_export(&typename, indent))
+            .collect::<Vec<String>>()
+            .join("");
+
         return formatdoc!("
             template<>
             [[nodiscard]] Result<{typename}> Node::Value::to_value<{typename}>() const {{
@@ -258,6 +269,15 @@ impl Enum {
             {0:indent$}std::stringstream ss;
             {0:indent$}ss << \"Unknown enum type \\\"\" << map_.cbegin()->first << \"\\\"\";
             {0:indent$}return Result<{typename}>::err(Error(ss.str()));
+            }}
+
+            template<>
+            [[nodiscard]] Node Node::from_value<{typename}>(const {typename} &value) {{
+            {0:indent$}std::map<std::string, Node> map;
+            {0:indent$}switch (value.enum_type()) {{
+            {export_parsers}{0:indent$}default:
+            {0:indent$}{0:indent$}return Node(Node::Value(\"\"));
+            {0:indent$}}}
             }}",
             "",
         );
@@ -457,10 +477,6 @@ impl EnumType {
     ///
     /// typename: The typename of the main type
     ///
-    /// namespace: The namespace of the enum
-    ///
-    /// data_types: List of all the data types defined in the data model
-    ///
     /// indent: The indentation to use
     fn get_parser_value(&self, typename: &str, indent: usize) -> String {
         let internal = match &self.data_type {
@@ -533,6 +549,41 @@ impl EnumType {
             name = self.name,
         );
     }
+
+    /// Gets the parser for export the enum type to a node
+    ///
+    /// # Parameters
+    ///
+    /// typename: The typename of the main type
+    ///
+    /// indent: The indentation to use
+    fn get_parser_export(&self, typename: &str, indent: usize) -> String {
+        let internal = match &self.data_type {
+            Some(_) => formatdoc!("
+                {0:indent$}{0:indent$}map.insert({{
+                {0:indent$}{0:indent$}{0:indent$}\"{name}\",
+                {0:indent$}{0:indent$}{0:indent$}Node::from_value(std::get<{typename}::Type{name}>(value.value).value)
+                {0:indent$}{0:indent$}}});
+                {0:indent$}{0:indent$}return Node(Node::Map(std::move(map)));",
+                "",
+                name = self.name
+            ),
+            None => formatdoc!("
+                {0:indent$}{0:indent$}return Node(Node::Value(\"{name}\"));",
+                "",
+                name = self.name
+            ),
+        };
+
+        return formatdoc!(
+            "
+            {0:indent$}case {typename}::Enum::k{name}:
+            {internal}
+            ",
+            "",
+            name = self.name,
+        );
+    }
 }
 
 #[cfg(test)]
@@ -591,6 +642,8 @@ mod tests {
         let source_file = data_model.get_source("basic", 2);
         let expected_header = include_str!("../../tests/cpp/type_enum/basic/basic.h");
         let expected_source = include_str!("../../tests/cpp/type_enum/basic/basic.cpp");
+        //println!("header:\n{header_file}\n---\n");
+        //println!("source:\n{source_file}\n---\n");
 
         // Check that they are the same
         assert_eq!(str_diff(&header_file, &expected_header), None);

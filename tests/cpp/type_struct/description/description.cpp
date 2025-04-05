@@ -37,7 +37,7 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 }
 
 } // namespace
-    
+
 [[nodiscard]] bool DataType1::operator==(const DataType1 &x) const {
   return extra_fields == x.extra_fields;
 }
@@ -57,7 +57,7 @@ std::ostream &operator<<(std::ostream &os, const DataType2 &x) {
 } // namespace test
 
 namespace termite {
-      
+
 template<>
 [[nodiscard]] Result<test::DataType1> Node::Map::to_value<test::DataType1>() const {
   std::map<std::string, Node> map = map_;
@@ -66,10 +66,24 @@ template<>
 }
 
 template<>
+[[nodiscard]] Node Node::from_value<test::DataType1>(const test::DataType1 &value) {
+  std::map<std::string, Node> map = value.extra_fields.get();
+
+  return Node(Node::Map(std::move(map)));
+}
+
+template<>
 [[nodiscard]] Result<test::DataType2> Node::Map::to_value<test::DataType2>() const {
   std::map<std::string, Node> map = map_;
 
   return Result<test::DataType2>::ok(test::DataType2(Map(std::move(map))));
+}
+
+template<>
+[[nodiscard]] Node Node::from_value<test::DataType2>(const test::DataType2 &value) {
+  std::map<std::string, Node> map = value.extra_fields.get();
+
+  return Node(Node::Map(std::move(map)));
 }
 
 } // namespace termite

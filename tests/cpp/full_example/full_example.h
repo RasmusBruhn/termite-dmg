@@ -673,7 +673,7 @@ struct Geometry {
    * 
    * @param value The value of the variant
    */
-  explicit Geometry(std::variant<Rectangle, Circle> value) : value(std::move(value)) {}
+  explicit Geometry(std::variant<Circle, Rectangle> value) : value(std::move(value)) {}
 
   /**
    * @brief Checks if this object and the other object are identical
@@ -704,7 +704,7 @@ struct Geometry {
    * @brief The value of the variant
    * 
    */
-  std::variant<Rectangle, Circle> value;
+  std::variant<Circle, Rectangle> value;
 };
 
 /**
@@ -830,13 +830,25 @@ template<>
 [[nodiscard]] Result<test::name::space::VersionString> Node::to_value<test::name::space::VersionString>() const;
 
 template<>
+[[nodiscard]] Node Node::from_value<test::name::space::VersionString>(const test::name::space::VersionString &value);
+
+template<>
 [[nodiscard]] Result<test::name::space::SizeValue> Node::to_value<test::name::space::SizeValue>() const;
+
+template<>
+[[nodiscard]] Node Node::from_value<test::name::space::SizeValue>(const test::name::space::SizeValue &value);
 
 template<>
 [[nodiscard]] Result<test::name::space::Size> Node::Map::to_value<test::name::space::Size>() const;
 
 template<>
+[[nodiscard]] Node Node::from_value<test::name::space::Size>(const test::name::space::Size &value);
+
+template<>
 [[nodiscard]] Result<test::name::space::Point> Node::Map::to_value<test::name::space::Point>() const;
+
+template<>
+[[nodiscard]] Node Node::from_value<test::name::space::Point>(const test::name::space::Point &value);
 
 template<>
 [[nodiscard]] Result<test::name::space::State> Node::Value::to_value<test::name::space::State>() const;
@@ -845,22 +857,43 @@ template<>
 [[nodiscard]] Result<test::name::space::State> Node::Map::to_value<test::name::space::State>() const;
 
 template<>
+[[nodiscard]] Node Node::from_value<test::name::space::State>(const test::name::space::State &value);
+
+template<>
 [[nodiscard]] Result<test::name::space::DefaultValues> Node::Map::to_value<test::name::space::DefaultValues>() const;
+
+template<>
+[[nodiscard]] Node Node::from_value<test::name::space::DefaultValues>(const test::name::space::DefaultValues &value);
 
 template<>
 [[nodiscard]] Result<test::name::space::Rectangle> Node::Map::to_value<test::name::space::Rectangle>() const;
 
 template<>
+[[nodiscard]] Node Node::from_value<test::name::space::Rectangle>(const test::name::space::Rectangle &value);
+
+template<>
 [[nodiscard]] Result<test::name::space::Circle> Node::Map::to_value<test::name::space::Circle>() const;
+
+template<>
+[[nodiscard]] Node Node::from_value<test::name::space::Circle>(const test::name::space::Circle &value);
 
 template<>
 [[nodiscard]] Result<test::name::space::Geometry> Node::to_value<test::name::space::Geometry>() const;
 
 template<>
+[[nodiscard]] Node Node::from_value<test::name::space::Geometry>(const test::name::space::Geometry &value);
+
+template<>
 [[nodiscard]] Result<test::name::space::GeometryList> Node::List::to_value<test::name::space::GeometryList>() const;
 
 template<>
+[[nodiscard]] Node Node::from_value<test::name::space::GeometryList>(const test::name::space::GeometryList &value);
+
+template<>
 [[nodiscard]] Result<test::name::space::DataModel> Node::Map::to_value<test::name::space::DataModel>() const;
+
+template<>
+[[nodiscard]] Node Node::from_value<test::name::space::DataModel>(const test::name::space::DataModel &value);
 
 } // namespace termite
 

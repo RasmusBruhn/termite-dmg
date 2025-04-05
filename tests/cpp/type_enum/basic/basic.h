@@ -58,7 +58,7 @@ struct DataType {
 
     /**
      * @brief Constructs a new Int1 object
-     * 
+     *
      * @param value The value of the enum
      */
     explicit TypeInt1(int value) : value(std::move(value)) {}
@@ -102,7 +102,7 @@ struct DataType {
 
     /**
      * @brief Constructs a new Int2 object
-     * 
+     *
      * @param value The value of the enum
      */
     explicit TypeInt2(int value) : value(std::move(value)) {}
@@ -146,7 +146,7 @@ struct DataType {
 
     /**
      * @brief Constructs a new Float object
-     * 
+     *
      * @param value The value of the enum
      */
     explicit TypeFloat(float value) : value(std::move(value)) {}
@@ -265,6 +265,9 @@ template<>
 
 template<>
 [[nodiscard]] Result<test::DataType> Node::Map::to_value<test::DataType>() const;
+
+template<>
+[[nodiscard]] Node Node::from_value<test::DataType>(const test::DataType &value);
 
 } // namespace termite
 

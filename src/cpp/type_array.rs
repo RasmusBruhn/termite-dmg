@@ -130,7 +130,10 @@ impl Array {
         return formatdoc!(
             "
             template<>
-            [[nodiscard]] Result<{typename}> Node::List::to_value<{typename}>() const;",
+            [[nodiscard]] Result<{typename}> Node::List::to_value<{typename}>() const;
+
+            template<>
+            [[nodiscard]] Node Node::from_value<{typename}>(const {typename} &value);",
         );
     }
 
@@ -187,6 +190,16 @@ impl Array {
             {0:indent$}}}
 
             {0:indent$}return Result<{typename}>::ok({typename}(std::move(values)));
+            }}
+            
+            template<>
+            [[nodiscard]] Node Node::from_value<{typename}>(const {typename} &value) {{
+            {0:indent$}std::vector<Node> list;
+            {0:indent$}list.reserve(value.values.size());
+            {0:indent$}std::transform(value.values.cbegin(), value.values.cend(), std::back_inserter(list), [](const {data_type} &value) {{
+            {0:indent$}{0:indent$}return Node::from_value(value);
+            {0:indent$}}});
+            {0:indent$}return Node(Node::List(std::move(list)));
             }}",
             "",
         );
@@ -237,6 +250,8 @@ mod tests {
         let source_file = data_model.get_source("basic", 2);
         let expected_header = include_str!("../../tests/cpp/type_array/basic/basic.h");
         let expected_source = include_str!("../../tests/cpp/type_array/basic/basic.cpp");
+        //println!("header:\n{header_file}\n---\n");
+        //println!("source:\n{source_file}\n---\n");
         
         // Check that they are the same
         assert_eq!(str_diff(&header_file, &expected_header), None);

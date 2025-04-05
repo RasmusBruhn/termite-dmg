@@ -85,6 +85,13 @@ template<>
   return Result<test::DataType>::err(Error(error.str()));
 }
 
+template<>
+[[nodiscard]] Node Node::from_value<test::DataType>(const test::DataType &value) {
+  return std::visit([](const auto &x) {
+    return Node::from_value(x);
+  }, value.value);
+}
+
 } // namespace termite
 
 

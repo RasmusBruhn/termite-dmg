@@ -30,13 +30,13 @@ public:
 
   /**
    * @brief Gets the default value for field1
-   * 
+   *
    * @return The default value for field1
    */
   [[nodiscard]] static int default_field1();
   /**
    * @brief Gets the default value for field2
-   * 
+   *
    * @return The default value for field2
    */
   [[nodiscard]] static std::optional<float> default_field2();
@@ -89,6 +89,9 @@ namespace termite {
 
 template<>
 [[nodiscard]] Result<test::DataType> Node::Map::to_value<test::DataType>() const;
+
+template<>
+[[nodiscard]] Node Node::from_value<test::DataType>(const test::DataType &value);
 
 } // namespace termite
 

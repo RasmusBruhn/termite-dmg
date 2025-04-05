@@ -37,7 +37,7 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 }
 
 } // namespace
-    
+
 [[nodiscard]] termite::Result<DataType1> DataType1::from_value(int value) {
   termite::Result<termite::Empty> validate_result = validate(value);
   if (!validate_result.is_ok()) {
@@ -127,6 +127,11 @@ template<>
 }
 
 template<>
+[[nodiscard]] Node Node::from_value<test::DataType1>(const test::DataType1 &value) {
+  return Node::from_value(value.get());
+}
+
+template<>
 [[nodiscard]] Result<test::DataType2> Node::to_value<test::DataType2>() const {
   Result<float> value = to_value<float>();
   if (!value.is_ok()) {
@@ -134,6 +139,11 @@ template<>
   }
 
   return test::DataType2::from_value(value.get_ok());
+}
+
+template<>
+[[nodiscard]] Node Node::from_value<test::DataType2>(const test::DataType2 &value) {
+  return Node::from_value(value.get());
 }
 
 } // namespace termite

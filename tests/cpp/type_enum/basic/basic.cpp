@@ -37,7 +37,7 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 }
 
 } // namespace
-    
+
 [[nodiscard]] bool DataType::TypeInt1::operator==(const TypeInt1 &x) const {
   return value == x.value;
 }
@@ -156,6 +156,35 @@ template<>
   std::stringstream ss;
   ss << "Unknown enum type \"" << map_.cbegin()->first << "\"";
   return Result<test::DataType>::err(Error(ss.str()));
+}
+
+template<>
+[[nodiscard]] Node Node::from_value<test::DataType>(const test::DataType &value) {
+  std::map<std::string, Node> map;
+  switch (value.enum_type()) {
+  case test::DataType::Enum::kInt1:
+    map.insert({
+      "Int1",
+      Node::from_value(std::get<test::DataType::TypeInt1>(value.value).value)
+    });
+    return Node(Node::Map(std::move(map)));
+  case test::DataType::Enum::kInt2:
+    map.insert({
+      "Int2",
+      Node::from_value(std::get<test::DataType::TypeInt2>(value.value).value)
+    });
+    return Node(Node::Map(std::move(map)));
+  case test::DataType::Enum::kFloat:
+    map.insert({
+      "Float",
+      Node::from_value(std::get<test::DataType::TypeFloat>(value.value).value)
+    });
+    return Node(Node::Map(std::move(map)));
+  case test::DataType::Enum::kEmpty:
+    return Node(Node::Value("Empty"));
+  default:
+    return Node(Node::Value(""));
+  }
 }
 
 } // namespace termite
