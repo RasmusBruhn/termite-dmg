@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 # Add an executables
 add_executable(termite termite_test.cpp)
-add_executable(termite-yaml termite_yaml_test.cpp)
+add_executable(termite-yaml termite_yaml_test.cpp ../../../src/cpp/termite-yaml.cpp)
 
 # Add the hpp files
 target_include_directories(termite PRIVATE ../../../src/cpp)

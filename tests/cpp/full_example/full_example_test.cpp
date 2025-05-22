@@ -3,7 +3,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "termite-yaml.hpp"
+#include "termite-yaml.h"
 #include "termite.hpp"
 
 using namespace test::name::space;

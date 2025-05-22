@@ -1,7 +1,7 @@
 #include <optional>
 #include <sstream>
 #include <string>
-#include <termite-yaml.hpp>
+#include <termite-yaml.h>
 
 /**
  * @brief Test if it can convert a scalar

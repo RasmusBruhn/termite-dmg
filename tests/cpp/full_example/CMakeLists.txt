@@ -8,7 +8,7 @@ project (full_example)
 set(CMAKE_CXX_STANDARD 17)
 
 # Add an executables
-add_executable(full_example full_example_test.cpp full_example.cpp)
+add_executable(full_example full_example_test.cpp full_example.cpp ../../../src/cpp/termite-yaml.cpp)
 
 # Add the hpp files
 target_include_directories(full_example PRIVATE ../../../src/cpp)

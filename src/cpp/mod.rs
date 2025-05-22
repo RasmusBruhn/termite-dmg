@@ -87,8 +87,11 @@ pub fn get_termite_dependency() -> &'static str {
 }
 
 /// Obtains the yaml-cpp interface header for reading and writing yaml files
-pub fn get_yaml_interface() -> &'static str {
-    return include_str!("termite-yaml.hpp");
+pub fn get_yaml_interface() -> (&'static str, &'static str) {
+    return (
+        include_str!("termite-yaml.h"),
+        include_str!("termite-yaml.cpp"),
+    );
 }
 
 /// An entire data model

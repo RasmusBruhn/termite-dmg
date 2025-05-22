@@ -2,26 +2,15 @@
  * @file termite_yaml.hpp
  * @brief The c++ Termite Data Model Generator yaml-cpp interface allowing for
  * converting between a YAML::Node and a termite::Node
- * @version 0.2
- * @date 2025-03-25
+ * @version 0.2.1
+ * @date 2025-05-22
  *
  */
 
-#ifndef TERMITE_YAML_H_INCLUDED
-#define TERMITE_YAML_H_INCLUDED
-
-#include <yaml-cpp/yaml.h>
-
-#include "termite.hpp"
+#include "termite-yaml.h"
 
 namespace termite {
 
-/**
- * @brief Converts a YAML::Node to a termite::Node
- *
- * @param node The node to convert
- * @return The termite node or an error if the node is not compatible
- */
 Result<Node> from_YAML(const YAML::Node &node) {
   // Convert a map
   if (node.IsMap()) {
@@ -92,19 +81,13 @@ Result<Node> from_YAML(const YAML::Node &node) {
       Error("Unknown node type, must be either Scalar, Map or Sequence"));
 }
 
-/**
- * @brief Converts a termite::Node to a YAML::Node
- *
- * @param node The node to convert
- * @return The yaml node
- */
 YAML::Node to_YAML(const Node &node) {
   if (std::holds_alternative<Node::Value>(node.get())) {
     return YAML::Node(std::get<Node::Value>(node.get()).get());
   }
   if (std::holds_alternative<Node::Map>(node.get())) {
     YAML::Node map;
-    for (const std::pair<std::string, Node> &key_value :
+    for (const std::pair<const std::string, Node> &key_value :
          std::get<Node::Map>(node.get()).get()) {
       map[key_value.first] = to_YAML(key_value.second);
     }
@@ -120,6 +103,4 @@ YAML::Node to_YAML(const Node &node) {
   return YAML::Node();
 }
 
-}  // namespace termite
-
-#endif
+} // namespace termite

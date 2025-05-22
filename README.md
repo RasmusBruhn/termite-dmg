@@ -138,6 +138,14 @@ For a larger example see tests/cpp/full_example
 
 # Changelog
 
+## 0.2.1
+
+### Major changes
+
+### Minor changes
+
+- Split termite-yaml.hpp into a .h and a .cpp file to avoid compilation errors when using multiple compilation units
+
 ## 0.2.0
 
 ### Major changes
