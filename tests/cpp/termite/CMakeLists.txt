@@ -10,10 +10,13 @@ set(CMAKE_CXX_STANDARD 17)
 # Add an executables
 add_executable(termite termite_test.cpp)
 add_executable(termite-yaml termite_yaml_test.cpp ../../../src/cpp/termite-yaml.cpp)
+add_executable(termite-json termite_json_test.cpp ../../../src/cpp/termite-json.cpp)
 
 # Add the hpp files
 target_include_directories(termite PRIVATE ../../../src/cpp)
 target_include_directories(termite-yaml PRIVATE ../../../src/cpp)
+target_include_directories(termite-yaml PRIVATE ../../../src/cpp)
+target_include_directories(termite-json PRIVATE ../../../src/cpp)
 
 # Add yaml-cpp
 include(FetchContent)
@@ -31,4 +34,19 @@ if(NOT yaml-cpp_POPULATED)
   add_subdirectory(${yaml-cpp_SOURCE_DIR} ${yaml-cpp_BINARY_DIR})
 endif()
 
+# Add json
+FetchContent_Declare(
+  json
+  GIT_REPOSITORY https://github.com/nlohmann/json
+  GIT_TAG v3.12.0
+)
+FetchContent_GetProperties(json)
+
+if(NOT json_POPULATED)
+  message(STATUS "Fetching json...")
+  FetchContent_Populate(json)
+  add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR})
+endif()
+
 target_link_libraries(termite-yaml PUBLIC yaml-cpp::yaml-cpp)
+target_link_libraries(termite-json PUBLIC nlohmann_json::nlohmann_json)
