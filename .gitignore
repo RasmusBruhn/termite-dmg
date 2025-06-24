@@ -1,3 +1,4 @@
 /target
 tests/cpp/termite/build/*
 tests/cpp/full_example/build/*
+json_include

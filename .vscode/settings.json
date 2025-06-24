@@ -76,7 +76,16 @@
         "unordered_map": "cpp",
         "unordered_set": "cpp",
         "valarray": "cpp",
-        "xhash": "cpp"
+        "xhash": "cpp",
+        "csignal": "cpp",
+        "cstdarg": "cpp",
+        "filesystem": "cpp",
+        "mutex": "cpp",
+        "numeric": "cpp",
+        "random": "cpp",
+        "regex": "cpp",
+        "stop_token": "cpp",
+        "thread": "cpp"
     },
     "editor.tabSize": 4,
     "cmake.configureOnOpen": false,

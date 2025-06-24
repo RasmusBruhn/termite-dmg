@@ -86,11 +86,19 @@ pub fn get_termite_dependency() -> &'static str {
     return include_str!("termite.hpp");
 }
 
-/// Obtains the yaml-cpp interface header for reading and writing yaml files
+/// Obtains the yaml-cpp interface header and source for reading and writing yaml files
 pub fn get_yaml_interface() -> (&'static str, &'static str) {
     return (
         include_str!("termite-yaml.h"),
         include_str!("termite-yaml.cpp"),
+    );
+}
+
+/// Obtains the nlohmann::json interface header and source for reading and writing json files
+pub fn get_json_interface() -> (&'static str, &'static str) {
+    return (
+        include_str!("termite-json.h"),
+        include_str!("termite-json.cpp"),
     );
 }
 
@@ -874,6 +882,24 @@ mod tests {
         };
 
         assert_eq!(test_output_yaml.status.code().expect("Unable to run"), 0);
+
+        let test_output_json = if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir("tests/cpp/termite/build")
+                .arg("/C")
+                .arg(".\\Debug\\termite-json.exe")
+                .output()
+                .expect("failed to test")
+        } else {
+            process::Command::new("sh")
+                .current_dir("tests/cpp/termite/build")
+                .arg("-c")
+                .arg("./termite-json")
+                .output()
+                .expect("failed to test")
+        };
+
+        assert_eq!(test_output_json.status.code().expect("Unable to run"), 0);
     }
 
     #[test]
