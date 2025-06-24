@@ -138,6 +138,14 @@ For a larger example see tests/cpp/full_example
 
 # Changelog
 
+## 0.3.0
+
+### Major changes
+
+- Added get_json_interface function to add json support for importing data model data. It works just like the get_yaml_interface function
+
+### Minor changes
+
 ## 0.2.1
 
 ### Major changes
