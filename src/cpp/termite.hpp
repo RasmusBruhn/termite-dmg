@@ -89,7 +89,7 @@ public:
   }
 };
 
-template <class T>
+template <typename T>
 class Reference {
 public:
   /**
@@ -260,7 +260,7 @@ private:
  *
  * @tparam T The type of the ok value
  */
-template <class T>
+template <typename T>
 class Result {
 public:
   /**

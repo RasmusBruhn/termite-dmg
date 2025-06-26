@@ -8,6 +8,8 @@
  */
 
 #include "termite-yaml.h"
+#include <fstream>
+#include <yaml-cpp/node/emit.h>
 
 namespace termite {
 
@@ -81,6 +83,26 @@ Result<Node> from_YAML(const YAML::Node &node) {
       Error("Unknown node type, must be either Scalar, Map or Sequence"));
 }
 
+Result<Node> from_YAML_string(const std::string &string) {
+  try {
+    return from_YAML(YAML::Load(string));
+  } catch (const std::exception &e) {
+    std::stringstream ss;
+    ss << "Unable to parse YAML string: " << e.what();
+    return Result<Node>::err(Error(ss.str()));
+  }
+}
+
+Result<Node> from_YAML_file(const std::filesystem::path &path) {
+  try {
+    return from_YAML(YAML::LoadFile(path.generic_string()));
+  } catch (const std::exception &e) {
+    std::stringstream ss;
+    ss << "Unable to load YAML file: " << e.what();
+    return Result<Node>::err(Error(ss.str()));
+  }
+}
+
 YAML::Node to_YAML(const Node &node) {
   if (std::holds_alternative<Node::Value>(node.get())) {
     return YAML::Node(std::get<Node::Value>(node.get()).get());
@@ -101,6 +123,29 @@ YAML::Node to_YAML(const Node &node) {
     return list;
   }
   return YAML::Node();
+}
+
+std::string to_YAML_string(const Node &node) {
+  return YAML::Dump(to_YAML(node));
+}
+
+Result<Empty> to_YAML_file(const Node &node,
+                           const std::filesystem::path &path) {
+  std::string yaml_string = to_YAML_string(node);
+  std::ofstream file(path);
+  if (!file.is_open()) {
+    std::stringstream ss;
+    ss << "Unable to open file: " << path.generic_string();
+    return Result<Empty>::err(Error(ss.str()));
+  }
+  file << yaml_string;
+  file.close();
+  if (file.fail()) {
+    std::stringstream ss;
+    ss << "Unable to write file: " << path.generic_string();
+    return Result<Empty>::err(Error(ss.str()));
+  }
+  return Result<Empty>::ok(Empty{});
 }
 
 } // namespace termite
