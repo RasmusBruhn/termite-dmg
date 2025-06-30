@@ -89,4 +89,7 @@
     },
     "editor.tabSize": 4,
     "cmake.configureOnOpen": false,
+    "C_Cpp.default.includePath": [
+        "${workspaceFolder}/json_include"
+    ],
 }

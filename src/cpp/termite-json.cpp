@@ -2,12 +2,13 @@
  * @file termite_json.hpp
  * @brief The c++ Termite Data Model Generator nlohmann::json interface allowing
  * for converting between a nlohmann::json and a termite::Node
- * @version 0.3.0
- * @date 2025-06-24
+ * @version 0.4.0
+ * @date 2025-06-30
  *
  */
 
 #include "termite-json.h"
+#include <fstream>
 
 namespace termite {
 
@@ -68,6 +69,34 @@ Result<Node> from_JSON(const nlohmann::json &node) {
       "Unknown node type, must be either Primitive, Structured or Array"));
 }
 
+Result<Node> from_JSON_string(const std::string &string) {
+  try {
+    return from_JSON(nlohmann::json::parse(string));
+  } catch (const std::exception &e) {
+    std::stringstream ss;
+    ss << "Unable to parse JSON string: " << e.what();
+    return Result<Node>::err(Error(ss.str()));
+  }
+}
+
+Result<Node> from_JSON_file(const std::filesystem::path &path) {
+  std::string json_string;
+  std::ifstream file(path);
+  if (!file.is_open()) {
+    std::stringstream ss;
+    ss << "Unable to open file: " << path.generic_string();
+    return Result<Node>::err(Error(ss.str()));
+  }
+  file >> json_string;
+  file.close();
+  if (file.fail()) {
+    std::stringstream ss;
+    ss << "Unable to read file: " << path.generic_string();
+    return Result<Node>::err(Error(ss.str()));
+  }
+  return from_JSON_string(json_string);
+}
+
 nlohmann::json to_JSON(const Node &node) {
   if (std::holds_alternative<Node::Value>(node.get())) {
     return nlohmann::json(std::get<Node::Value>(node.get()).get());
@@ -88,6 +117,29 @@ nlohmann::json to_JSON(const Node &node) {
     return list;
   }
   return nlohmann::json();
+}
+
+std::string to_JSON_string(const Node &node) {
+  return to_JSON(node).dump();
+}
+
+Result<Empty> to_JSON_file(const Node &node,
+                           const std::filesystem::path &path) {
+  std::string JSON_string = to_JSON_string(node);
+  std::ofstream file(path);
+  if (!file.is_open()) {
+    std::stringstream ss;
+    ss << "Unable to open file: " << path.generic_string();
+    return Result<Empty>::err(Error(ss.str()));
+  }
+  file << JSON_string;
+  file.close();
+  if (file.fail()) {
+    std::stringstream ss;
+    ss << "Unable to write file: " << path.generic_string();
+    return Result<Empty>::err(Error(ss.str()));
+  }
+  return Result<Empty>::ok(Empty{});
 }
 
 }  // namespace termite
