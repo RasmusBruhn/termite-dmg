@@ -108,7 +108,7 @@ YAML::Node to_YAML(const Node &node) {
     return YAML::Node(std::get<Node::Value>(node.get()).get());
   }
   if (std::holds_alternative<Node::Map>(node.get())) {
-    YAML::Node map;
+    YAML::Node map(YAML::NodeType::Map);
     for (const std::pair<const std::string, Node> &key_value :
          std::get<Node::Map>(node.get()).get()) {
       map[key_value.first] = to_YAML(key_value.second);
@@ -116,7 +116,7 @@ YAML::Node to_YAML(const Node &node) {
     return map;
   }
   if (std::holds_alternative<Node::List>(node.get())) {
-    YAML::Node list;
+    YAML::Node list(YAML::NodeType::Sequence);
     for (const Node &key_value : std::get<Node::List>(node.get()).get()) {
       list.push_back(to_YAML(key_value));
     }
