@@ -226,32 +226,179 @@ std::optional<std::string> test_to_map() {
   return std::nullopt;
 }
 
+/**
+ * @brief Test if it can convert from a YAML string
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_yaml_string() {
+  std::string yaml_string = "{ field1: Test1, field2: [Test2, Test3]}";
+  std::vector<termite::Node> list;
+  list.emplace_back(termite::Node::Value("Test2"));
+  list.emplace_back(termite::Node::Value("Test3"));
+  std::map<std::string, termite::Node> map;
+  map.insert(
+      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
+  map.insert(
+      std::make_pair("field2", termite::Node(termite::Node::List(std::move(list)))));
+  termite::Node correct(termite::Node::Map(std::move(map)));
+  auto result = termite::from_YAML_string(yaml_string);
+
+  if (!result.is_ok()) {
+    std::stringstream ss;
+    ss << result.get_err();
+    return ss.str();
+  }
+  auto result_node = result.get_ok();
+  if (result_node != correct) {
+    std::stringstream ss;
+    ss << "Result does not match expected: " << result_node;
+    return ss.str();
+  }
+
+  return std::nullopt;
+}
+
+/**
+ * @brief Test if it can convert from a YAML file
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_yaml_file() {
+  std::vector<termite::Node> list;
+  list.emplace_back(termite::Node::Value("Test2"));
+  list.emplace_back(termite::Node::Value("Test3"));
+  std::map<std::string, termite::Node> map;
+  map.insert(
+      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
+  map.insert(
+      std::make_pair("field2", termite::Node(termite::Node::List(std::move(list)))));
+  termite::Node correct(termite::Node::Map(std::move(map)));
+  auto result = termite::from_YAML_file("../files/yaml_test.yaml");
+
+  if (!result.is_ok()) {
+    std::stringstream ss;
+    ss << result.get_err();
+    return ss.str();
+  }
+  auto result_node = result.get_ok();
+  if (result_node != correct) {
+    std::stringstream ss;
+    ss << "Result does not match expected: " << result_node;
+    return ss.str();
+  }
+
+  return std::nullopt;
+}
+
+/**
+ * @brief Test if it can convert to a YAML string
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_to_yaml_string() {
+  std::vector<termite::Node> list;
+  list.emplace_back(termite::Node::Value("Test2"));
+  list.emplace_back(termite::Node::Value("Test3"));
+  std::map<std::string, termite::Node> map;
+  map.insert(
+      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
+  map.insert(
+      std::make_pair("field2", termite::Node(termite::Node::List(std::move(list)))));
+  termite::Node correct(termite::Node::Map(std::move(map)));
+  std::string yaml_string = termite::to_YAML_string(correct);
+  auto result = termite::from_YAML_string(yaml_string);
+
+  if (!result.is_ok()) {
+    std::stringstream ss;
+    ss << result.get_err();
+    return ss.str();
+  }
+  auto result_node = result.get_ok();
+  if (result_node != correct) {
+    std::stringstream ss;
+    ss << "Result does not match expected: " << result_node;
+    return ss.str();
+  }
+
+  return std::nullopt;
+}
+
+/**
+ * @brief Test if it can convert to a YAML file
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_to_yaml_file() {
+  std::vector<termite::Node> list;
+  list.emplace_back(termite::Node::Value("Test2"));
+  list.emplace_back(termite::Node::Value("Test3"));
+  std::map<std::string, termite::Node> map;
+  map.insert(
+      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
+  map.insert(
+      std::make_pair("field2", termite::Node(termite::Node::List(std::move(list)))));
+  termite::Node correct(termite::Node::Map(std::move(map)));
+  
+  auto write_result = termite::to_YAML_file(correct, "yaml_test.yaml");
+  if (!write_result.is_ok()) {
+    std::stringstream ss;
+    ss << write_result.get_err();
+    return ss.str();
+  }
+  
+  auto result = termite::from_YAML_file("yaml_test.yaml");
+
+  if (!result.is_ok()) {
+    std::stringstream ss;
+    ss << result.get_err();
+    return ss.str();
+  }
+  auto result_node = result.get_ok();
+  if (result_node != correct) {
+    std::stringstream ss;
+    ss << "Result does not match expected: " << result_node;
+    return ss.str();
+  }
+
+  return std::nullopt;
+}
+
 int main() {
   auto names = {
       "test_scalar",     "test_list",       "test_map",
       "test_type_error", "test_list_error", "test_map_error",
       "test_to_scalar",  "test_to_list",    "test_to_map",
+      "test_yaml_string", "test_yaml_file",
+      "test_to_yaml_string", "test_to_yaml_file",
   };
   auto functions = {
       test_scalar,     test_list,       test_map,
       test_type_error, test_list_error, test_map_error,
       test_to_scalar,  test_to_list,    test_to_map,
+      test_yaml_string, test_yaml_file,
+      test_to_yaml_string, test_to_yaml_file,
   };
 
   std::cout << "Running " << names.size() << " tests" << std::endl;
 
   int progress = 1;
+  int return_value = 0;
   auto name_it = names.begin();
   for (auto function_it = functions.begin(); function_it < functions.end();
        ++function_it, ++name_it, ++progress) {
     if (auto error = (*function_it)()) {
       std::cout << "Error occured at \"" << *name_it << "\": " << *error
                 << std::endl;
-      return progress;
+      if (return_value == 0) {
+        return_value = progress;
+      }
     }
   }
 
-  std::cout << "No errors" << std::endl;
+  if (return_value == 0) {
+    std::cout << "No errors" << std::endl;
+  }
 
-  return 0;
+  return return_value;
 }

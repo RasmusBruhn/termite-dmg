@@ -3,7 +3,7 @@
  * @brief The c++ Termite Data Model Generator json interface allowing for
  * converting between a nlohmann::json and a termite::Node
  * @version 0.4.0
- * @date 2025-06-30
+ * @date 2025-07-16
  *
  */
 
@@ -12,6 +12,7 @@
 
 #include "termite.hpp"
 #include <nlohmann/json.hpp>
+#include <filesystem>
 
 namespace termite {
 

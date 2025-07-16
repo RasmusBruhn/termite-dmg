@@ -3,7 +3,7 @@
  * @brief The c++ Termite Data Model Generator yaml-cpp interface allowing for
  * converting between a YAML::Node and a termite::Node
  * @version 0.4.0
- * @date 2025-06-30
+ * @date 2025-07-16
  *
  */
 

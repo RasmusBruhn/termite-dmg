@@ -3,11 +3,12 @@
  * @brief The c++ Termite Data Model Generator nlohmann::json interface allowing
  * for converting between a nlohmann::json and a termite::Node
  * @version 0.4.0
- * @date 2025-06-30
+ * @date 2025-07-16
  *
  */
 
 #include "termite-json.h"
+
 #include <fstream>
 
 namespace termite {
@@ -80,14 +81,16 @@ Result<Node> from_JSON_string(const std::string &string) {
 }
 
 Result<Node> from_JSON_file(const std::filesystem::path &path) {
-  std::string json_string;
   std::ifstream file(path);
   if (!file.is_open()) {
     std::stringstream ss;
     ss << "Unable to open file: " << path.generic_string();
     return Result<Node>::err(Error(ss.str()));
   }
-  file >> json_string;
+
+  std::string json_string((std::istreambuf_iterator<char>(file)),
+                          std::istreambuf_iterator<char>());
+
   file.close();
   if (file.fail()) {
     std::stringstream ss;
@@ -119,9 +122,7 @@ nlohmann::json to_JSON(const Node &node) {
   return nlohmann::json();
 }
 
-std::string to_JSON_string(const Node &node) {
-  return to_JSON(node).dump();
-}
+std::string to_JSON_string(const Node &node) { return to_JSON(node).dump(); }
 
 Result<Empty> to_JSON_file(const Node &node,
                            const std::filesystem::path &path) {
