@@ -138,11 +138,22 @@ For a larger example see tests/cpp/full_example
 
 # Changelog
 
+## 0.4.0
+
+### Major changes
+
+- Added helper functions for yaml and json to export to and import from json and yaml strings and files.
+- Added helper functions to directly import to or export from termite generated types from/to json or yaml nodes, strings or files.
+
+### Minor changes
+
+- Fixed bug in yaml and json when attempting to export an empty termite list or map to a json or yaml node. It would export them as null/empty node not as an empty list/map.
+
 ## 0.3.0
 
 ### Major changes
 
-- Added get_json_interface function to add json support for importing data model data. It works just like the get_yaml_interface function
+- Added get_json_interface function to add json support for importing data model data. It works just like the get_yaml_interface function.
 
 ### Minor changes
 
@@ -152,7 +163,7 @@ For a larger example see tests/cpp/full_example
 
 ### Minor changes
 
-- Split termite-yaml.hpp into a .h and a .cpp file to avoid compilation errors when using multiple compilation units
+- Split termite-yaml.hpp into a .h and a .cpp file to avoid compilation errors when using multiple compilation units.
 
 ## 0.2.0
 
@@ -163,7 +174,7 @@ For a larger example see tests/cpp/full_example
 - Removed default values from constructor for Structs and instead added static
   methods for constructors of all the fields with default values.
 - Added a from_value static template method for termite::Node to convert any
-  data model back into a node
+  data model back into a node.
 
 ### Minor changes
 
