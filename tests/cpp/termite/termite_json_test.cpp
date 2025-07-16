@@ -309,16 +309,70 @@ std::optional<std::string> test_to_json_file() {
   return std::nullopt;
 }
 
+/**
+ * @brief Test if it can convert to an empty list
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_to_list_empty() {
+  std::vector<termite::Node> list;
+  termite::Node node(termite::Node::List(std::move(list)));
+  nlohmann::json json_node = termite::to_JSON(node);
+  auto result = termite::from_JSON(json_node);
+
+  if (!result.is_ok()) {
+    std::stringstream ss;
+    ss << result.get_err();
+    return ss.str();
+  }
+  termite::Node result_node = result.get_ok();
+  if (result_node != node) {
+    std::stringstream ss;
+    ss << "Result does not match expected: " << result_node;
+    return ss.str();
+  }
+
+  return std::nullopt;
+}
+
+/**
+ * @brief Test if it can convert to an empty map
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_to_map_empty() {
+  std::map<std::string, termite::Node> list;
+  termite::Node node(termite::Node::Map(std::move(list)));
+  nlohmann::json json_node = termite::to_JSON(node);
+  auto result = termite::from_JSON(json_node);
+
+  if (!result.is_ok()) {
+    std::stringstream ss;
+    ss << result.get_err();
+    return ss.str();
+  }
+  termite::Node result_node = result.get_ok();
+  if (result_node != node) {
+    std::stringstream ss;
+    ss << "Result does not match expected: " << result_node;
+    return ss.str();
+  }
+
+  return std::nullopt;
+}
+
 int main() {
   auto names = {
       "test_scalar",    "test_list",    "test_map",
       "test_to_scalar", "test_to_list", "test_to_map",
+      "test_to_list_empty", "test_to_map_empty",
       "test_json_string", "test_json_file",
       "test_to_json_string", "test_to_json_file",
   };
   auto functions = {
       test_scalar,    test_list,    test_map,
       test_to_scalar, test_to_list, test_to_map,
+      test_to_list_empty, test_to_map_empty,
       test_json_string, test_json_file,
       test_to_json_string, test_to_json_file,
   };

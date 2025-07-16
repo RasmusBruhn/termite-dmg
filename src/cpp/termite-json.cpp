@@ -105,7 +105,7 @@ nlohmann::json to_JSON(const Node &node) {
     return nlohmann::json(std::get<Node::Value>(node.get()).get());
   }
   if (std::holds_alternative<Node::Map>(node.get())) {
-    nlohmann::json map;
+    nlohmann::json map(nlohmann::json::object());
     for (const std::pair<const std::string, Node> &key_value :
          std::get<Node::Map>(node.get()).get()) {
       map[key_value.first] = to_JSON(key_value.second);
@@ -113,7 +113,7 @@ nlohmann::json to_JSON(const Node &node) {
     return map;
   }
   if (std::holds_alternative<Node::List>(node.get())) {
-    nlohmann::json list;
+    nlohmann::json list(nlohmann::json::array());
     for (const Node &key_value : std::get<Node::List>(node.get()).get()) {
       list.push_back(to_JSON(key_value));
     }
