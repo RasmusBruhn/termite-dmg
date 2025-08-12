@@ -285,6 +285,17 @@ public:
    */
   [[nodiscard]] bool is_ok() const { return std::holds_alternative<T>(value_); }
   /**
+   * @brief Throws an exception if result is Err
+   * 
+   */
+  void unwrap() const {
+    if (!is_ok()) {
+      std::stringstream ss;
+      ss << "Result is error: \"" << get_err() << "\"";
+      throw std::exception(ss.str());
+    }
+  }
+  /**
    * @brief Retrieves the ok value, causes an exception if it is err. This
    * result is invalid after running this function
    *
