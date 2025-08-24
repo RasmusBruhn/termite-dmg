@@ -70,6 +70,9 @@ pub enum DataTypeData {
 pub struct Struct {
   /// A list of all the fields of the struct
   pub fields: Vec<StructField>,
+  /// The name of a different Struct this Struct builds onto, used in Schema
+  /// generation
+  pub inherit: Option<String>,
 }
 
 /// The data for a single field in a struct

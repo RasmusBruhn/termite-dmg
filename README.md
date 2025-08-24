@@ -72,8 +72,8 @@ JSON, this is Struct/Map/Object, Array/List/Sequence and Value/String. Beneath
 is a description of how to write a settings file for each termite type.
 
 Struct: A struct is written as a Map in YAML/JSON. The keys in the Map must be
-the struct.fields[i].name for the i'th field and the value of the key-value pair
-must be defined as the type struct.fields[i].data_type. All fields marked as
+the struct.fields\[i\].name for the i'th field and the value of the key-value pair
+must be defined as the type struct.fields\[i\].data_type. All fields marked as
 Required must be supplied in the Map while all other fields are not required to
 be present. Any key in the Map not in the struct.fields is collected in c++ into
 the field "extra_fields".
@@ -255,6 +255,15 @@ Point:
 ```
 
 # Changelog
+
+## 0.5.0
+
+### Major changes
+
+### Minor changes
+
+- Changed top-level doc comments to use the README file to make sure the
+  documentation is up to date
 
 ## 0.4.0
 
