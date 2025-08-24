@@ -35,6 +35,7 @@ mod tests {
           name: "Point".to_string(),
           description: Some("A point in 2D space".to_string()),
           data: DataTypeData::Struct(Struct {
+            inherit: None,
             fields: vec![
               StructField {
                 name: "x".to_string(),
@@ -61,6 +62,7 @@ mod tests {
           name: "Size".to_string(),
           description: Some("The size of a box".to_string()),
           data: DataTypeData::Struct(Struct {
+            inherit: None,
             fields: vec![
               StructField {
                 name: "w".to_string(),
