@@ -187,6 +187,7 @@ impl data_model::Struct {
             match custom_types.get(inherit) {
                 Some(value) => match &value.data {
                     data_model::DataTypeData::Struct(_) => {
+                        dependencies.insert(inherit.clone());
                         schema.insert("$ref", JsonValue::String(inherit.clone()));
                     }
                     _ => {
