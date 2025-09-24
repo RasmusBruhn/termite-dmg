@@ -1,8 +1,11 @@
 # Set the minimum version of CMake that can be used
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.10)
 
 # Set the project name
 project (termite)
+
+# Stop fetch content warning
+cmake_policy(SET CMP0169 OLD)
 
 # Set the c++ standard
 set(CMAKE_CXX_STANDARD 17)
