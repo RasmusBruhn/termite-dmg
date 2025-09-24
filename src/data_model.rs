@@ -12,6 +12,8 @@ pub struct DataModel {
   pub footers: HashMap<String, String>,
   /// The nested namespace to put the data model into
   pub namespace: Vec<String>,
+  /// A set of replacement macros to use for default values
+  pub macros: HashMap<String, SerializationModel>,
 }
 
 impl DataModel {
@@ -141,5 +143,17 @@ pub enum DefaultType {
   Optional,
   /// The field can be supplied, if not supplied it defaults to the default
   /// value
-  Default(String),
+  Default(SerializationModel),
+}
+
+/// A generic serialization model which can be used to serialize any data model
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum SerializationModel {
+  /// A generic key-value pair map where the key must be a string
+  Map(HashMap<String, SerializationModel>),
+  /// An array of other serialization models
+  Array(Vec<SerializationModel>),
+  /// A single value, must be a string
+  Value(String),
 }

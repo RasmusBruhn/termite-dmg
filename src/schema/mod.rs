@@ -96,6 +96,21 @@ impl data_model::DataType {
 
         return Ok(schema);
     }
+
+    /// Converts a serialization model value into a JSON value of the for of this type
+    ///
+    /// # Parameters
+    ///
+    /// value: The serialization model to convert
+    ///
+    /// custom_types: All the custom types in the schema
+    pub fn schema_value(
+        &self,
+        value: &data_model::SerializationModel,
+        custom_types: &HashMap<String, data_model::DataType>,
+    ) -> Result<JsonValue, Error> {
+        return self.data.schema_value(value, custom_types);
+    }
 }
 
 impl data_model::DataTypeData {
@@ -122,6 +137,29 @@ impl data_model::DataTypeData {
             data_model::DataTypeData::Enum(data) => data.export_schema(custom_types, dependencies),
             data_model::DataTypeData::ConstrainedType(data) => {
                 data.export_schema(custom_types, dependencies)
+            }
+        };
+    }
+
+    /// Converts a serialization model value into a JSON value of the for of this type
+    ///
+    /// # Parameters
+    ///
+    /// value: The serialization model to convert
+    ///
+    /// custom_types: All the custom types in the schema
+    pub fn schema_value(
+        &self,
+        value: &data_model::SerializationModel,
+        custom_types: &HashMap<String, data_model::DataType>,
+    ) -> Result<JsonValue, Error> {
+        return match self {
+            data_model::DataTypeData::Struct(data) => data.schema_value(value, custom_types),
+            data_model::DataTypeData::Array(data) => data.schema_value(value, custom_types),
+            data_model::DataTypeData::Variant(data) => data.schema_value(value, custom_types),
+            data_model::DataTypeData::Enum(data) => data.schema_value(value, custom_types),
+            data_model::DataTypeData::ConstrainedType(data) => {
+                data.schema_value(value, custom_types)
             }
         };
     }
@@ -164,7 +202,7 @@ impl data_model::Struct {
                 DefaultType::Optional => (),
                 DefaultType::Required => required.push(JsonValue::String(field.name.clone())),
                 DefaultType::Default(value) => {
-                    field_schema.insert("default", JsonValue::String(value.clone()))
+                    field_schema.insert("default", to_json(value, &field.data_type, custom_types)?);
                 }
             }
 
@@ -208,6 +246,58 @@ impl data_model::Struct {
 
         return Ok(schema);
     }
+
+    /// Converts a serialization model value into a JSON value of the for of this type
+    ///
+    /// # Parameters
+    ///
+    /// value: The serialization model to convert
+    ///
+    /// custom_types: All the custom types in the schema
+    pub fn schema_value(
+        &self,
+        value: &data_model::SerializationModel,
+        custom_types: &HashMap<String, data_model::DataType>,
+    ) -> Result<JsonValue, Error> {
+        return match value {
+            data_model::SerializationModel::Map(value) => {
+                // Convert each field
+                let mut json_object = jzon::object::Object::new();
+                for field in self.fields.iter() {
+                    if let Some(field_value) = value.get(&field.name) {
+                        match to_json(field_value, &field.data_type, custom_types) {
+                            Ok(value) => {
+                                json_object.insert(&field.name, value);
+                            }
+                            Err(error) => return Err(error.add_field(&field.name)),
+                        }
+                    } else if let DefaultType::Required = field.default {
+                        return Err(Error {
+                            location: "".to_string(),
+                            error: ErrorCore::StructConversionMissingField(
+                                value.clone(),
+                                field.name.clone(),
+                            ),
+                        });
+                    }
+                }
+
+                // Make sure all fields are used
+                if json_object.len() != value.len() {
+                    Err(Error {
+                        location: "".to_string(),
+                        error: ErrorCore::StructConversionExcessFields(value.clone()),
+                    })
+                } else {
+                    Ok(JsonValue::Object(json_object))
+                }
+            }
+            _ => Err(Error {
+                location: "".to_string(),
+                error: ErrorCore::SerializationModel(value.clone(), "struct".to_string()),
+            }),
+        };
+    }
 }
 
 impl data_model::Array {
@@ -240,6 +330,39 @@ impl data_model::Array {
         schema.insert("items", JsonValue::Object(element_schema));
 
         return Ok(schema);
+    }
+
+    /// Converts a serialization model value into a JSON value of the for of this type
+    ///
+    /// # Parameters
+    ///
+    /// value: The serialization model to convert
+    ///
+    /// custom_types: All the custom types in the schema
+    pub fn schema_value(
+        &self,
+        value: &data_model::SerializationModel,
+        custom_types: &HashMap<String, data_model::DataType>,
+    ) -> Result<JsonValue, Error> {
+        return match value {
+            data_model::SerializationModel::Array(values) => {
+                match values
+                    .iter()
+                    .enumerate()
+                    .map(|(i, value)| {
+                        to_json(value, &self.data_type, custom_types).map_err(|error| (i, error))
+                    })
+                    .collect::<Result<Vec<_>, _>>()
+                {
+                    Ok(value) => Ok(JsonValue::Array(value)),
+                    Err((i, error)) => Err(error.add_element(i)),
+                }
+            }
+            _ => Err(Error {
+                location: "".to_string(),
+                error: ErrorCore::SerializationModel(value.clone(), "array".to_string()),
+            }),
+        };
     }
 }
 
@@ -283,6 +406,32 @@ impl data_model::Variant {
         schema.insert("anyOf", JsonValue::Array(variant_types));
 
         return Ok(schema);
+    }
+
+    /// Converts a serialization model value into a JSON value of the for of this type
+    ///
+    /// # Parameters
+    ///
+    /// value: The serialization model to convert
+    ///
+    /// custom_types: All the custom types in the schema
+    pub fn schema_value(
+        &self,
+        value: &data_model::SerializationModel,
+        custom_types: &HashMap<String, data_model::DataType>,
+    ) -> Result<JsonValue, Error> {
+        let mut failures = Vec::new();
+        for data_type in self.data_types.iter() {
+            match to_json(value, data_type, custom_types) {
+                Ok(value) => return Ok(value),
+                Err(error) => failures.push((data_type.clone(), error)),
+            }
+        }
+
+        return Err(Error {
+            location: "".to_string(),
+            error: ErrorCore::VariantConversion(value.clone(), failures),
+        });
     }
 }
 
@@ -353,6 +502,72 @@ impl data_model::Enum {
 
         return Ok(schema);
     }
+
+    /// Converts a serialization model value into a JSON value of the for of this type
+    ///
+    /// # Parameters
+    ///
+    /// value: The serialization model to convert
+    ///
+    /// custom_types: All the custom types in the schema
+    pub fn schema_value(
+        &self,
+        value: &data_model::SerializationModel,
+        custom_types: &HashMap<String, data_model::DataType>,
+    ) -> Result<JsonValue, Error> {
+        return match value {
+            data_model::SerializationModel::Value(value) => {
+                if self
+                    .types
+                    .iter()
+                    .filter(|enum_type| enum_type.data_type.is_none())
+                    .any(|enum_type| &enum_type.name == value)
+                {
+                    return Ok(JsonValue::String(value.clone()));
+                } else {
+                    Err(Error {
+                        location: "".to_string(),
+                        error: ErrorCore::EnumConversion(value.clone()),
+                    })
+                }
+            }
+            data_model::SerializationModel::Map(value) => {
+                if value.len() != 1 {
+                    return Err(Error {
+                        location: "".to_string(),
+                        error: ErrorCore::TypedEnumLayout(value.clone()),
+                    });
+                }
+
+                let (key, val) = value.iter().next().unwrap();
+                let enum_type = self
+                    .types
+                    .iter()
+                    .filter(|enum_type| enum_type.data_type.is_some())
+                    .find(|enum_type| &enum_type.name == key);
+                if let Some(enum_type) = enum_type {
+                    let internal_type =
+                        match to_json(val, enum_type.data_type.as_ref().unwrap(), custom_types) {
+                            Ok(value) => value,
+                            Err(error) => return Err(error.add_field(key)),
+                        };
+
+                    let mut json_object = jzon::object::Object::new();
+                    json_object.insert(key, internal_type);
+                    Ok(JsonValue::Object(json_object))
+                } else {
+                    return Err(Error {
+                        location: "".to_string(),
+                        error: ErrorCore::TypedEnumConversion(value.clone()),
+                    });
+                }
+            }
+            data_model::SerializationModel::Array(_) => Err(Error {
+                location: "".to_string(),
+                error: ErrorCore::SerializationModel(value.clone(), "enum".to_string()),
+            }),
+        };
+    }
 }
 
 impl data_model::ConstrainedType {
@@ -387,6 +602,96 @@ impl data_model::ConstrainedType {
 
         return Ok(schema);
     }
+
+    /// Converts a serialization model value into a JSON value of the for of this type
+    ///
+    /// # Parameters
+    ///
+    /// value: The serialization model to convert
+    ///
+    /// custom_types: All the custom types in the schema
+    pub fn schema_value(
+        &self,
+        value: &data_model::SerializationModel,
+        custom_types: &HashMap<String, data_model::DataType>,
+    ) -> Result<JsonValue, Error> {
+        return to_json(value, &self.data_type, custom_types);
+    }
+}
+
+/// Converts a serialization model of a specific type to a JSON value
+///
+/// # Parameters
+///
+/// value: The serialization model to convert
+///
+/// data_type: The data type of the serialization model
+///
+/// custom_types: All the custom types in the schema
+fn to_json(
+    value: &data_model::SerializationModel,
+    data_type: &str,
+    custom_types: &HashMap<String, data_model::DataType>,
+) -> Result<JsonValue, Error> {
+    return match data_type {
+        "boolean" => match value {
+            data_model::SerializationModel::Value(value) => match value.as_str() {
+                "true" => Ok(JsonValue::Boolean(true)),
+                "false" => Ok(JsonValue::Boolean(false)),
+                _ => Err(Error {
+                    location: "".to_string(),
+                    error: ErrorCore::BoolConversion(value.clone()),
+                }),
+            },
+            _ => Err(Error {
+                location: "".to_string(),
+                error: ErrorCore::SerializationModel(value.clone(), "boolean".to_string()),
+            }),
+        },
+        "integer" => match value {
+            data_model::SerializationModel::Value(value) => match value.parse::<i64>() {
+                Ok(value) => Ok(JsonValue::Number(jzon::number::Number::from(value))),
+                Err(_) => Err(Error {
+                    location: "".to_string(),
+                    error: ErrorCore::IntegerConversion(value.clone()),
+                }),
+            },
+            _ => Err(Error {
+                location: "".to_string(),
+                error: ErrorCore::SerializationModel(value.clone(), "integer".to_string()),
+            }),
+        },
+        "number" => match value {
+            data_model::SerializationModel::Value(value) => match value.parse::<f64>() {
+                Ok(value) => Ok(JsonValue::Number(jzon::number::Number::from(value))),
+                Err(_) => Err(Error {
+                    location: "".to_string(),
+                    error: ErrorCore::FloatConversion(value.clone()),
+                }),
+            },
+            _ => Err(Error {
+                location: "".to_string(),
+                error: ErrorCore::SerializationModel(value.clone(), "number".to_string()),
+            }),
+        },
+        "string" => match value {
+            data_model::SerializationModel::Value(value) => Ok(JsonValue::String(value.clone())),
+            _ => Err(Error {
+                location: "".to_string(),
+                error: ErrorCore::SerializationModel(value.clone(), "string".to_string()),
+            }),
+        },
+        _ => {
+            if let Some(custom_type) = custom_types.get(data_type) {
+                custom_type.schema_value(value, custom_types)
+            } else {
+                Err(Error {
+                    location: "".to_string(),
+                    error: ErrorCore::UnknownType(data_type.to_string()),
+                })
+            }
+        }
+    };
 }
 
 /// Checks if a given type is a builtin schema type or a custom type, if it is a custom type then it adds it to the dependencies
@@ -438,11 +743,21 @@ impl Error {
     ///
     /// base: The base to set in the location
     fn add_field(self, base: &str) -> Error {
-        let location = if !self.location.is_empty() {
-            format!("{}.{}", base, self.location)
-        } else {
-            base.to_string()
+        let location = format!(".{}{}", base, self.location);
+
+        return Error {
+            location,
+            error: self.error,
         };
+    }
+
+    /// Sets the current location to be the element of a field of the given base
+    ///
+    /// # Parameters
+    ///
+    /// index: The index of the field
+    fn add_element(self, index: usize) -> Error {
+        let location = format!("[{}]{}", index, self.location);
 
         return Error {
             location,
@@ -469,4 +784,34 @@ pub enum ErrorCore {
     /// The type must be a struct
     #[error("The type id \"{:}\" must refer to a struct when inheriting", .0)]
     EnheritStruct(String),
+    /// Serialization model has an incompatible type
+    #[error("The serialization model {:?} is incompatible with the type: {:}", .0, .1)]
+    SerializationModel(data_model::SerializationModel, String),
+    /// Unable to convert to boolean
+    #[error("Unable to convert \"{:}\" to a boolean", .0)]
+    BoolConversion(String),
+    /// Unable to convert to integer
+    #[error("Unable to convert \"{:}\" to an integer", .0)]
+    IntegerConversion(String),
+    /// Unable to convert to float
+    #[error("Unable to convert \"{:}\" to a float", .0)]
+    FloatConversion(String),
+    /// Unable to convert to enum
+    #[error("Unable to convert \"{:?}\" to an enum", .0)]
+    EnumConversion(String),
+    /// Unable to convert to typed enum
+    #[error("Unable to convert \"{:?}\" to a typed enum", .0)]
+    TypedEnumConversion(HashMap<String, data_model::SerializationModel>),
+    /// The map had more or less than one element when converting to a typed enum
+    #[error("Unable to convert \"{:?}\" to a typed enum because it did not have a single field", .0)]
+    TypedEnumLayout(HashMap<String, data_model::SerializationModel>),
+    /// Unable to convert to variant
+    #[error("Unable to convert \"{:?}\" to a variant with the following errors: {:?}", .0, .1)]
+    VariantConversion(data_model::SerializationModel, Vec<(String, Error)>),
+    /// Unable to convert to struct due to missing field
+    #[error("Unable to convert \"{:?}\" to an struct because it is missing field {:}", .0, .1)]
+    StructConversionMissingField(HashMap<String, data_model::SerializationModel>, String),
+    /// Unable to convert to struct due to excess fields
+    #[error("Unable to convert \"{:?}\" to an struct because it has excess fields", .0)]
+    StructConversionExcessFields(HashMap<String, data_model::SerializationModel>),
 }

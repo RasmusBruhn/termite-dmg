@@ -4,7 +4,7 @@ mod data_model;
 pub mod cpp;
 pub mod schema;
 
-pub use data_model::{DataModel, DataType, DataTypeData, Struct, StructField, DefaultType, Array, Variant, Enum, EnumType, ConstrainedType};
+pub use data_model::{DataModel, DataType, DataTypeData, Struct, StructField, DefaultType, Array, Variant, Enum, EnumType, ConstrainedType, SerializationModel};
 
 #[cfg(test)]
 mod tests {
@@ -20,6 +20,7 @@ mod tests {
       namespace: vec!["my_namespace".to_string()],
       headers: HashMap::from([("cpp".to_string(), "// My Header".to_string())]),
       footers: HashMap::from([("cpp".to_string(), "// My Header".to_string())]),
+      macros: HashMap::new(),
       data_types: vec![
         DataType {
           name: "PositiveDouble".to_string(),
@@ -41,13 +42,13 @@ mod tests {
                 name: "x".to_string(),
                 description: None,
                 data_type: "double".to_string(),
-                default: DefaultType::Default("0.0".to_string()),
+                default: DefaultType::Default(SerializationModel::Value("0.0".to_string())),
               },
               StructField {
                 name: "y".to_string(),
                 description: None,
                 data_type: "double".to_string(),
-                default: DefaultType::Default("0.0".to_string()),
+                default: DefaultType::Default(SerializationModel::Value("0.0".to_string())),
               },
               StructField {
                 name: "id".to_string(),
