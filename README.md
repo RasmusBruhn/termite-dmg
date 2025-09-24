@@ -1,7 +1,9 @@
+# Termite Data Model Generator
+
 The Termite Data Model Generator is a crate for generating boiler plate code
 for data models.
 
-# Data Model
+## Data Model
 
 The crate consists of two parts, the first is the data model itself. This is
 preferably imported from a yaml or json file into a DataModel object.
@@ -22,7 +24,7 @@ the file refered to by the key. Currently the only supported keys are
 
 A data type must be given a "name", type specific "data", and optionally a
 "description". The type specific data defines how the type is implemented and may
-be types like structs, enums or arrays. 
+be types like structs, enums or arrays.
 
 The different types are:
 
@@ -63,7 +65,7 @@ type to be wrapped and "constraints" which is a list of boolean statements which
 can include the variable "x" where the potential new value is inserted to check
 if the constraint is true.
 
-# Data Format
+## Data Format
 
 No matter what language to generate code for and no matter if the user supplies
 a YAML or JSON file the user supplied settings file will always have the same
@@ -96,15 +98,14 @@ ConstrainedType: A constrained type also does not have its own syntax, instead
 it inherits the syntax of its wrapped type as it will just load the wrapped type
 and then check its constraints afterwards.
 
-# Code Generation
+## Code Generation
 
 The second part of the Termite crate is generating the code. For now it only
-supports c++ with the cpp module. From here there are functions to generate
-header files and (de)serialization.
+supports c++ with the cpp module and JSON schema with the schema module.
 
 To generate the c++ code for the data model, use the .get_header and .get_source
 methods on the model to generate the strings of the .h and the corresponding
-.cpp file.
+.cpp files.
 
 To generate the termite.hpp file use the get_termite_dependency function and
 save it as "termite.hpp" on the compiler path.
@@ -117,7 +118,7 @@ To enable JSON support use the get_json_interface function to get the strings of
 the JSON interface .h and .cpp files. These must be saved on the compiler path
 as "termite-json.h" and "termite-json.cpp" respectively.
 
-# Examples:
+## Examples
 
 ```rust
 use termite_dmg as termite;
@@ -195,11 +196,13 @@ let model_cpp = cpp_model.get_source("model", 2);
 ```
 
 YAML file for loading a my_namespace::PositiveDouble
+
 ```yaml
 1.2
 ```
 
 YAML file for loading a my_namespace::Point
+
 ```yaml
 x: 2.0
 y: -3.0
@@ -207,28 +210,33 @@ id: 5
 ```
 
 Another YAML file for loading a my_namespace::Point
+
 ```yaml
 y: -3.0
 ```
 
 YAML file for loading a my_namespace::Size
+
 ```yaml
 w: 5.2
 h: 1.3
 ```
 
 YAML file for loading a my_namespace::SizeVariant
+
 ```yaml
 1.2
 ```
 
 Another YAML file for loading a my_namespace::SizeVariant
+
 ```yaml
 w: 5.2
 h: 1.3
 ```
 
 YAML file for loading a my_namespace::SizeArray
+
 ```yaml
 - w: 5.2
   h: 1.3
@@ -236,11 +244,13 @@ YAML file for loading a my_namespace::SizeArray
 ```
 
 YAML file for loading a my_namespace::Geometry
+
 ```yaml
 Nothing
 ```
 
 Another YAML file for loading a my_namespace::Geometry
+
 ```yaml
 Sizes:
 - w: 5.2
@@ -249,32 +259,35 @@ Sizes:
 ```
 
 Another YAML file for loading a my_namespace::Geometry
+
 ```yaml
 Point:
   y: -3.0
 ```
 
-# Changelog
+## Changelog
 
-## 0.5.0
+### 0.5.0
 
-### Major changes
+#### Major changes
 
-### Minor changes
+- Added the schema module to generate a JSON schema for a data model
+
+#### Minor changes
 
 - Changed top-level doc comments to use the README file to make sure the
   documentation is up to date
 
-## 0.4.0
+### 0.4.0
 
-### Major changes
+#### Major changes
 
 - Added helper functions for yaml and json to export to and import from json and
   yaml strings and files.
 - Added helper functions to directly import to or export from termite generated
   types from/to json or yaml nodes, strings or files.
 
-### Minor changes
+#### Minor changes
 
 - Fixed bug in yaml and json when attempting to export an empty termite list or
   map to a json or yaml node. It would export them as null/empty node not as an
@@ -283,27 +296,27 @@ Point:
   the result is Err, should only be used when you know the result must be Ok.
 - Updated the README file to be much clearer.
 
-## 0.3.0
+### 0.3.0
 
-### Major changes
+#### Major changes
 
 - Added get_json_interface function to add json support for importing data model
   data. It works just like the get_yaml_interface function.
 
-### Minor changes
+#### Minor changes
 
-## 0.2.1
+### 0.2.1
 
-### Major changes
+#### Major changes
 
-### Minor changes
+#### Minor changes
 
 - Split termite-yaml.hpp into a .h and a .cpp file to avoid compilation errors
   when using multiple compilation units.
 
-## 0.2.0
+### 0.2.0
 
-### Major changes
+#### Major changes
 
 - Split the hpp file into a .h and .cpp file to fix linker issues when including
   in several compilation blocks.
@@ -312,15 +325,15 @@ Point:
 - Added a from_value static template method for termite::Node to convert any
   data model back into a node.
 
-### Minor changes
+#### Minor changes
 
 - Slightly changed the code style of the cpp code.
 - Fixed bug where default value for a field in a Struct of a type defined in
   this data model could not comile if namespaces were used.
 
-## 0.1.1
+### 0.1.1
 
-### Minor changes
+#### Minor changes
 
 - Fixed bug where the namespace was not added to data types in the parsing code
   when those data types were custom types stopping the c++ code from compiling.

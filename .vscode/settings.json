@@ -92,4 +92,8 @@
     "C_Cpp.default.includePath": [
         "${workspaceFolder}/json_include"
     ],
+    "markdownlint.config": {
+        "default": true,
+        "MD024": { "siblings_only": true },
+    },
 }
