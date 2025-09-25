@@ -45,10 +45,11 @@ impl data_model::DataModel {
             };
 
             // Construct the type schema
-            let type_schema = data_types
-                .get(&implement_type)
-                .unwrap()
-                .export_schema(&data_types, &mut dependencies)?;
+            let type_schema = data_types.get(&implement_type).unwrap().export_schema(
+                &data_types,
+                &mut dependencies,
+                &self.macros,
+            )?;
 
             // Add it to the definitions
             defs.insert(&implement_type, JsonValue::Object(type_schema));
@@ -78,13 +79,18 @@ impl data_model::DataType {
     /// custom_types: The map of all the custom types, used to check if a type is builtin or not
     ///
     /// dependencies: A set to add all dependencies of this data type to
+    ///
+    /// macros: A map of all macros to expand default values
     pub fn export_schema(
         &self,
         custom_types: &HashMap<String, data_model::DataType>,
         dependencies: &mut HashSet<String>,
+        macros: &HashMap<String, data_model::SerializationModel>,
     ) -> Result<jzon::object::Object, Error> {
         // Convert the data to a schema
-        let mut schema = self.data.export_schema(custom_types, dependencies)?;
+        let mut schema = self
+            .data
+            .export_schema(custom_types, dependencies, macros)?;
 
         // Add the id
         schema.insert("$id", JsonValue::String(self.name.clone()));
@@ -121,14 +127,17 @@ impl data_model::DataTypeData {
     /// custom_types: The map of all the custom types, used to check if a type is builtin or not
     ///
     /// dependencies: A set to add all dependencies of this data type data to
+    ///
+    /// macros: A map of all macros to expand default values
     pub fn export_schema(
         &self,
         custom_types: &HashMap<String, data_model::DataType>,
         dependencies: &mut HashSet<String>,
+        macros: &HashMap<String, data_model::SerializationModel>,
     ) -> Result<jzon::object::Object, Error> {
         return match self {
             data_model::DataTypeData::Struct(data) => {
-                data.export_schema(custom_types, dependencies)
+                data.export_schema(custom_types, dependencies, macros)
             }
             data_model::DataTypeData::Array(data) => data.export_schema(custom_types, dependencies),
             data_model::DataTypeData::Variant(data) => {
@@ -173,10 +182,13 @@ impl data_model::Struct {
     /// custom_types: The map of all the custom types, used to check if a type is builtin or not
     ///
     /// dependencies: A set to add all dependencies of this struct to
+    ///
+    /// macros: A map of all macros to expand default values
     pub fn export_schema(
         &self,
         custom_types: &HashMap<String, data_model::DataType>,
         dependencies: &mut HashSet<String>,
+        macros: &HashMap<String, data_model::SerializationModel>,
     ) -> Result<jzon::object::Object, Error> {
         // Setup the required list
         let mut required = vec![];
@@ -202,7 +214,14 @@ impl data_model::Struct {
                 DefaultType::Optional => (),
                 DefaultType::Required => required.push(JsonValue::String(field.name.clone())),
                 DefaultType::Default(value) => {
-                    field_schema.insert("default", to_json(value, &field.data_type, custom_types)?);
+                    field_schema.insert(
+                        "default",
+                        to_json(
+                            &data_model::expand_macros(value, macros, &mut HashSet::new())?,
+                            &field.data_type,
+                            custom_types,
+                        )?,
+                    );
                 }
             }
 
@@ -393,7 +412,7 @@ impl data_model::Variant {
 
                 return Ok(JsonValue::Object(schema));
             })
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Result<Vec<_>, Error>>()?;
 
         // Create the schema
         let mut schema = jzon::object::Object::new();
@@ -490,7 +509,7 @@ impl data_model::Enum {
 
                 return Ok(JsonValue::Object(schema));
             })
-            .collect::<Result<Vec<_>, _>>()?;
+            .collect::<Result<Vec<_>, Error>>()?;
 
         // Create the
         let mut schema = jzon::object::Object::new();
@@ -772,6 +791,15 @@ impl fmt::Display for Error {
     }
 }
 
+impl From<data_model::Error> for Error {
+    fn from(value: data_model::Error) -> Self {
+        return Error {
+            location: value.location.clone(),
+            error: ErrorCore::MacroError(value),
+        };
+    }
+}
+
 /// Errors for when converting generic data models into JSON schema data models
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum ErrorCore {
@@ -814,4 +842,7 @@ pub enum ErrorCore {
     /// Unable to convert to struct due to excess fields
     #[error("Unable to convert \"{:?}\" to an struct because it has excess fields", .0)]
     StructConversionExcessFields(HashMap<String, data_model::SerializationModel>),
+    /// Error expanding macros
+    #[error("An error occured when expanding macros: {:?}", .0)]
+    MacroError(data_model::Error),
 }
