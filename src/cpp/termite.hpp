@@ -89,8 +89,7 @@ public:
   }
 };
 
-template <typename T>
-class Reference {
+template <typename T> class Reference {
 public:
   /**
    * @brief Constructs a new reference
@@ -113,8 +112,8 @@ public:
    * @return true if they are identical, false if not
    */
   [[nodiscard]]
-  typename std::enable_if_t<has_equality_operator_v<T>, bool> operator==(
-      const Reference &other) const {
+  typename std::enable_if_t<has_equality_operator_v<T>, bool>
+  operator==(const Reference &other) const {
     return ref_ == other.ref_;
   }
   /**
@@ -260,8 +259,7 @@ private:
  *
  * @tparam T The type of the ok value
  */
-template <typename T>
-class Result {
+template <typename T> class Result {
 public:
   /**
    * @brief Constructs an ok result
@@ -286,7 +284,7 @@ public:
   [[nodiscard]] bool is_ok() const { return std::holds_alternative<T>(value_); }
   /**
    * @brief Throws an exception if result is Err
-   * 
+   *
    */
   void unwrap() const {
     if (!is_ok()) {
@@ -318,8 +316,8 @@ public:
    * @return true if they are identical, false otherwise
    */
   [[nodiscard]]
-  typename std::enable_if_t<has_equality_operator_v<T>, bool> operator==(
-      const Result &result) const {
+  typename std::enable_if_t<has_equality_operator_v<T>, bool>
+  operator==(const Result &result) const {
     return value_ == result.value_;
   }
   /**
@@ -329,8 +327,8 @@ public:
    * @param result The other result to compare with
    * @return true if they are not identical, false otherwise
    */
-  [[nodiscard]] std::enable_if_t<has_equality_operator_v<T>, bool> operator!=(
-      const Result &result) const {
+  [[nodiscard]] std::enable_if_t<has_equality_operator_v<T>, bool>
+  operator!=(const Result &result) const {
     return !(value_ == result.value_);
   }
 
@@ -415,8 +413,8 @@ public:
      */
     template <typename T>
     [[nodiscard]]
-    typename std::enable_if_t<!has_parsing_operator_v<T>, Result<T>> to_value()
-        const {
+    typename std::enable_if_t<!has_parsing_operator_v<T>, Result<T>>
+    to_value() const {
       return Result<T>::err(Error("Parsing not implemented for given type"));
     }
 
@@ -428,26 +426,37 @@ public:
      */
     template <typename T>
     [[nodiscard]]
-    typename std::enable_if_t<has_parsing_operator_v<T>, Result<T>> to_value()
-        const {
-      // Create the value
-      std::istringstream ss(value_);
-      T output;
-      ss >> output;
-
-      // Make sure it did not fail
-      if (ss.fail()) {
+    typename std::enable_if_t<has_parsing_operator_v<T>, Result<T>>
+    to_value() const {
+      // Take care of booleans seperately
+      if constexpr (std::is_same_v<T, bool>) {
+        if (value_ == "true" || value_ == "True" || value_ == "1") {
+          return Result<T>::ok(true);
+        }
+        if (value_ == "false" || value_ == "False" || value_ == "0") {
+          return Result<T>::ok(false);
+        }
         return Result<T>::err(Error("Unable to parse"));
-      }
-      // Make sure everything was used ie. 123et is not the integer 123
-      if (!ss.eof()) {
-        std::ostringstream error;
-        error << "Value has unused characters: \"" << ss.str() << "\"";
-        return Result<T>::err(Error(error.str()));
-      }
+      } else {
+        // Create the value
+        std::istringstream ss(value_);
+        T output;
+        ss >> output;
 
-      // Return the value
-      return Result<T>::ok(std::move(output));
+        // Make sure it did not fail
+        if (ss.fail()) {
+          return Result<T>::err(Error("Unable to parse"));
+        }
+        // Make sure everything was used ie. 123et is not the integer 123
+        if (!ss.eof()) {
+          std::ostringstream error;
+          error << "Value has unused characters: \"" << ss.str() << "\"";
+          return Result<T>::err(Error(error.str()));
+        }
+
+        // Return the value
+        return Result<T>::ok(std::move(output));
+      }
     }
 
     /**
@@ -522,8 +531,7 @@ public:
      * @tparam T The type to cast to
      * @return A result of the given type
      */
-    template <typename T>
-    [[nodiscard]] Result<T> to_value() const {
+    template <typename T> [[nodiscard]] Result<T> to_value() const {
       return Result<T>::err(Error("Parsing not implemented for given type"));
     }
 
@@ -605,8 +613,7 @@ public:
      * @tparam T The type to cast to
      * @return A result of the given type
      */
-    template <typename T>
-    [[nodiscard]] Result<T> to_value() const {
+    template <typename T> [[nodiscard]] Result<T> to_value() const {
       return Result<T>::err(Error("Parsing not implemented for given type"));
     }
 
@@ -681,8 +688,7 @@ public:
    * @tparam T The type to cast to
    * @return A result of the given type
    */
-  template <typename T>
-  [[nodiscard]] Result<T> to_value() const {
+  template <typename T> [[nodiscard]] Result<T> to_value() const {
     return std::visit(
         [](const auto &value) -> Result<T> {
           return value.template to_value<T>();
@@ -697,8 +703,7 @@ public:
    * @param value The value to convert to a node
    * @return The node
    */
-  template <typename T>
-  [[nodiscard]] static Node from_value(const T &value) {
+  template <typename T> [[nodiscard]] static Node from_value(const T &value) {
     static_assert(has_insertion_operator_v<T>, "Type must have operator<<");
     std::stringstream ss;
     ss << value;
@@ -749,6 +754,6 @@ private:
   std::variant<Value, Map, List> value_;
 };
 
-}  // namespace termite
+} // namespace termite
 
 #endif
