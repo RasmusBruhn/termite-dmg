@@ -165,7 +165,11 @@ std::ostream &operator<<(std::ostream &os, const State &x) {
 }
 
 [[nodiscard]] State DefaultValues::default_state() {
-  return State(State::TypeEdge(SizeValue(1)));
+  auto node = termite::Node(termite::Node::Map({
+    {"Edge", termite::Node(termite::Node::Value("1"))},
+  }));
+
+  return node.to_value<State>().get_ok();
 }
 
 std::ostream &operator<<(std::ostream &os, const DefaultValues &x) {
@@ -250,7 +254,9 @@ std::ostream &operator<<(std::ostream &os, const GeometryList &x) {
 }
 
 [[nodiscard]] VersionString DataModel::default_version() {
-  return VersionString("1.0.0");
+  auto node = termite::Node(termite::Node::Value("1.0.0"));
+
+  return node.to_value<VersionString>().get_ok();
 }
 
 std::ostream &operator<<(std::ostream &os, const DataModel &x) {
@@ -439,7 +445,7 @@ template<>
   std::map<std::string, Node> map = map_;
 
   auto location_state = map.find("state");
-  test::name::space::State value_state = test::name::space::DefaultValues::default_state();;
+  test::name::space::State value_state = test::name::space::DefaultValues::default_state();
   if (location_state != map.end()) {
     Result<test::name::space::State> raw_value_state = location_state->second.to_value<test::name::space::State>();
     if (!raw_value_state.is_ok()) {
@@ -496,7 +502,7 @@ template<>
   map.erase(location_center);
 
   auto location_size = map.find("size");
-  std::optional<test::name::space::Size> value_size = test::name::space::Rectangle::default_size();;
+  std::optional<test::name::space::Size> value_size = test::name::space::Rectangle::default_size();
   if (location_size != map.end()) {
     Result<test::name::space::Size> raw_value_size = location_size->second.to_value<test::name::space::Size>();
     if (!raw_value_size.is_ok()) {
@@ -509,7 +515,7 @@ template<>
   }
 
   auto location_state = map.find("state");
-  std::optional<test::name::space::State> value_state = test::name::space::Rectangle::default_state();;
+  std::optional<test::name::space::State> value_state = test::name::space::Rectangle::default_state();
   if (location_state != map.end()) {
     Result<test::name::space::State> raw_value_state = location_state->second.to_value<test::name::space::State>();
     if (!raw_value_state.is_ok()) {
@@ -572,7 +578,7 @@ template<>
   map.erase(location_radius);
 
   auto location_state = map.find("state");
-  std::optional<test::name::space::State> value_state = test::name::space::Circle::default_state();;
+  std::optional<test::name::space::State> value_state = test::name::space::Circle::default_state();
   if (location_state != map.end()) {
     Result<test::name::space::State> raw_value_state = location_state->second.to_value<test::name::space::State>();
     if (!raw_value_state.is_ok()) {
@@ -664,7 +670,7 @@ template<>
   std::map<std::string, Node> map = map_;
 
   auto location_version = map.find("version");
-  test::name::space::VersionString value_version = test::name::space::DataModel::default_version();;
+  test::name::space::VersionString value_version = test::name::space::DataModel::default_version();
   if (location_version != map.end()) {
     Result<test::name::space::VersionString> raw_value_version = location_version->second.to_value<test::name::space::VersionString>();
     if (!raw_value_version.is_ok()) {

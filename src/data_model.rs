@@ -5,7 +5,8 @@ use std::{
 };
 
 /// An entire data model
-#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
+#[serde(default)]
 pub struct DataModel {
     /// List of the the data types to implement
     pub data_types: Vec<DataType>,
@@ -32,12 +33,64 @@ impl DataModel {
 
     /// Imports a data model from a yaml string
     pub fn import_yaml(mode: &str) -> Result<DataModel, serde_yaml::Error> {
-        return serde_yaml::from_str(mode);
+        return serde_yaml::from_value(sanitize_yaml(serde_yaml::from_str(mode)?));
     }
 
     /// Imports a data model from a json string
     pub fn import_json(mode: &str) -> Result<DataModel, serde_json::Error> {
-        return serde_json::from_str(mode);
+        return serde_json::from_value(sanitize_json(serde_json::from_str(mode)?));
+    }
+}
+
+fn sanitize_yaml(value: serde_yaml::Value) -> serde_yaml::Value {
+    match value {
+        serde_yaml::Value::Bool(value) => {
+            if value {
+                serde_yaml::Value::String("true".to_string())
+            } else {
+                serde_yaml::Value::String("false".to_string())
+            }
+        }
+        serde_yaml::Value::Mapping(value) => serde_yaml::Value::Mapping(
+            value
+                .into_iter()
+                .map(|(k, v)| (k, sanitize_yaml(v)))
+                .collect(),
+        ),
+        serde_yaml::Value::Number(value) => serde_yaml::Value::String(value.to_string()),
+        serde_yaml::Value::Sequence(value) => {
+            serde_yaml::Value::Sequence(value.into_iter().map(sanitize_yaml).collect())
+        }
+        serde_yaml::Value::Tagged(value) => {
+            serde_yaml::Value::Tagged(Box::new(serde_yaml::value::TaggedValue {
+                tag: value.tag,
+                value: sanitize_yaml(value.value),
+            }))
+        }
+        _ => value,
+    }
+}
+
+fn sanitize_json(value: serde_json::Value) -> serde_json::Value {
+    match value {
+        serde_json::Value::Bool(value) => {
+            if value {
+                serde_json::Value::String("true".to_string())
+            } else {
+                serde_json::Value::String("false".to_string())
+            }
+        }
+        serde_json::Value::Object(value) => serde_json::Value::Object(
+            value
+                .into_iter()
+                .map(|(k, v)| (k, sanitize_json(v)))
+                .collect(),
+        ),
+        serde_json::Value::Number(value) => serde_json::Value::String(value.to_string()),
+        serde_json::Value::Array(value) => {
+            serde_json::Value::Array(value.into_iter().map(sanitize_json).collect())
+        }
+        _ => value,
     }
 }
 
@@ -161,6 +214,15 @@ pub enum SerializationModel {
     Value(String),
 }
 
+/// Expands all macros in a serialization model
+///
+/// # Parameters
+///
+/// value: The serialization model to expand macros in
+///
+/// macros: The macros to use for expansions
+///
+/// used_macros: A set of macros that are currently being used, used to prevent infinite recursion
 pub(crate) fn expand_macros<'a>(
     value: &SerializationModel,
     macros: &'a HashMap<String, SerializationModel>,

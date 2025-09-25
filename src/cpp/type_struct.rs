@@ -1,5 +1,5 @@
 use super::*;
-use crate::DefaultType;
+use crate::{data_model, DefaultType};
 use indoc::formatdoc;
 
 /// The type specific information for a struct
@@ -374,11 +374,14 @@ impl StructField {
             DefaultType::Default(default_value) => formatdoc!(
                 "
                 \n[[nodiscard]] {typename} {main_name}::default_{snake_case}() {{
-                {0:indent$}return {typename}({default_value});
+                {0:indent$}auto node = {default_value};
+
+                {0:indent$}return node.to_value<{typename}>().get_ok();
                 }}\n",
                 "",
                 typename = self.get_typename(),
                 snake_case = ToSnakeCase::new(&mut self.name.chars()).collect::<String>(),
+                default_value = serialization_to_termite_node(default_value, indent, indent),
             ),
         };
     }
@@ -501,7 +504,7 @@ impl StructField {
         let default = match &self.default {
             DefaultType::Required => format!(""),
             _ => format!(
-                " = {main_name}::default_{snake_case}();",
+                " = {main_name}::default_{snake_case}()",
                 snake_case = ToSnakeCase::new(&mut self.name.chars()).collect::<String>(),
             ),
         };
@@ -578,6 +581,71 @@ impl StructField {
     fn get_parameter_retrieval(&self) -> String {
         return format!("std::move(value_{name}), ", name = self.name);
     }
+}
+
+fn string_sanitize(value: &str) -> String {
+    return value
+        .replace("\n", "\\n")
+        .replace("\r", "\\r")
+        .replace("\t", "\\t")
+        .replace("\\", "\\\\")
+        .replace("\'", "\\\'")
+        .replace("\"", "\\\"")
+        .replace("\0", "\\0");
+}
+
+fn serialization_to_termite_node(
+    value: &data_model::SerializationModel,
+    indent: usize,
+    total_indent: usize,
+) -> String {
+    let next_indent = total_indent + indent;
+
+    return match value {
+        data_model::SerializationModel::Map(value) => {
+            let entries = value
+                .iter()
+                .map(|(key, value)| {
+                    format!(
+                        "{0:next_indent$}{{\"{key}\", {value}}},",
+                        "",
+                        key = string_sanitize(key),
+                        value = serialization_to_termite_node(value, indent, next_indent)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            format!(
+                "termite::Node(termite::Node::Map({{\n{entries}\n{0:indent$}}}))",
+                ""
+            )
+        }
+        data_model::SerializationModel::Array(ref value) => {
+            let elements = value
+                .iter()
+                .map(|element| {
+                    format!(
+                        "{0:next_indent$}{element},",
+                        "",
+                        element = serialization_to_termite_node(element, indent, next_indent)
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join("\n");
+
+            format!(
+                "termite::Node(termite::Node::List({{\n{elements}\n{0:indent$}}}))",
+                ""
+            )
+        }
+        data_model::SerializationModel::Value(ref value) => {
+            format!(
+                "termite::Node(termite::Node::Value(\"{}\"))",
+                string_sanitize(value)
+            )
+        }
+    };
 }
 
 #[cfg(test)]
@@ -803,7 +871,9 @@ mod tests {
                                 name: "field1".to_string(),
                                 description: None,
                                 data_type: "int".to_string(),
-                                default: DefaultType::Default("1".to_string()),
+                                default: DefaultType::Default(data_model::SerializationModel::Value(
+                                    "1".to_string(),
+                                )),
                             },
                             StructField {
                                 name: "field2".to_string(),

@@ -10,10 +10,10 @@ data_types:
     fields:
     - name: x
       data_type: double
-      default: !Default '0.0'
+      default: !Default 0.0
     - name: y
       data_type: double
-      default: !Default '0.0'
+      default: !Default 0.0
     - name: id
       data_type: int64_t
       default: Optional

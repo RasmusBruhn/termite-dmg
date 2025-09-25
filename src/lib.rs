@@ -123,8 +123,8 @@ mod tests {
       ],
     };
 
-    let yaml_model = model.export_yaml().unwrap();
-    fs::write("target/yaml_example.yaml", yaml_model).unwrap();
+    //let yaml_model = model.export_yaml().unwrap();
+    //fs::write("target/yaml_example.yaml", yaml_model).unwrap();
 
     let import = fs::read_to_string("tests/yaml_import.yaml").unwrap();
     let import_model = DataModel::import_yaml(&import).unwrap();

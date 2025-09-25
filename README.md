@@ -267,6 +267,22 @@ Point:
 
 ## Changelog
 
+### 0.6.0
+
+#### Major changes
+
+- Changed default values to use a serialization model instead of a string to
+  support much more complex default values that works for more than just c++ and
+  are easier to read
+- Implemented macros to be used with the default values, any value surrounded by
+  $ are interpreted as a macro and are replaced by the contents of that macro,
+  any partial insertion can only be a string insertion and any $$ outside of a
+  macro name is replaced by a single $ in the string
+
+#### Minor changes
+
+- Fixed minor visual bug in the c++ code generation where a double ;; would be inserted sometimes
+
 ### 0.5.0
 
 #### Major changes

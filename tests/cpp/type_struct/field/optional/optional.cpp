@@ -43,7 +43,9 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 }
 
 [[nodiscard]] int DataType::default_field1() {
-  return int(1);
+  auto node = termite::Node(termite::Node::Value("1"));
+
+  return node.to_value<int>().get_ok();
 }
 
 [[nodiscard]] std::optional<float> DataType::default_field2() {
@@ -63,7 +65,7 @@ template<>
   std::map<std::string, Node> map = map_;
 
   auto location_field1 = map.find("field1");
-  int value_field1 = test::DataType::default_field1();;
+  int value_field1 = test::DataType::default_field1();
   if (location_field1 != map.end()) {
     Result<int> raw_value_field1 = location_field1->second.to_value<int>();
     if (!raw_value_field1.is_ok()) {
@@ -76,7 +78,7 @@ template<>
   }
 
   auto location_field2 = map.find("field2");
-  std::optional<float> value_field2 = test::DataType::default_field2();;
+  std::optional<float> value_field2 = test::DataType::default_field2();
   if (location_field2 != map.end()) {
     Result<float> raw_value_field2 = location_field2->second.to_value<float>();
     if (!raw_value_field2.is_ok()) {

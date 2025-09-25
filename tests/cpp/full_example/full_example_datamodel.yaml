@@ -51,7 +51,8 @@ data_types:
     - name: state
       description: The state of a geometry
       data_type: State
-      default: !Default State::TypeEdge(SizeValue(1))
+      default: !Default
+        Edge: 1
     - name: size
       description: The default size of the geometry
       data_type: Size
@@ -105,7 +106,7 @@ data_types:
     - name: version
       description: The version string for the data model
       data_type: VersionString
-      default: !Default '"1.0.0"'
+      default: !Default 1.0.0
     - name: defaults
       description: The default values for the data model
       data_type: DefaultValues
