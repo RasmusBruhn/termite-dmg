@@ -137,7 +137,7 @@ impl Struct {
         name: &str,
         macros: &HashMap<String, data_model::SerializationModel>,
         indent: usize,
-    ) -> Result<String, data_model::Error> {
+    ) -> Result<String, Error> {
         // Get the equality test
         let equality_test = self
             .fields
@@ -375,7 +375,7 @@ impl StructField {
         main_name: &str,
         macros: &HashMap<String, data_model::SerializationModel>,
         indent: usize,
-    ) -> Result<String, data_model::Error> {
+    ) -> Result<String, Error> {
         return Ok(match &self.default {
             DefaultType::Required => format!(""),
             DefaultType::Optional => formatdoc!(
@@ -705,7 +705,7 @@ mod tests {
         };
 
         // Create the header file
-        let header_file = data_model.get_header("HEADER", 2);
+        let header_file = data_model.get_header("HEADER", 2).unwrap();
         let source_file = data_model.get_source("basic", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/type_struct/basic/basic.h");
         let expected_source = include_str!("../../tests/cpp/type_struct/basic/basic.cpp");
@@ -749,7 +749,7 @@ mod tests {
         };
 
         // Create the header file
-        let header_file = data_model.get_header("HEADER", 2);
+        let header_file = data_model.get_header("HEADER", 2).unwrap();
         let source_file = data_model.get_source("description", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/type_struct/description/description.h");
         let expected_source =
@@ -807,7 +807,7 @@ mod tests {
             };
 
             // Create the header file
-            let header_file = data_model.get_header("HEADER", 2);
+            let header_file = data_model.get_header("HEADER", 2).unwrap();
             let source_file = data_model.get_source("basic", 2).unwrap();
             let expected_header = include_str!("../../tests/cpp/type_struct/field/basic/basic.h");
             let expected_source = include_str!("../../tests/cpp/type_struct/field/basic/basic.cpp");
@@ -859,7 +859,7 @@ mod tests {
             };
 
             // Create the header file
-            let header_file = data_model.get_header("HEADER", 2);
+            let header_file = data_model.get_header("HEADER", 2).unwrap();
             let source_file = data_model.get_source("description", 2).unwrap();
             let expected_header =
                 include_str!("../../tests/cpp/type_struct/field/description/description.h");
@@ -915,7 +915,7 @@ mod tests {
             };
 
             // Create the header file
-            let header_file = data_model.get_header("HEADER", 2);
+            let header_file = data_model.get_header("HEADER", 2).unwrap();
             let source_file = data_model.get_source("optional", 2).unwrap();
             let expected_header =
                 include_str!("../../tests/cpp/type_struct/field/optional/optional.h");
@@ -971,7 +971,7 @@ mod tests {
             };
 
             // Create the header file
-            let header_file = data_model.get_header("HEADER", 2);
+            let header_file = data_model.get_header("HEADER", 2).unwrap();
             let source_file = data_model.get_source("macros", 2).unwrap();
             let expected_header =
                 include_str!("../../tests/cpp/type_struct/field/macros/macros.h");

@@ -18,6 +18,12 @@
 #include <string>
 #include <variant>
 #include <vector>
+#include <cstdint>
+
+using string = std::string;
+using number = double;
+using integer = int64_t;
+using boolean = bool;
 
 namespace termite {
 

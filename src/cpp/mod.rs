@@ -9,7 +9,11 @@
 //!
 
 use indoc::formatdoc;
-use std::{char::ToLowercase, collections::HashMap, fmt};
+use std::{
+    char::ToLowercase,
+    collections::{HashMap, HashSet},
+    fmt,
+};
 
 mod type_array;
 mod type_constrained;
@@ -162,7 +166,7 @@ impl DataModel {
     /// name: The name of the header file (used for header guard so should be capslocked)
     ///
     /// indent: The number of spaces to use for indentation
-    pub fn get_header(&self, name: &str, indent: usize) -> String {
+    pub fn get_header(&self, name: &str, indent: usize) -> Result<String, Error> {
         // Get the namespace
         let namespace = self.namespace.join("::");
         let namespace_begin = if namespace.is_empty() {
@@ -192,7 +196,35 @@ impl DataModel {
             .collect::<Vec<String>>()
             .join("\n\n");
 
-        return formatdoc!(
+        // Expand macros in the header and footer
+        let header = match data_model::expand_macros(
+            &data_model::SerializationModel::Value(self.headers.header.clone()),
+            &self.macros,
+            &mut HashSet::new(),
+        )? {
+            data_model::SerializationModel::Value(value) => value,
+            _ => {
+                return Err(Error {
+                    location: "".to_string(),
+                    error: ErrorCore::HeaderMacro(self.headers.header.clone()),
+                })
+            }
+        };
+        let footer = match data_model::expand_macros(
+            &data_model::SerializationModel::Value(self.footers.header.clone()),
+            &self.macros,
+            &mut HashSet::new(),
+        )? {
+            data_model::SerializationModel::Value(value) => value,
+            _ => {
+                return Err(Error {
+                    location: "".to_string(),
+                    error: ErrorCore::FooterMacro(self.footers.header.clone()),
+                })
+            }
+        };
+
+        return Ok(formatdoc!(
             "
             // Generated with the Termite Data Model Generator
             #ifndef {name}_TERMITE_H_INCLUDED
@@ -223,9 +255,7 @@ impl DataModel {
             
             #endif
             ",
-            header = self.headers.header,
-            footer = self.footers.header,
-        );
+        ));
     }
 
     /// Generates the source file
@@ -235,7 +265,7 @@ impl DataModel {
     /// name: The file location for the associated header file (is used for #include "name")
     ///
     /// indent: The number of spaces to use for indentation
-    pub fn get_source(&self, name: &str, indent: usize) -> Result<String, data_model::Error> {
+    pub fn get_source(&self, name: &str, indent: usize) -> Result<String, Error> {
         // Get the namespace
         let namespace = self.namespace.join("::");
         let namespace_begin = if namespace.is_empty() {
@@ -264,6 +294,34 @@ impl DataModel {
             .map(|data_type| data_type.get_parser_source(indent, &self.namespace, &self.data_types))
             .collect::<Vec<String>>()
             .join("\n\n");
+
+        // Expand macros in the header and footer
+        let header = match data_model::expand_macros(
+            &data_model::SerializationModel::Value(self.headers.source.clone()),
+            &self.macros,
+            &mut HashSet::new(),
+        )? {
+            data_model::SerializationModel::Value(value) => value,
+            _ => {
+                return Err(Error {
+                    location: "".to_string(),
+                    error: ErrorCore::HeaderMacro(self.headers.source.clone()),
+                })
+            }
+        };
+        let footer = match data_model::expand_macros(
+            &data_model::SerializationModel::Value(self.footers.source.clone()),
+            &self.macros,
+            &mut HashSet::new(),
+        )? {
+            data_model::SerializationModel::Value(value) => value,
+            _ => {
+                return Err(Error {
+                    location: "".to_string(),
+                    error: ErrorCore::FooterMacro(self.footers.source.clone()),
+                })
+            }
+        };
 
         return Ok(formatdoc!("
             // Generated with the Termite Data Model Generator
@@ -319,8 +377,6 @@ impl DataModel {
             {footer}
             ",
             "",
-            header = self.headers.source,
-            footer = self.footers.source,
         ));
     }
 }
@@ -451,7 +507,7 @@ impl DataType {
         &self,
         macros: &HashMap<String, data_model::SerializationModel>,
         indent: usize,
-    ) -> Result<String, data_model::Error> {
+    ) -> Result<String, Error> {
         return Ok(formatdoc!(
             "
             {definition}",
@@ -557,7 +613,7 @@ impl DataTypeData {
         name: &str,
         macros: &HashMap<String, data_model::SerializationModel>,
         indent: usize,
-    ) -> Result<String, data_model::Error> {
+    ) -> Result<String, Error> {
         return match self {
             DataTypeData::Struct(data) => data.get_definition_source(name, macros, indent),
             DataTypeData::Array(data) => Ok(data.get_definition_source(name, indent)),
@@ -676,12 +732,27 @@ impl fmt::Display for Error {
     }
 }
 
+impl From<data_model::Error> for Error {
+    fn from(value: data_model::Error) -> Self {
+        return Error {
+            location: value.location.clone(),
+            error: ErrorCore::MacroError(value),
+        };
+    }
+}
+
 /// Errors for when converting generic data models into c++ data models
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum ErrorCore {
-    /// No error has occured
-    #[error("No error has occured")]
-    NoError(),
+    /// Error expanding macros
+    #[error("An error occured when expanding macros: {:?}", .0)]
+    MacroError(data_model::Error),
+    /// The macro expansion in the header failed
+    #[error("The header \"{:?}\" must only expand to a string when using macros", .0)]
+    HeaderMacro(String),
+    /// The macro expansion in the footer failed
+    #[error("The footer \"{:?}\" must only expand to a string when using macros", .0)]
+    FooterMacro(String),
 }
 
 #[cfg(test)]
@@ -943,7 +1014,7 @@ mod tests {
         };
 
         // Create the header file
-        let header_file = data_model.get_header("HEADER", 2);
+        let header_file = data_model.get_header("HEADER", 2).unwrap();
         let source_file = data_model.get_source("header", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/header/header.h");
         let expected_source = include_str!("../../tests/cpp/header/header.cpp");
@@ -974,7 +1045,7 @@ mod tests {
         };
 
         // Create the header file
-        let header_file = data_model.get_header("HEADER", 2);
+        let header_file = data_model.get_header("HEADER", 2).unwrap();
         let source_file = data_model.get_source("footer", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/footer/footer.h");
         let expected_source = include_str!("../../tests/cpp/footer/footer.cpp");
@@ -1005,7 +1076,7 @@ mod tests {
         };
 
         // Create the header file
-        let header_file = data_model.get_header("HEADER", 2);
+        let header_file = data_model.get_header("HEADER", 2).unwrap();
         let source_file = data_model.get_source("namespace", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/namespace/namespace.h");
         let expected_source = include_str!("../../tests/cpp/namespace/namespace.cpp");
@@ -1047,7 +1118,7 @@ mod tests {
         };
 
         // Create the header file
-        let header_file = data_model.get_header("HEADER", 2);
+        let header_file = data_model.get_header("HEADER", 2).unwrap();
         let source_file = data_model.get_source("outline", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/outline/outline.h");
         let expected_source = include_str!("../../tests/cpp/outline/outline.cpp");
@@ -1138,7 +1209,7 @@ mod tests {
         let data_model = DataModel::new(model).unwrap();
 
         // Create the header file
-        let header_file = data_model.get_header("FULL_EXAMPLE", 2);
+        let header_file = data_model.get_header("FULL_EXAMPLE", 2).unwrap();
         let source_file = data_model.get_source("full_example", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/full_example/full_example.h");
         let expected_source = include_str!("../../tests/cpp/full_example/full_example.cpp");

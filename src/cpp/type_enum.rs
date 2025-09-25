@@ -639,7 +639,7 @@ mod tests {
         };
 
         // Create the header file
-        let header_file = data_model.get_header("HEADER", 2);
+        let header_file = data_model.get_header("HEADER", 2).unwrap();
         let source_file = data_model.get_source("basic", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/type_enum/basic/basic.h");
         let expected_source = include_str!("../../tests/cpp/type_enum/basic/basic.cpp");
