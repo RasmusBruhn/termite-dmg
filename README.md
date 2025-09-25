@@ -282,6 +282,7 @@ Point:
 #### Minor changes
 
 - Fixed minor visual bug in the c++ code generation where a double ;; would be inserted sometimes
+- Fixed bug where all fields like namespace, footer and header must be included in the data model
 
 ### 0.5.0
 

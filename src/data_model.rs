@@ -347,6 +347,9 @@ pub(crate) fn expand_macros<'a>(
                             error: ErrorCore::IncompleteMacro(value.clone()),
                         });
                     }
+                } else {
+                    expanded_string.push_str(&value[current_index..]);
+                    break;
                 }
             }
 

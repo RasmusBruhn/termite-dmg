@@ -1,5 +1,7 @@
+use std::collections::HashSet;
+
 use super::*;
-use crate::{data_model, DefaultType};
+use crate::DefaultType;
 use indoc::formatdoc;
 
 /// The type specific information for a struct
@@ -127,14 +129,21 @@ impl Struct {
     ///
     /// name: The name of the struct
     ///
+    /// macros: A map of all macros to expand default values
+    ///
     /// indent: The number of spaces to use for indentation
-    pub(super) fn get_definition_source(&self, name: &str, indent: usize) -> String {
+    pub(super) fn get_definition_source(
+        &self,
+        name: &str,
+        macros: &HashMap<String, data_model::SerializationModel>,
+        indent: usize,
+    ) -> Result<String, data_model::Error> {
         // Get the equality test
         let equality_test = self
             .fields
             .iter()
             .map(|field| field.get_equality_check())
-            .collect::<Vec<String>>()
+            .collect::<Vec<_>>()
             .join("");
 
         // Get the printout for the operator<< function
@@ -142,19 +151,19 @@ impl Struct {
             .fields
             .iter()
             .map(|field| field.get_printout())
-            .collect::<Vec<String>>()
+            .collect::<Vec<_>>()
             .join("");
 
         // Get all constructors for the fields with default values
         let default_constructors = self
             .fields
             .iter()
-            .map(|field| field.get_default_constructor_source(name, indent))
-            .collect::<Vec<String>>()
+            .map(|field| field.get_default_constructor_source(name, macros, indent))
+            .collect::<Result<Vec<_>, _>>()?
             .join("");
 
         // Generate the code
-        return formatdoc!("
+        return Ok(formatdoc!("
             [[nodiscard]] bool {name}::operator==(const {name} &x) const {{
             {0:indent$}return {equality_test}extra_fields == x.extra_fields;
             }}
@@ -162,7 +171,7 @@ impl Struct {
             std::ostream &operator<<(std::ostream &os, const {name} &x) {{
             {0:indent$}return os << \"{{ \" << {printout}\"extra_fields: \" << x.extra_fields << \" }}\";
             }}", "",
-        );
+        ));
     }
 
     /// Gets the header code for the parser for this struct allowing it to be read from a file
@@ -358,9 +367,16 @@ impl StructField {
     ///
     /// main_name: The name of the type which holds this field
     ///
+    /// macros: A map of all macros to expand default values
+    ///
     /// indent: The number of spaces to use for indentation
-    fn get_default_constructor_source(&self, main_name: &str, indent: usize) -> String {
-        return match &self.default {
+    fn get_default_constructor_source(
+        &self,
+        main_name: &str,
+        macros: &HashMap<String, data_model::SerializationModel>,
+        indent: usize,
+    ) -> Result<String, data_model::Error> {
+        return Ok(match &self.default {
             DefaultType::Required => format!(""),
             DefaultType::Optional => formatdoc!(
                 "
@@ -381,9 +397,13 @@ impl StructField {
                 "",
                 typename = self.get_typename(),
                 snake_case = ToSnakeCase::new(&mut self.name.chars()).collect::<String>(),
-                default_value = serialization_to_termite_node(default_value, indent, indent),
+                default_value = serialization_to_termite_node(
+                    &data_model::expand_macros(default_value, macros, &mut HashSet::new())?,
+                    indent,
+                    indent
+                ),
             ),
-        };
+        });
     }
 
     /// Gets the equality check for this field
@@ -681,11 +701,12 @@ mod tests {
                 },
             ],
             namespace: vec!["test".to_string()],
+            macros: HashMap::new(),
         };
 
         // Create the header file
         let header_file = data_model.get_header("HEADER", 2);
-        let source_file = data_model.get_source("basic", 2);
+        let source_file = data_model.get_source("basic", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/type_struct/basic/basic.h");
         let expected_source = include_str!("../../tests/cpp/type_struct/basic/basic.cpp");
         //println!("header:\n{header_file}\n---\n");
@@ -724,11 +745,12 @@ mod tests {
                 },
             ],
             namespace: vec!["test".to_string()],
+            macros: HashMap::new(),
         };
 
         // Create the header file
         let header_file = data_model.get_header("HEADER", 2);
-        let source_file = data_model.get_source("description", 2);
+        let source_file = data_model.get_source("description", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/type_struct/description/description.h");
         let expected_source =
             include_str!("../../tests/cpp/type_struct/description/description.cpp");
@@ -741,6 +763,8 @@ mod tests {
     }
 
     mod field {
+        use crate::SerializationModel;
+
         use super::*;
 
         #[test]
@@ -779,11 +803,12 @@ mod tests {
                     }),
                 }],
                 namespace: vec!["test".to_string()],
+                macros: HashMap::new(),
             };
 
             // Create the header file
             let header_file = data_model.get_header("HEADER", 2);
-            let source_file = data_model.get_source("basic", 2);
+            let source_file = data_model.get_source("basic", 2).unwrap();
             let expected_header = include_str!("../../tests/cpp/type_struct/field/basic/basic.h");
             let expected_source = include_str!("../../tests/cpp/type_struct/field/basic/basic.cpp");
             //println!("header:\n{header_file}\n---\n");
@@ -830,11 +855,12 @@ mod tests {
                     }),
                 }],
                 namespace: vec!["test".to_string()],
+                macros: HashMap::new(),
             };
 
             // Create the header file
             let header_file = data_model.get_header("HEADER", 2);
-            let source_file = data_model.get_source("description", 2);
+            let source_file = data_model.get_source("description", 2).unwrap();
             let expected_header =
                 include_str!("../../tests/cpp/type_struct/field/description/description.h");
             let expected_source =
@@ -871,9 +897,9 @@ mod tests {
                                 name: "field1".to_string(),
                                 description: None,
                                 data_type: "int".to_string(),
-                                default: DefaultType::Default(data_model::SerializationModel::Value(
-                                    "1".to_string(),
-                                )),
+                                default: DefaultType::Default(
+                                    data_model::SerializationModel::Value("1".to_string()),
+                                ),
                             },
                             StructField {
                                 name: "field2".to_string(),
@@ -885,15 +911,72 @@ mod tests {
                     }),
                 }],
                 namespace: vec!["test".to_string()],
+                macros: HashMap::new(),
             };
 
             // Create the header file
             let header_file = data_model.get_header("HEADER", 2);
-            let source_file = data_model.get_source("optional", 2);
+            let source_file = data_model.get_source("optional", 2).unwrap();
             let expected_header =
                 include_str!("../../tests/cpp/type_struct/field/optional/optional.h");
             let expected_source =
                 include_str!("../../tests/cpp/type_struct/field/optional/optional.cpp");
+            //println!("header:\n{header_file}\n---\n");
+            //println!("source:\n{source_file}\n---\n");
+
+            // Check that they are the same
+            assert_eq!(str_diff(&header_file, &expected_header), None);
+            assert_eq!(str_diff(&source_file, &expected_source), None);
+        }
+
+        #[test]
+        fn macros() {
+            // Check c++ code
+            compile_and_test("type_struct/field/macros");
+
+            // Make sure it generates the correct code
+            let data_model = DataModel {
+                headers: Headers {
+                    header: "".to_string(),
+                    source: "".to_string(),
+                },
+                footers: Footers {
+                    header: "".to_string(),
+                    source: "".to_string(),
+                },
+                data_types: vec![DataType {
+                    name: "DataType".to_string(),
+                    description: None,
+                    data: DataTypeData::Struct(Struct {
+                        fields: vec![
+                            StructField {
+                                name: "field1".to_string(),
+                                description: None,
+                                data_type: "int".to_string(),
+                                default: DefaultType::Default(
+                                    data_model::SerializationModel::Value("$MACRO$".to_string()),
+                                ),
+                            },
+                            StructField {
+                                name: "field2".to_string(),
+                                description: None,
+                                data_type: "float".to_string(),
+                                default: DefaultType::Optional,
+                            },
+                        ],
+                    }),
+                }],
+                namespace: vec!["test".to_string()],
+                macros: HashMap::from([("MACRO".to_string(), SerializationModel::Value("1".to_string()))]),
+            };
+
+            // Create the header file
+            let header_file = data_model.get_header("HEADER", 2);
+            let source_file = data_model.get_source("macros", 2).unwrap();
+            let expected_header =
+                include_str!("../../tests/cpp/type_struct/field/macros/macros.h");
+            let expected_source =
+                include_str!("../../tests/cpp/type_struct/field/macros/macros.cpp");
             //println!("header:\n{header_file}\n---\n");
             //println!("source:\n{source_file}\n---\n");
 

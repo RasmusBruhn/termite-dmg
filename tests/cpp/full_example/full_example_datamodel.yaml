@@ -1,3 +1,9 @@
+macros:
+  State:
+    Edge: 1
+  VersionMajor: 1
+  VersionMinor: 0
+  VersionPatch: 0
 data_types:
 - name: VersionString
   description: A string that represents a version number
@@ -51,8 +57,7 @@ data_types:
     - name: state
       description: The state of a geometry
       data_type: State
-      default: !Default
-        Edge: 1
+      default: !Default $State$
     - name: size
       description: The default size of the geometry
       data_type: Size
@@ -106,7 +111,7 @@ data_types:
     - name: version
       description: The version string for the data model
       data_type: VersionString
-      default: !Default 1.0.0
+      default: !Default $VersionMajor$.$VersionMinor$.$VersionPatch$
     - name: defaults
       description: The default values for the data model
       data_type: DefaultValues

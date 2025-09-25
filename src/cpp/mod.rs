@@ -23,6 +23,8 @@ use type_enum::Enum;
 use type_struct::Struct;
 use type_variant::Variant;
 
+use crate::data_model;
+
 /// Iterator to convert an iterator of chars to snake case converting all
 /// uppercase characters to an underscore and the lowercase character
 struct ToSnakeCase<'a> {
@@ -113,6 +115,8 @@ pub struct DataModel {
     footers: Footers,
     /// The nested namespace to put the data model into
     namespace: Vec<String>,
+    /// A map of all macros to expand default values
+    macros: HashMap<String, data_model::SerializationModel>,
 }
 
 impl DataModel {
@@ -147,6 +151,7 @@ impl DataModel {
             headers,
             footers,
             namespace: data.namespace,
+            macros: data.macros,
         });
     }
 
@@ -230,7 +235,7 @@ impl DataModel {
     /// name: The file location for the associated header file (is used for #include "name")
     ///
     /// indent: The number of spaces to use for indentation
-    pub fn get_source(&self, name: &str, indent: usize) -> String {
+    pub fn get_source(&self, name: &str, indent: usize) -> Result<String, data_model::Error> {
         // Get the namespace
         let namespace = self.namespace.join("::");
         let namespace_begin = if namespace.is_empty() {
@@ -248,8 +253,8 @@ impl DataModel {
         let data_types = self
             .data_types
             .iter()
-            .map(|data_type| data_type.get_definition_source(indent))
-            .collect::<Vec<String>>()
+            .map(|data_type| data_type.get_definition_source(&self.macros, indent))
+            .collect::<Result<Vec<_>, _>>()?
             .join("\n\n");
 
         // Get all parsers
@@ -260,7 +265,7 @@ impl DataModel {
             .collect::<Vec<String>>()
             .join("\n\n");
 
-        return formatdoc!("
+        return Ok(formatdoc!("
             // Generated with the Termite Data Model Generator
             #include \"{name}.h\"
 
@@ -316,7 +321,7 @@ impl DataModel {
             "",
             header = self.headers.source,
             footer = self.footers.source,
-        );
+        ));
     }
 }
 
@@ -439,13 +444,21 @@ impl DataType {
     ///
     /// # Parameters
     ///
+    /// macros: A map of all macros to expand default values
+    ///
     /// indent: The number of spaces to use for indentation
-    fn get_definition_source(&self, indent: usize) -> String {
-        return formatdoc!(
+    fn get_definition_source(
+        &self,
+        macros: &HashMap<String, data_model::SerializationModel>,
+        indent: usize,
+    ) -> Result<String, data_model::Error> {
+        return Ok(formatdoc!(
             "
             {definition}",
-            definition = self.data.get_definition_source(&self.name, indent),
-        );
+            definition = self
+                .data
+                .get_definition_source(&self.name, macros, indent)?,
+        ));
     }
 
     /// Gets the header code for the parser for this type allowing it to be read from a file
@@ -536,14 +549,21 @@ impl DataTypeData {
     ///
     /// name: The name of the data type
     ///
+    /// macros: A map of all macros to expand default values
+    ///
     /// indent: The number of spaces to use for indentation
-    fn get_definition_source(&self, name: &str, indent: usize) -> String {
+    fn get_definition_source(
+        &self,
+        name: &str,
+        macros: &HashMap<String, data_model::SerializationModel>,
+        indent: usize,
+    ) -> Result<String, data_model::Error> {
         return match self {
-            DataTypeData::Struct(data) => data.get_definition_source(name, indent),
-            DataTypeData::Array(data) => data.get_definition_source(name, indent),
-            DataTypeData::Variant(data) => data.get_definition_source(name, indent),
-            DataTypeData::Enum(data) => data.get_definition_source(name, indent),
-            DataTypeData::ConstrainedType(data) => data.get_definition_source(name, indent),
+            DataTypeData::Struct(data) => data.get_definition_source(name, macros, indent),
+            DataTypeData::Array(data) => Ok(data.get_definition_source(name, indent)),
+            DataTypeData::Variant(data) => Ok(data.get_definition_source(name, indent)),
+            DataTypeData::Enum(data) => Ok(data.get_definition_source(name, indent)),
+            DataTypeData::ConstrainedType(data) => Ok(data.get_definition_source(name, indent)),
         };
     }
 
@@ -919,11 +939,12 @@ mod tests {
             },
             data_types: vec![],
             namespace: vec![],
+            macros: HashMap::new(),
         };
 
         // Create the header file
         let header_file = data_model.get_header("HEADER", 2);
-        let source_file = data_model.get_source("header", 2);
+        let source_file = data_model.get_source("header", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/header/header.h");
         let expected_source = include_str!("../../tests/cpp/header/header.cpp");
 
@@ -949,11 +970,12 @@ mod tests {
             },
             data_types: vec![],
             namespace: vec![],
+            macros: HashMap::new(),
         };
 
         // Create the header file
         let header_file = data_model.get_header("HEADER", 2);
-        let source_file = data_model.get_source("footer", 2);
+        let source_file = data_model.get_source("footer", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/footer/footer.h");
         let expected_source = include_str!("../../tests/cpp/footer/footer.cpp");
 
@@ -979,11 +1001,12 @@ mod tests {
             },
             data_types: vec![],
             namespace: vec!["test1".to_string(), "test2".to_string()],
+            macros: HashMap::new(),
         };
 
         // Create the header file
         let header_file = data_model.get_header("HEADER", 2);
-        let source_file = data_model.get_source("namespace", 2);
+        let source_file = data_model.get_source("namespace", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/namespace/namespace.h");
         let expected_source = include_str!("../../tests/cpp/namespace/namespace.cpp");
 
@@ -1020,11 +1043,12 @@ mod tests {
                 },
             ],
             namespace: vec!["test".to_string()],
+            macros: HashMap::new(),
         };
 
         // Create the header file
         let header_file = data_model.get_header("HEADER", 2);
-        let source_file = data_model.get_source("outline", 2);
+        let source_file = data_model.get_source("outline", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/outline/outline.h");
         let expected_source = include_str!("../../tests/cpp/outline/outline.cpp");
 
@@ -1115,7 +1139,7 @@ mod tests {
 
         // Create the header file
         let header_file = data_model.get_header("FULL_EXAMPLE", 2);
-        let source_file = data_model.get_source("full_example", 2);
+        let source_file = data_model.get_source("full_example", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/full_example/full_example.h");
         let expected_source = include_str!("../../tests/cpp/full_example/full_example.cpp");
         //std::fs::write("tests/cpp/full_example/full_example.h", &header_file).unwrap();

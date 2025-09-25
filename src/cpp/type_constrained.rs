@@ -311,11 +311,12 @@ mod tests {
                 },
             ],
             namespace: vec!["test".to_string()],
+            macros: HashMap::new(),
         };
 
         // Create the header file
         let header_file = data_model.get_header("HEADER", 2);
-        let source_file = data_model.get_source("basic", 2);
+        let source_file = data_model.get_source("basic", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/type_constrained/basic/basic.h");
         let expected_source = include_str!("../../tests/cpp/type_constrained/basic/basic.cpp");
         //println!("header:\n{header_file}\n---\n");
@@ -360,13 +361,16 @@ mod tests {
                 },
             ],
             namespace: vec!["test".to_string()],
+            macros: HashMap::new(),
         };
 
         // Create the header file
         let header_file = data_model.get_header("HEADER", 2);
-        let source_file = data_model.get_source("constraints", 2);
-        let expected_header = include_str!("../../tests/cpp/type_constrained/constraints/constraints.h");
-        let expected_source = include_str!("../../tests/cpp/type_constrained/constraints/constraints.cpp");
+        let source_file = data_model.get_source("constraints", 2).unwrap();
+        let expected_header =
+            include_str!("../../tests/cpp/type_constrained/constraints/constraints.h");
+        let expected_source =
+            include_str!("../../tests/cpp/type_constrained/constraints/constraints.cpp");
         //println!("header:\n{header_file}\n---\n");
         //println!("source:\n{source_file}\n---\n");
 

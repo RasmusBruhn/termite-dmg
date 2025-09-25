@@ -635,11 +635,12 @@ mod tests {
                 }),
             }],
             namespace: vec!["test".to_string()],
+            macros: HashMap::new(),
         };
 
         // Create the header file
         let header_file = data_model.get_header("HEADER", 2);
-        let source_file = data_model.get_source("basic", 2);
+        let source_file = data_model.get_source("basic", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/type_enum/basic/basic.h");
         let expected_source = include_str!("../../tests/cpp/type_enum/basic/basic.cpp");
         //println!("header:\n{header_file}\n---\n");
