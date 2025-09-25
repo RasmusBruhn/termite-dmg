@@ -283,6 +283,9 @@ Point:
 
 - Fixed minor visual bug in the c++ code generation where a double ;; would be inserted sometimes
 - Fixed bug where all fields like namespace, footer and header must be included in the data model
+- Added using statement to termite.hpp for boolean(bool), string(std::string),
+  number(double), and integer(int64_t) to avoid having to add that to all
+  headers
 
 ### 0.5.0
 
