@@ -122,13 +122,14 @@ as "termite-json.h" and "termite-json.cpp" respectively.
 
 ```rust
 use termite_dmg as termite;
+use termite::schema;
 use indoc::formatdoc;
 
 let yaml_model = formatdoc!("
   data_types:
   - name: PositiveDouble
     data: !ConstrainedType
-      data_type: double
+      data_type: number
       constraints:
       - x > 0.0
   - name: Point
@@ -136,13 +137,13 @@ let yaml_model = formatdoc!("
     data: !Struct
       fields:
       - name: x
-        data_type: double
-        default: !Default '0.0'
+        data_type: number
+        default: !Default 0.0
       - name: y
-        data_type: double
-        default: !Default '0.0'
+        data_type: number
+        default: !Default $DEFAULT_COORDINATE$
       - name: id
-        data_type: int64_t
+        data_type: integer
         default: Optional
   - name: Size
     description: The size of a box
@@ -176,23 +177,41 @@ let yaml_model = formatdoc!("
       - name: Point
         description: A point
         data_type: Point
+  - name: NamedGeometry
+    data: !Struct
+      fields:
+      - name: geometry
+        description: The geometry data
+        data_type: Geometry
+        default: !Default
+          Point:
+            x: 1.0
+            id: 0
+      - name: name
+        description: The name of the geometry
+        data_type: string
+        default: Required
   headers:
-    cpp-header: // My .h Header
-    cpp-source: // My .cpp Header
+    cpp-header: \"// My .h Header with message: $MESSAGE$\"
+    cpp-source: \"// My .cpp Header and this is a dollar sign: $$\"
   footers:
     cpp-header: // My .h Footer
     cpp-source: // My .cpp Footer
+  macros:
+    DEFAULT_COORDINATE: 0.0
+    MESSAGE: This is a macro message
   namespace:
   - my_namespace
 ");
 
 let model = termite::DataModel::import_yaml(&yaml_model).unwrap();
-let cpp_model = termite::cpp::DataModel::new(model).unwrap();
+let cpp_model = termite::cpp::DataModel::new(model.clone()).unwrap();
 
 let termite_hpp = termite::cpp::get_termite_dependency();
 let termite_yaml_hpp = termite::cpp::get_yaml_interface();
 let model_h = cpp_model.get_header("HEADER_GUARD", 2);
 let model_cpp = cpp_model.get_source("model", 2);
+let model_schema = model.export_schema("Geometry", "my_schema");
 ```
 
 YAML file for loading a my_namespace::PositiveDouble
@@ -263,6 +282,21 @@ Another YAML file for loading a my_namespace::Geometry
 ```yaml
 Point:
   y: -3.0
+```
+
+YAML file for loading a my_namespace::NamedGeometry
+
+```yaml
+name: A name
+geometry:
+  Point:
+    y: -3.0
+```
+
+Another YAML file for loading a my_namespace::NamedGeometry
+
+```yaml
+name: Another name
 ```
 
 ## Changelog

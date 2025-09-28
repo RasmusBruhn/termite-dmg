@@ -2,8 +2,8 @@
  * @file termite.hpp
  * @brief The c++ Termite Data Model Generator code which implements errors and
  * input output to yaml and json
- * @version 0.2
- * @date 2025-03-21
+ * @version 0.6.0
+ * @date 2025-09-28
  *
  */
 

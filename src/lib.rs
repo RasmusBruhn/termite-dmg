@@ -18,15 +18,15 @@ mod tests {
   fn main_model() {
     let model = DataModel {
       namespace: vec!["my_namespace".to_string()],
-      headers: HashMap::from([("cpp".to_string(), "// My Header".to_string())]),
-      footers: HashMap::from([("cpp".to_string(), "// My Header".to_string())]),
-      macros: HashMap::new(),
+      macros: HashMap::from([("DEFAULT_COORDINATE".to_string(), SerializationModel::Value("0.0".to_string())), ("MESSAGE".to_string(), SerializationModel::Value("This is a macro message".to_string()))]),
+      headers: HashMap::from([("cpp-header".to_string(), "// My .h Header with message: $MESSAGE$".to_string()), ("cpp-source".to_string(), "// My .cpp Header and this is a dollar sign: $$".to_string())]),
+      footers: HashMap::from([("cpp-header".to_string(), "// My .h Footer".to_string()), ("cpp-source".to_string(), "// My .cpp Footer".to_string())]),
       data_types: vec![
         DataType {
           name: "PositiveDouble".to_string(),
           description: None,
           data: DataTypeData::ConstrainedType(ConstrainedType {
-            data_type: "double".to_string(),
+            data_type: "number".to_string(),
             constraints: vec![
               "x > 0.0".to_string(),
             ],
@@ -41,19 +41,19 @@ mod tests {
               StructField {
                 name: "x".to_string(),
                 description: None,
-                data_type: "double".to_string(),
+                data_type: "number".to_string(),
                 default: DefaultType::Default(SerializationModel::Value("0.0".to_string())),
               },
               StructField {
                 name: "y".to_string(),
                 description: None,
-                data_type: "double".to_string(),
-                default: DefaultType::Default(SerializationModel::Value("0.0".to_string())),
+                data_type: "number".to_string(),
+                default: DefaultType::Default(SerializationModel::Value("$DEFAULT_COORDINATE$".to_string())),
               },
               StructField {
                 name: "id".to_string(),
                 description: None,
-                data_type: "int64_t".to_string(),
+                data_type: "integer".to_string(),
                 default: DefaultType::Optional,
               },
             ],
@@ -119,6 +119,32 @@ mod tests {
               },
             ],
           }),
+        },
+        DataType {
+          name: "NamedGeometry".to_string(),
+          description: None,
+          data: DataTypeData::Struct(Struct {
+            fields: vec![
+              StructField {
+                name: "geometry".to_string(),
+                description: Some("The geometry data".to_string()),
+                data_type: "Geometry".to_string(),
+                default: DefaultType::Default(SerializationModel::Map(HashMap::from([
+                  ("Point".to_string(), SerializationModel::Map(HashMap::from([
+                    ("x".to_string(), SerializationModel::Value("1.0".to_string())),
+                    ("id".to_string(), SerializationModel::Value("0".to_string())),
+                  ])))
+                ])))
+              },
+              StructField {
+                name: "name".to_string(),
+                description: Some("The name of the geometry".to_string()),
+                data_type: "string".to_string(),
+                default: DefaultType::Required,
+              }
+            ],
+            inherit: None,
+          })
         },
       ],
     };

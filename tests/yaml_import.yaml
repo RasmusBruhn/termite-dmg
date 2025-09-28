@@ -1,7 +1,7 @@
 data_types:
 - name: PositiveDouble
   data: !ConstrainedType
-    data_type: double
+    data_type: number
     constraints:
     - x > 0.0
 - name: Point
@@ -9,13 +9,13 @@ data_types:
   data: !Struct
     fields:
     - name: x
-      data_type: double
+      data_type: number
       default: !Default 0.0
     - name: y
-      data_type: double
-      default: !Default 0.0
+      data_type: number
+      default: !Default $DEFAULT_COORDINATE$
     - name: id
-      data_type: int64_t
+      data_type: integer
       default: Optional
 - name: Size
   description: The size of a box
@@ -49,9 +49,28 @@ data_types:
     - name: Point
       description: A point
       data_type: Point
+- name: NamedGeometry
+  data: !Struct
+    fields:
+    - name: geometry
+      description: The geometry data
+      data_type: Geometry
+      default: !Default
+        Point:
+          x: 1.0
+          id: 0
+    - name: name
+      description: The name of the geometry
+      data_type: string
+      default: Required
 headers:
-  cpp: // My Header
+  cpp-header: "// My .h Header with message: $MESSAGE$"
+  cpp-source: "// My .cpp Header and this is a dollar sign: $$"
 footers:
-  cpp: // My Header
+  cpp-header: // My .h Footer
+  cpp-source: // My .cpp Footer
+macros:
+  DEFAULT_COORDINATE: 0.0
+  MESSAGE: This is a macro message
 namespace:
 - my_namespace

@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.10)
 project (termite)
 
 # Stop fetch content warning
-cmake_policy(SET CMP0169 OLD)
+cmake_policy(VERSION 3.10...3.10)
 
 # Set the c++ standard
 set(CMAKE_CXX_STANDARD 17)
