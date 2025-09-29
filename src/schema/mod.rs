@@ -804,43 +804,43 @@ impl From<data_model::Error> for Error {
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum ErrorCore {
     /// Unable to find the type id
-    #[error("The type id \"{:}\" does not exist in the model", .0)]
+    #[error("The type id {:?} does not exist in the model", .0)]
     UnknownID(String),
     /// The type is neither a builtin type or a custom type
-    #[error("The type id \"{:}\" does not exist in the model or as a builtin type", .0)]
+    #[error("The type id {:?} does not exist in the model or as a builtin type", .0)]
     UnknownType(String),
     /// The type must be a struct
-    #[error("The type id \"{:}\" must refer to a struct when inheriting", .0)]
+    #[error("The type id {:?} must refer to a struct when inheriting", .0)]
     EnheritStruct(String),
     /// Serialization model has an incompatible type
     #[error("The serialization model {:?} is incompatible with the type: {:}", .0, .1)]
     SerializationModel(data_model::SerializationModel, String),
     /// Unable to convert to boolean
-    #[error("Unable to convert \"{:}\" to a boolean", .0)]
+    #[error("Unable to convert {:?} to a boolean", .0)]
     BoolConversion(String),
     /// Unable to convert to integer
-    #[error("Unable to convert \"{:}\" to an integer", .0)]
+    #[error("Unable to convert {:?} to an integer", .0)]
     IntegerConversion(String),
     /// Unable to convert to float
-    #[error("Unable to convert \"{:}\" to a float", .0)]
+    #[error("Unable to convert {:?} to a float", .0)]
     FloatConversion(String),
     /// Unable to convert to enum
-    #[error("Unable to convert \"{:?}\" to an enum", .0)]
+    #[error("Unable to convert {:?} to an enum", .0)]
     EnumConversion(String),
     /// Unable to convert to typed enum
-    #[error("Unable to convert \"{:?}\" to a typed enum", .0)]
+    #[error("Unable to convert {:?} to a typed enum", .0)]
     TypedEnumConversion(HashMap<String, data_model::SerializationModel>),
     /// The map had more or less than one element when converting to a typed enum
-    #[error("Unable to convert \"{:?}\" to a typed enum because it did not have a single field", .0)]
+    #[error("Unable to convert {:?} to a typed enum because it did not have a single field", .0)]
     TypedEnumLayout(HashMap<String, data_model::SerializationModel>),
     /// Unable to convert to variant
-    #[error("Unable to convert \"{:?}\" to a variant with the following errors: {:?}", .0, .1)]
+    #[error("Unable to convert {:?} to a variant with the following errors: {:?}", .0, .1)]
     VariantConversion(data_model::SerializationModel, Vec<(String, Error)>),
     /// Unable to convert to struct due to missing field
-    #[error("Unable to convert \"{:?}\" to an struct because it is missing field {:}", .0, .1)]
+    #[error("Unable to convert {:?} to an struct because it is missing field {:}", .0, .1)]
     StructConversionMissingField(HashMap<String, data_model::SerializationModel>, String),
     /// Unable to convert to struct due to excess fields
-    #[error("Unable to convert \"{:?}\" to an struct because it has excess fields", .0)]
+    #[error("Unable to convert {:?} to an struct because it has excess fields", .0)]
     StructConversionExcessFields(HashMap<String, data_model::SerializationModel>),
     /// Error expanding macros
     #[error("An error occured when expanding macros: {:?}", .0)]

@@ -320,6 +320,8 @@ name: Another name
 - Added using statement to termite.hpp for boolean(bool), string(std::string),
   number(double), and integer(int64_t) to avoid having to add that to all
   headers
+- Changed using statements in termite.hpp for default schema types since they
+  sometimes conflicted with using definitions from other libraries
 
 ### 0.5.0
 

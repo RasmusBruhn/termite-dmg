@@ -20,12 +20,12 @@
 #include <vector>
 #include <cstdint>
 
+namespace termite {
+
 using string = std::string;
 using number = double;
 using integer = int64_t;
 using boolean = bool;
-
-namespace termite {
 
 // Helper trait to detect if T has operator<<
 template <typename T, typename = void>

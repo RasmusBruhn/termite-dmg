@@ -31,6 +31,13 @@ impl ConstrainedType {
     ///
     /// indent: The number of spaces to use for indentation
     pub(super) fn get_definition_header(&self, name: &str, indent: usize) -> String {
+        let data_type =
+            if ["string", "number", "integer", "boolean"].contains(&self.data_type.as_str()) {
+                format!("termite::{data_type}", data_type = self.data_type)
+            } else {
+                self.data_type.clone()
+            };
+
         // Create the constraints description
         let constraints = self
             .constraints
@@ -123,7 +130,6 @@ impl ConstrainedType {
             {0:indent$}{data_type} value_;
             }};",
             "",
-            data_type = self.data_type,
         );
     }
 
@@ -135,6 +141,13 @@ impl ConstrainedType {
     ///
     /// indent: The number of spaces to use for indentation
     pub(super) fn get_definition_source(&self, name: &str, indent: usize) -> String {
+        let data_type =
+            if ["string", "number", "integer", "boolean"].contains(&self.data_type.as_str()) {
+                format!("termite::{data_type}", data_type = self.data_type)
+            } else {
+                self.data_type.clone()
+            };
+
         // Create the tests
         let tests = self.constraints.iter()
             .map(|constraint| formatdoc!("
@@ -185,7 +198,6 @@ impl ConstrainedType {
             {tests}{0:indent$}return termite::Result<termite::Empty>::ok(termite::Empty());
             }}",
             "",
-            data_type = self.data_type,
         );
     }
 

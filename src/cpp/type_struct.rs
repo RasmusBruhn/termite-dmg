@@ -299,11 +299,17 @@ impl StructField {
 
     /// Constructs the c++ typename of this field
     fn get_typename(&self) -> String {
+        let data_type = if ["string", "number", "integer", "boolean"].contains(&self.data_type.as_str()) {
+            format!("termite::{data_type}", data_type = self.data_type)
+        } else {
+            self.data_type.clone()
+        };
+
         return match &self.default {
             DefaultType::Optional => {
-                format!("std::optional<{data_type}>", data_type = self.data_type,)
+                format!("std::optional<{data_type}>")
             }
-            _ => self.data_type.clone(),
+            _ => data_type,
         };
     }
 

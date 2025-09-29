@@ -29,7 +29,18 @@ impl Variant {
     /// indent: The number of spaces to use for indentation
     pub(super) fn get_definition_header(&self, name: &str, indent: usize) -> String {
         // Create list of the variants
-        let variant_list = self.data_types.join(", ");
+        let variant_list = self
+            .data_types
+            .iter()
+            .map(|data_type| {
+                if ["string", "number", "integer", "boolean"].contains(&data_type.as_str()) {
+                    format!("termite::{data_type}")
+                } else {
+                    data_type.clone()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join(", ");
 
         return formatdoc!(
             "
@@ -90,6 +101,13 @@ impl Variant {
             .iter()
             .enumerate()
             .map(|(index, data_type)| {
+                let data_type =
+                    if ["string", "number", "integer", "boolean"].contains(&data_type.as_str()) {
+                        format!("termite::{data_type}")
+                    } else {
+                        data_type.clone()
+                    };
+
                 formatdoc!(
                     "
                     {0:indent$}case {index}:

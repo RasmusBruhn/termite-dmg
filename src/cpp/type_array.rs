@@ -28,6 +28,13 @@ impl Array {
     ///
     /// indent: The number of spaces to use for indentation
     pub(super) fn get_definition_header(&self, name: &str, indent: usize) -> String {
+        let data_type =
+            if ["string", "number", "integer", "boolean"].contains(&self.data_type.as_str()) {
+                format!("termite::{data_type}", data_type = self.data_type)
+            } else {
+                self.data_type.clone()
+            };
+
         return formatdoc!("
             struct {name} {{
             public:
@@ -36,7 +43,7 @@ impl Array {
             {0:indent$} * 
             {0:indent$} * @param values The values of the array
             {0:indent$} */
-            {0:indent$}explicit {name}(std::vector<{typename}> values) : values(std::move(values)) {{}}
+            {0:indent$}explicit {name}(std::vector<{data_type}> values) : values(std::move(values)) {{}}
 
             {0:indent$}/**
             {0:indent$} * @brief Checks if this object and the other object are identical
@@ -67,10 +74,9 @@ impl Array {
             {0:indent$} * @brief The values of the array
             {0:indent$} * 
             {0:indent$} */
-            {0:indent$}std::vector<{typename}> values;
+            {0:indent$}std::vector<{data_type}> values;
             }};",
             "",
-            typename = self.data_type,
         );
     }
 
