@@ -22,6 +22,17 @@ with each object in the map referering to the string to add as header/footer for
 the file refered to by the key. Currently the only supported keys are
 "cpp-header" and "cpp-source" for the generated ".h" and ".cpp" files.
 
+A namespace can be defined as a list of strings defining the nested namespace,
+this is only used in c++.
+
+A list of macros can also be defined, these maps a string to a yaml or json
+structure (string, map or list). Inside any default value definition or a header
+or footer, if any string is encased in dollar signs then the value is used as
+the key to find the corresponding macro which is inserted in its place, this
+also works recursively. A map or list macro can only be inserted if the macro
+definition is the only thing in the header or default value while a string can
+be inserted anywhere.
+
 A data type must be given a "name", type specific "data", and optionally a
 "description". The type specific data defines how the type is implemented and may
 be types like structs, enums or arrays.
@@ -117,6 +128,9 @@ as "termite-yaml.h" and "termite-yaml.cpp" respectively.
 To enable JSON support use the get_json_interface function to get the strings of
 the JSON interface .h and .cpp files. These must be saved on the compiler path
 as "termite-json.h" and "termite-json.cpp" respectively.
+
+To generate the schema generation run the run the .export_schema method to
+receive the JSON object with the schema.
 
 ## Examples
 
