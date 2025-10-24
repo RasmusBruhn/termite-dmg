@@ -433,4 +433,10 @@ pub enum ErrorCore {
     /// A partial macro insertion can only have a string value
     #[error("The partial macro insertion of \"{}\" in \"{}\" must be a string", .0, .1)]
     PartialMacro(String, String),
+    /// A header macro insertion can only have a string value
+    #[error("The macro insertion in the header \"{}\" must be a string", .0)]
+    HeaderMacro(String),
+    /// A footer macro insertion can only have a string value
+    #[error("The macro insertion in the footer \"{}\" must be a string", .0)]
+    FooterMacro(String),
 }

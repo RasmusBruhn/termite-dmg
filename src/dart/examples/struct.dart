@@ -11,7 +11,7 @@ class Struct {
   integer valueRequired;
 
   /// Description for [valueDefault]
-  boolean valueDefault = false;
+  late boolean valueDefault;
 
   /// Description for [valueOptional]
   number? valueOptional;
