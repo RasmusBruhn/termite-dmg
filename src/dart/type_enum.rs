@@ -90,7 +90,7 @@ impl data_model::EnumType {
         return if let Some(data_type) = self.data_type.as_ref() {
             formatdoc!(
                 "
-                {description}struct {enum_name}Type{name} extends {enum_name} {{
+                {description}class {enum_name}Type{name} extends {enum_name} {{
                 {0:indent$}{data_type} value;
 
                 {0:indent$}{enum_name}Type{name}._(this.value);
@@ -109,7 +109,7 @@ impl data_model::EnumType {
         } else {
             formatdoc!(
                 "
-                {description}struct {enum_name}Type{name} extends {enum_name} {{
+                {description}class {enum_name}Type{name} extends {enum_name} {{
                 {0:indent$}{enum_name}Type{name}._();
 
                 {0:indent$}@override
