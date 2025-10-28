@@ -606,7 +606,12 @@ impl data_model::ConstrainedType {
         let ref_keyword = is_schema_type(&self.data_type, custom_types, dependencies)?;
 
         // Get the list of constraints
-        let constraints = self.constraints.join(", ");
+        let constraints = self
+            .constraints
+            .iter()
+            .map(|constraint| constraint.export_schema())
+            .collect::<Vec<_>>()
+            .join(", ");
 
         // Create the schema
         let mut schema = jzon::object::Object::new();
@@ -635,6 +640,16 @@ impl data_model::ConstrainedType {
         custom_types: &HashMap<String, data_model::DataType>,
     ) -> Result<JsonValue, Error> {
         return to_json(value, &self.data_type, custom_types);
+    }
+}
+
+impl data_model::Constraint {
+    /// Creates a JSON schema from the constrained type
+    pub fn export_schema(&self) -> String {
+        return match self {
+            Self::Arithmetic(value) => value.clone(),
+            Self::Function(value) => format!("{value}(x)"),
+        };
     }
 }
 

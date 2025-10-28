@@ -14,19 +14,26 @@ impl data_model::ConstrainedType {
         let constraints = self
             .constraints
             .iter()
-            .map(|constraint| format!("- {constraint}"))
+            .map(|constraint| {
+                return format!("- {constraint}", constraint = constraint.get_dart());
+            })
             .collect::<Vec<_>>()
             .join(&format!("\n{0:indent$}/// ", ""));
 
         let validation = self
             .constraints
             .iter()
-            .map(|constraint| formatdoc!("
+            .map(|constraint| {
+                formatdoc!(
+                    "
                     if (!({constraint})) {{
                     {0:indent$}{0:indent$}{0:indent$}return termite.Result.error('{constraint}', '');
                     {0:indent$}{0:indent$}}}",
-                "")
-            ).collect::<Vec<_>>()
+                    "",
+                    constraint = constraint.get_dart(),
+                )
+            })
+            .collect::<Vec<_>>()
             .join(&format!("\n\n{0:indent$}{0:indent$}", ""));
 
         return formatdoc!("
@@ -95,5 +102,17 @@ impl data_model::ConstrainedType {
             "",
             data_type = &self.data_type,
         );
+    }
+}
+
+impl data_model::Constraint {
+    /// Converts the constraint to a Dart expression
+    pub fn get_dart(&self) -> String {
+        match self {
+            data_model::Constraint::Arithmetic(value) => value.clone(),
+            data_model::Constraint::Function(value) => {
+                format!("{value}(x)", value = value.replace("::", "."))
+            }
+        }
     }
 }

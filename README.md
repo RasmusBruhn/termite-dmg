@@ -145,7 +145,7 @@ let yaml_model = formatdoc!("
     data: !ConstrainedType
       data_type: number
       constraints:
-      - x > 0.0
+      - !Arithmetic x > 0.0
   - name: Point
     description: A point in 2D space
     data: !Struct

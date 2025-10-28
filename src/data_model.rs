@@ -186,7 +186,17 @@ pub struct ConstrainedType {
     pub data_type: String,
     /// All extra constraints for the type, must be written as an expression where
     /// the constrained value is denoted x
-    pub constraints: Vec<String>,
+    pub constraints: Vec<Constraint>,
+}
+
+/// Defines a single constraint
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+pub enum Constraint {
+    /// Any constraint using c-like arithmetic, must result in a boolean value
+    Arithmetic(String),
+    /// Name of a function to call f_name(x), must return a boolean value, the
+    /// name must be a C++ style with possible namespaces
+    Function(String),
 }
 
 /// Describes whether a field is required or optional
