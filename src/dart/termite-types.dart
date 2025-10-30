@@ -1,7 +1,9 @@
-/// @file termite_types.dart
+/// @file termite-types.dart
 /// @brief The Dart Termite Data Model Generator helper code which implements JSON Schema types in Dart
 /// @version 0.7.0
-/// @date 2025-10-20
+/// @date 2025-10-30
+// ignore_for_file: file_names
+
 library;
 
 // ignore_for_file: camel_case_types
