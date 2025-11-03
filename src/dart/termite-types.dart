@@ -28,13 +28,19 @@ extension TermiteNodeParserboolean on boolean {
     if (node is! Value) {
       return Result.error(
         'Unable to parse ${node.runtimeType} as a boolean',
-        "",
+        '',
       );
     }
 
+    if (node.value == '0') {
+      return Result.ok(false);
+    }
+    if (node.value == '1') {
+      return Result.ok(true);
+    }
     final parsed = boolean.tryParse(node.value, caseSensitive: false);
     if (parsed == null) {
-      return Result.error('Unable to parse boolean from "${node.value}"', "");
+      return Result.error('Unable to parse boolean from "${node.value}"', '');
     }
     return Result.ok(parsed);
   }
@@ -53,13 +59,13 @@ extension TermiteNodeParserinteger on integer {
     if (node is! Value) {
       return Result.error(
         'Unable to parse ${node.runtimeType} as an integer',
-        "",
+        '',
       );
     }
 
     final parsed = integer.tryParse(node.value);
     if (parsed == null) {
-      return Result.error('Unable to parse integer from "${node.value}"', "");
+      return Result.error('Unable to parse integer from "${node.value}"', '');
     }
     return Result.ok(parsed);
   }
@@ -78,13 +84,13 @@ extension TermiteNodeParsernumber on number {
     if (node is! Value) {
       return Result.error(
         'Unable to parse ${node.runtimeType} as a number',
-        "",
+        '',
       );
     }
 
     final parsed = number.tryParse(node.value);
     if (parsed == null) {
-      return Result.error('Unable to parse number from "${node.value}"', "");
+      return Result.error('Unable to parse number from "${node.value}"', '');
     }
     return Result.ok(parsed);
   }
@@ -103,7 +109,7 @@ extension TermiteNodeParserstring on string {
     if (node is! Value) {
       return Result.error(
         'Unable to parse ${node.runtimeType} as a string',
-        "",
+        '',
       );
     }
 
