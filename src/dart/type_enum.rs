@@ -57,7 +57,7 @@ impl data_model::Enum {
             {0:indent$}{0:indent$}{0:indent$}return termite.Result.error('Unable to parse ${{node.runtimeType}} as a {name}', '');
             {0:indent$}{0:indent$}}} else if (node is termite.Mapping) {{
             {0:indent$}{0:indent$}{0:indent$}if (node.map.length != 1) {{
-            {0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.error('Unable to parse a Mapping with more or less than 1 entry as a {name}', '');
+            {0:indent$}{0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('Unable to parse a Mapping with more or less than 1 entry as a {name}', '');
             {0:indent$}{0:indent$}{0:indent$}}}
             {0:indent$}{0:indent$}{0:indent$}id = node.map.keys.first;
             {0:indent$}{0:indent$}}} else {{
@@ -182,7 +182,7 @@ impl data_model::EnumType {
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}final newResult = (result as termite.Error).addField('{name}');
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.error(newResult.error, newResult.location);
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}}}
-                {0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.error('{enum_name} type has data and cannot be constructed from a value', '.{name}');",
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('{enum_name} type has data and cannot be constructed from a value', '.{name}');",
                 "",
                 name = self.name,
             )
@@ -193,7 +193,7 @@ impl data_model::EnumType {
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}if (node is termite.Value) {{
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.ok({enum_name}.new{name}());
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}}}
-                {0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.error('{enum_name} type has no data and cannot be constructed from a mapping', '.{name}');",
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('{enum_name} type has no data and cannot be constructed from a mapping', '.{name}');",
                 "",
                 name = self.name,
             )

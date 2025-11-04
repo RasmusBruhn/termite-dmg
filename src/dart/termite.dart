@@ -130,7 +130,7 @@ class Sequence extends Node {
     if (value is List<dynamic>) {
       return Result.ok(Sequence._(value.map((e) => Node.parse(e)).toList()));
     }
-    return Result.error('Invalid sequence', '');
+    return const Result.error('Invalid sequence', '');
   }
 
   @override
@@ -159,7 +159,7 @@ class Mapping extends Node {
         Mapping._(value.map((key, value) => MapEntry(key, Node.parse(value)))),
       );
     }
-    return Result.error('Invalid mapping', '');
+    return const Result.error('Invalid mapping', '');
   }
 
   @override

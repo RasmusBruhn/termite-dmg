@@ -264,7 +264,7 @@ impl data_model::StructField {
             data_model::DefaultType::Required => {
                 formatdoc!("
                     if (!node.map.containsKey('{name}')) {{
-                    {0:indent$}{0:indent$}{0:indent$}return termite.Result.error('Missing field \"{name}\"', '');
+                    {0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('Missing field \"{name}\"', '');
                     {0:indent$}{0:indent$}}}
                     {0:indent$}{0:indent$}final termite.Result<{data_type}> __{name} = TermiteNodeParser{data_type}.fromNode(node.map['{name}']!);
                     {0:indent$}{0:indent$}if (__{name} is termite.Error<{data_type}>) {{

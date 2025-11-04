@@ -27,7 +27,7 @@ impl data_model::ConstrainedType {
                 formatdoc!(
                     "
                     if (!({constraint})) {{
-                    {0:indent$}{0:indent$}{0:indent$}return termite.Result.error('{constraint}', '');
+                    {0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('{constraint}', '');
                     {0:indent$}{0:indent$}}}",
                     "",
                     constraint = constraint.get_dart(),
@@ -80,7 +80,7 @@ impl data_model::ConstrainedType {
             {0:indent$}static termite.Result<void> validate({data_type} x) {{
             {0:indent$}{0:indent$}{validation}
 
-            {0:indent$}{0:indent$}return termite.Result.ok(null);
+            {0:indent$}{0:indent$}return const termite.Result.ok(null);
             {0:indent$}}}
 
             {0:indent$}@override

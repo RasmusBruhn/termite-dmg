@@ -33,10 +33,10 @@ extension TermiteNodeParserboolean on boolean {
     }
 
     if (node.value == '0') {
-      return Result.ok(false);
+      return const Result.ok(false);
     }
     if (node.value == '1') {
-      return Result.ok(true);
+      return const Result.ok(true);
     }
     final parsed = boolean.tryParse(node.value, caseSensitive: false);
     if (parsed == null) {
