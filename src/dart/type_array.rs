@@ -42,7 +42,8 @@ impl data_model::Array {
             {0:indent$}{0:indent$}termite.Result<List<{data_type}>> values = node.values
             {0:indent$}{0:indent$}{0:indent$}.map((node) => TermiteNodeParser{data_type}.fromNode(node))
             {0:indent$}{0:indent$}{0:indent$}.indexed
-            {0:indent$}{0:indent$}{0:indent$}.fold(const termite.Result.ok([]), (acc, result) {{
+            {0:indent$}{0:indent$}{0:indent$}// ignore: prefer_const_constructors
+            {0:indent$}{0:indent$}{0:indent$}.fold(termite.Result.ok([]), (acc, result) {{
             {0:indent$}{0:indent$}{0:indent$}{0:indent$}if (acc is termite.Error) return acc;
             {0:indent$}{0:indent$}{0:indent$}{0:indent$}if (result.$2 is termite.Error) {{
             {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}final newError = (result.$2 as termite.Error).addIndex('${{result.$1}}');
