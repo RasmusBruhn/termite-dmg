@@ -16,6 +16,16 @@ sealed class Result<T> {
 
   /// Creates an error [Result], completed with the specified error [error] at the location [location].
   const factory Result.error(String error, String location) = Error._;
+
+  /// Returns the [Ok] value, exeption is thrown if this is an [Error].
+  T asOk() {
+    return (this as Ok<T>).value;
+  }
+
+  /// Returns the [Error], exeption is thrown if this is an [Ok].
+  Error<T> asError() {
+    return this as Error<T>;
+  }
 }
 
 /// A successful [Result] with a returned value [value].
