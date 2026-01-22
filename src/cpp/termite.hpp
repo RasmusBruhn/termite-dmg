@@ -11,6 +11,7 @@
 #define TERMITE_H_INCLUDED
 
 #include <algorithm>
+#include <cstdint>
 #include <iostream>
 #include <map>
 #include <memory>
@@ -18,7 +19,6 @@
 #include <string>
 #include <variant>
 #include <vector>
-#include <cstdint>
 
 namespace termite {
 
@@ -384,24 +384,11 @@ public:
   class Value {
   public:
     /**
-     * @brief Constructs a new node value with trimmed input
+     * @brief Constructs a new node value
      *
      * @param value The value of this node
      */
-    explicit Value(std::string value) {
-      // Trim the value
-      value.erase(value.begin(), std::find_if(value.begin(), value.end(),
-                                              [](unsigned char ch) {
-                                                return !std::isspace(ch);
-                                              }));
-      value.erase(
-          std::find_if(value.rbegin(), value.rend(),
-                       [](unsigned char ch) { return !std::isspace(ch); })
-              .base(),
-          value.end());
-
-      value_ = std::move(value);
-    }
+    explicit Value(std::string value) : value_(std::move(value)) {}
 
     /**
      * @brief Retrieves the value
@@ -443,11 +430,31 @@ public:
           return Result<T>::ok(false);
         }
         return Result<T>::err(Error("Unable to parse"));
+      } else if constexpr (std::is_same_v<T, std::string>) {
+        // Just return the string
+        return Result<T>::ok(value_);
       } else {
         // Create the value
         std::istringstream ss(value_);
         T output;
         ss >> output;
+
+        if (ss.fail() || !ss.eof()) {
+          // Trim the value
+          std::string value = value_;
+          value.erase(value.begin(), std::find_if(value.begin(), value.end(),
+                                                  [](unsigned char ch) {
+                                                    return !std::isspace(ch);
+                                                  }));
+          value.erase(
+              std::find_if(value.rbegin(), value.rend(),
+                           [](unsigned char ch) { return !std::isspace(ch); })
+                  .base(),
+              value.end());
+
+          ss = std::istringstream(value);
+          ss >> output;
+        }
 
         // Make sure it did not fail
         if (ss.fail()) {
