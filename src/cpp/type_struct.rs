@@ -643,7 +643,7 @@ fn serialization_to_termite_node(
                 .join("\n");
 
             format!(
-                "termite::Node(termite::Node::Map(std::map<std::string, termite::Node>({{\n{entries}\n{0:indent$}}})))",
+                "termite::Node(termite::Node::Map(std::map<std::string, termite::Node>({{\n{entries}\n{0:total_indent$}}})))",
                 ""
             )
         }
@@ -661,7 +661,7 @@ fn serialization_to_termite_node(
                 .join("\n");
 
             format!(
-                "termite::Node(termite::Node::List(std::vector<termite::Node>{{\n{elements}\n{0:indent$}}}))",
+                "termite::Node(termite::Node::List(std::vector<termite::Node>{{\n{elements}\n{0:total_indent$}}}))",
                 ""
             )
         }
