@@ -16,6 +16,7 @@
 #include <map>
 #include <memory>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <variant>
 #include <vector>
@@ -296,7 +297,7 @@ public:
     if (!is_ok()) {
       std::stringstream ss;
       ss << "Result is error: \"" << get_err() << "\"";
-      throw std::exception(ss.str());
+      throw std::runtime_error(ss.str());
     }
   }
   /**
@@ -350,9 +351,8 @@ public:
   operator<<(std::ostream &os, const Result &result) {
     if (result.is_ok()) {
       return os << "Ok ( " << std::get<T>(result.value_) << " )";
-    } else {
-      return os << "Err ( " << std::get<Error>(result.value_) << " )";
     }
+    return os << "Err ( " << std::get<Error>(result.value_) << " )";
   }
 
 private:
@@ -362,7 +362,7 @@ private:
    * @param value The value of the result
    * @param is_ok true if the value is ok, false if it is err
    */
-  Result(std::variant<T, Error> value) : value_(value) {}
+  explicit Result(std::variant<T, Error> value) : value_(value) {}
 
   /**
    * @brief The value of the result, is_ok_ describes how to interpret it
