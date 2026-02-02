@@ -299,11 +299,12 @@ impl StructField {
 
     /// Constructs the c++ typename of this field
     fn get_typename(&self) -> String {
-        let data_type = if ["string", "number", "integer", "boolean"].contains(&self.data_type.as_str()) {
-            format!("termite::{data_type}", data_type = self.data_type)
-        } else {
-            self.data_type.clone()
-        };
+        let data_type =
+            if ["string", "number", "integer", "boolean"].contains(&self.data_type.as_str()) {
+                format!("termite::{data_type}", data_type = self.data_type)
+            } else {
+                self.data_type.clone()
+            };
 
         return match &self.default {
             DefaultType::Optional => {
@@ -396,15 +397,16 @@ impl StructField {
             DefaultType::Default(default_value) => formatdoc!(
                 "
                 \n[[nodiscard]] {typename} {main_name}::default_{snake_case}() {{
-                {0:indent$}auto node = {default_value};
+                {default_value}
 
-                {0:indent$}return node.to_value<{typename}>().get_ok();
+                {0:indent$}return default_value.to_value<{typename}>().get_ok();
                 }}\n",
                 "",
                 typename = self.get_typename(),
                 snake_case = ToSnakeCase::new(&mut self.name.chars()).collect::<String>(),
                 default_value = serialization_to_termite_node(
                     &data_model::expand_macros(default_value, macros, &mut HashSet::new())?,
+                    "default_value",
                     indent,
                     indent
                 ),
@@ -609,6 +611,11 @@ impl StructField {
     }
 }
 
+/// Sanitizes a string for use in c++ code
+///
+/// # Parameters
+///
+/// value: The string to sanitize
 fn string_sanitize(value: &str) -> String {
     return value
         .replace("\n", "\\n")
@@ -620,8 +627,20 @@ fn string_sanitize(value: &str) -> String {
         .replace("\0", "\\0");
 }
 
+/// Converts a serialization model to c++ code which constructs a termite::Node
+///
+/// # Parameters
+///
+/// value: The serialization model to convert
+///
+/// name: The base name of the temporary variables to construct
+///
+/// indent: The indentation to use for each level
+///
+/// total_indent: The total indentation to use for this level
 fn serialization_to_termite_node(
     value: &data_model::SerializationModel,
+    name: &str,
     indent: usize,
     total_indent: usize,
 ) -> String {
@@ -629,46 +648,71 @@ fn serialization_to_termite_node(
 
     return match value {
         data_model::SerializationModel::Map(value) => {
-            let entries = value
+            let (temp_values, entries) = value
                 .iter()
-                .map(|(key, value)| {
-                    format!(
-                        "{0:next_indent$}{{\"{key}\", {value}}},",
+                .enumerate()
+                .map(|(index, (key, value))| {
+                    // Construct temporary value for the value
+                    let temp_name = format!("{name}_{index}");
+                    let temp_value =
+                        serialization_to_termite_node(value, &temp_name, indent, total_indent);
+
+                    // Construct the entry
+                    let entry = format!(
+                        "{0:next_indent$}{{\"{key}\", {temp_name}}},",
                         "",
                         key = string_sanitize(key),
-                        value = serialization_to_termite_node(value, indent, next_indent)
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join("\n");
+                    );
 
-            format!(
-                "termite::Node(termite::Node::Map(std::map<std::string, termite::Node>({{\n{entries}\n{0:total_indent$}}})))",
+                    return (temp_value, entry);
+                })
+                .collect::<(Vec<_>, Vec<_>)>();
+
+            let entries = entries.join("\n");
+            let temp_values = temp_values.join("\n");
+
+            formatdoc!("
+                {temp_values}
+                {0:total_indent$}auto {name} = termite::Node(termite::Node::Map(std::map<std::string, termite::Node>({{
+                {entries}
+                {0:total_indent$}}})));",
                 ""
             )
         }
         data_model::SerializationModel::Array(ref value) => {
-            let elements = value
+            let (temp_values, entries) = value
                 .iter()
-                .map(|element| {
-                    format!(
-                        "{0:next_indent$}{element},",
-                        "",
-                        element = serialization_to_termite_node(element, indent, next_indent)
-                    )
-                })
-                .collect::<Vec<_>>()
-                .join("\n");
+                .enumerate()
+                .map(|(index, element)| {
+                    // Construct temporary value for the value
+                    let temp_name = format!("{name}_{index}");
+                    let temp_value =
+                        serialization_to_termite_node(element, &temp_name, indent, total_indent);
 
-            format!(
-                "termite::Node(termite::Node::List(std::vector<termite::Node>{{\n{elements}\n{0:total_indent$}}}))",
+                    // Construct the entry
+                    let entry = format!("{0:next_indent$}{temp_name},", "");
+
+                    return (temp_value, entry);
+                })
+                .collect::<(Vec<_>, Vec<_>)>();
+
+            let entries = entries.join("\n");
+            let temp_values = temp_values.join("\n");
+
+            formatdoc!("
+                {temp_values}
+                {0:total_indent$}auto {name} = termite::Node(termite::Node::List(std::vector<termite::Node>({{
+                {entries}
+                {0:total_indent$}}})));",
                 ""
             )
         }
         data_model::SerializationModel::Value(ref value) => {
-            format!(
-                "termite::Node(termite::Node::Value(\"{}\"))",
-                string_sanitize(value)
+            formatdoc!(
+                "
+                {0:total_indent$}auto {name} = termite::Node(termite::Node::Value(\"{value}\"));",
+                "",
+                value = string_sanitize(value),
             )
         }
     };
@@ -973,14 +1017,16 @@ mod tests {
                     }),
                 }],
                 namespace: vec!["test".to_string()],
-                macros: HashMap::from([("MACRO".to_string(), SerializationModel::Value("1".to_string()))]),
+                macros: HashMap::from([(
+                    "MACRO".to_string(),
+                    SerializationModel::Value("1".to_string()),
+                )]),
             };
 
             // Create the header file
             let header_file = data_model.get_header("HEADER", 2).unwrap();
             let source_file = data_model.get_source("macros", 2).unwrap();
-            let expected_header =
-                include_str!("../../tests/cpp/type_struct/field/macros/macros.h");
+            let expected_header = include_str!("../../tests/cpp/type_struct/field/macros/macros.h");
             let expected_source =
                 include_str!("../../tests/cpp/type_struct/field/macros/macros.cpp");
             //println!("header:\n{header_file}\n---\n");
