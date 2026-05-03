@@ -315,6 +315,18 @@ name: Another name
 
 ## Changelog
 
+### 0.7.0
+
+#### Major changes
+
+- Added Dart code generation to the data model
+- Changed ConstrainedType to be more generalizable, this means that all previous
+  data models using constrained type should be updated
+
+#### Minor changes
+
+- Fixed some issues in the c++ code generation causing compile errors in gcc
+
 ### 0.6.0
 
 #### Major changes
