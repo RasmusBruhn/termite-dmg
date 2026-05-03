@@ -165,11 +165,12 @@ std::ostream &operator<<(std::ostream &os, const State &x) {
 }
 
 [[nodiscard]] State DefaultValues::default_state() {
-  auto node = termite::Node(termite::Node::Map({
-    {"Edge", termite::Node(termite::Node::Value("1"))},
-  }));
+  auto default_value_0 = termite::Node(termite::Node::Value("1"));
+  auto default_value = termite::Node(termite::Node::Map(std::map<std::string, termite::Node>({
+    {"Edge", default_value_0},
+  })));
 
-  return node.to_value<State>().get_ok();
+  return default_value.to_value<State>().get_ok();
 }
 
 std::ostream &operator<<(std::ostream &os, const DefaultValues &x) {
@@ -254,9 +255,9 @@ std::ostream &operator<<(std::ostream &os, const GeometryList &x) {
 }
 
 [[nodiscard]] VersionString DataModel::default_version() {
-  auto node = termite::Node(termite::Node::Value("1.0.0"));
+  auto default_value = termite::Node(termite::Node::Value("1.0.0"));
 
-  return node.to_value<VersionString>().get_ok();
+  return default_value.to_value<VersionString>().get_ok();
 }
 
 std::ostream &operator<<(std::ostream &os, const DataModel &x) {

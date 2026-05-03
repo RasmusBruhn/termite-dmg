@@ -3,7 +3,7 @@
 //! includes the ability to create a header file, (de)serialization and
 //! documentation.
 //!
-//! For any data model to work the termite dependency must be generatred from
+//! For any data model to work the termite dependency must be generated from
 //! get_termite_dependency() and be saved as "termite.hpp" at a location where
 //! it can be included as "#include <termite.hpp>"
 //!
@@ -1213,8 +1213,8 @@ mod tests {
         let source_file = data_model.get_source("full_example", 2).unwrap();
         let expected_header = include_str!("../../tests/cpp/full_example/full_example.h");
         let expected_source = include_str!("../../tests/cpp/full_example/full_example.cpp");
-        //std::fs::write("tests/cpp/full_example/full_example.h", &header_file).unwrap();
-        //std::fs::write("tests/cpp/full_example/full_example.cpp", &source_file).unwrap();
+        //std::fs::write("tests/cpp/full_example/build/full_example.h", &header_file).unwrap();
+        //std::fs::write("tests/cpp/full_example/build/full_example.cpp", &source_file).unwrap();
 
         // Check that they are the same
         assert_eq!(str_diff(&header_file, &expected_header), None);

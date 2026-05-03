@@ -10,13 +10,13 @@ data_types:
   data: !ConstrainedType
     data_type: String
     constraints:
-    - custom::is_valid_version_string(x)
+    - !Function custom::is_valid_version_string
 - name: SizeValue
   description: A single size value
   data: !ConstrainedType
     data_type: int
     constraints:
-    - x > 0
+    - !Arithmetic x > 0
 - name: Size
   description: The size of a geometry
   data: !Struct

@@ -17,9 +17,18 @@ impl ConstrainedType {
     ///
     /// data: The generic variant to convert
     pub(super) fn new(data: crate::ConstrainedType) -> Result<Self, Error> {
+        let constraints = data
+            .constraints
+            .iter()
+            .map(|constraint| match constraint {
+                crate::Constraint::Arithmetic(value) => value.clone(),
+                crate::Constraint::Function(value) => format!("{value}(x)"),
+            })
+            .collect::<Vec<String>>();
+
         return Ok(Self {
             data_type: data.data_type,
-            constraints: data.constraints,
+            constraints,
         });
     }
 

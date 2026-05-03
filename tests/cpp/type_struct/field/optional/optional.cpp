@@ -43,9 +43,9 @@ operator<<(std::ostream &os, const std::vector<T> &value) {
 }
 
 [[nodiscard]] int DataType::default_field1() {
-  auto node = termite::Node(termite::Node::Value("1"));
+  auto default_value = termite::Node(termite::Node::Value("1"));
 
-  return node.to_value<int>().get_ok();
+  return default_value.to_value<int>().get_ok();
 }
 
 [[nodiscard]] std::optional<float> DataType::default_field2() {
