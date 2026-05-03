@@ -760,35 +760,6 @@ pub(crate) mod test_utils {
     use super::DataModel;
     use std::{fs, path, process};
 
-    pub(crate) fn str_diff(lhs: &str, rhs: &str) -> Option<(usize, String, String)> {
-        if let Some(error) = lhs
-            .trim()
-            .lines()
-            .zip(rhs.trim().lines())
-            .enumerate()
-            .filter_map(|(index, (lhs, rhs))| {
-                return if lhs.trim() == rhs.trim() {
-                    None
-                } else {
-                    Some((index + 1, lhs.trim().to_string(), rhs.trim().to_string()))
-                };
-            })
-            .next()
-        {
-            return Some(error);
-        }
-
-        if lhs.trim().lines().count() != rhs.trim().lines().count() {
-            return Some((
-                0,
-                format!("{}", lhs.trim().lines().count()),
-                format!("{}", rhs.trim().lines().count()),
-            ));
-        }
-
-        return None;
-    }
-
     fn get_source_path(name: &str) -> path::PathBuf {
         // Get the filename
         let filename = path::Path::new(name).file_name().unwrap().to_str().unwrap();
@@ -876,22 +847,22 @@ pub(crate) mod test_utils {
         assert_eq!(test_output.status.code().expect("Unable to run test"), 0);
     }
 
-    pub(crate) fn run_test(name: &str, include_yaml: bool) {
+    pub(crate) fn run_test(
+        name: &str,
+        generate_model: bool,
+        include_yaml: bool,
+        include_json: bool,
+    ) {
         // Get the path to the test directory
         let test_name = path::Path::new(name).file_name().unwrap().to_str().unwrap();
         let test_path = path::Path::new("tests/cpp").join(name);
         let include_yaml = if include_yaml { "true" } else { "false" };
+        let include_json = if include_json { "true" } else { "false" };
         let termite_path = (0..(test_path.components().count() + 1))
             .map(|_| "..".to_string())
             .chain(vec!["src".to_string(), "cpp".to_string()].into_iter())
             .collect::<Vec<String>>()
             .join("/");
-
-        // Generate the code
-        let model_path = test_path.join(format!("{}_datamodel.yaml", test_name));
-        let yaml_model = std::fs::read_to_string(model_path).unwrap();
-        let model = crate::DataModel::import_yaml(&yaml_model).unwrap();
-        let data_model = DataModel::new(model).unwrap();
 
         // Construct the folder for the generated files
         let generated_path = test_path.join("generated");
@@ -899,13 +870,21 @@ pub(crate) mod test_utils {
             std::fs::create_dir(&generated_path).unwrap();
         }
 
-        // Create the header file
-        let header_path = generated_path.join(format!("{}.h", test_name));
-        let source_path = generated_path.join(format!("{}.cpp", test_name));
-        let header_file = data_model.get_header(&test_name.to_uppercase(), 2).unwrap();
-        let source_file = data_model.get_source(test_name, 2).unwrap();
-        std::fs::write(header_path, &header_file).unwrap();
-        std::fs::write(source_path, &source_file).unwrap();
+        // Generate the code
+        if generate_model {
+            let model_path = test_path.join(format!("{}_datamodel.yaml", test_name));
+            let yaml_model = std::fs::read_to_string(model_path).unwrap();
+            let model = crate::DataModel::import_yaml(&yaml_model).unwrap();
+            let data_model = DataModel::new(model).unwrap();
+
+            // Create the header file
+            let header_path = generated_path.join(format!("{}.h", test_name));
+            let source_path = generated_path.join(format!("{}.cpp", test_name));
+            let header_file = data_model.get_header(&test_name.to_uppercase(), 2).unwrap();
+            let source_file = data_model.get_source(test_name, 2).unwrap();
+            std::fs::write(header_path, &header_file).unwrap();
+            std::fs::write(source_path, &source_file).unwrap();
+        }
 
         // Create the cmake file
         let cmake_path = generated_path.join("CMakeLists.txt");
@@ -913,6 +892,7 @@ pub(crate) mod test_utils {
         let cmake_file = cmake_raw
             .replace("%%TEST_NAME%%", test_name)
             .replace("%%INCLUDE_YAML%%", include_yaml)
+            .replace("%%INCLUDE_JSON%%", include_json)
             .replace("%%TERMITE_PATH%%", &termite_path);
         std::fs::write(cmake_path, cmake_file).unwrap();
 
@@ -977,14 +957,14 @@ pub(crate) mod test_utils {
             process::Command::new("cmd")
                 .current_dir(&build_path)
                 .arg("/C")
-                .arg(".\\Debug\\full_example.exe")
+                .arg(format!(".\\Debug\\{}.exe", &test_name))
                 .output()
                 .expect("failed to test")
         } else {
             process::Command::new("sh")
                 .current_dir(&build_path)
                 .arg("-c")
-                .arg("./full_example")
+                .arg(format!("./{}", &test_name))
                 .output()
                 .expect("failed to test")
         };
@@ -995,234 +975,45 @@ pub(crate) mod test_utils {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::cpp::test_utils::*;
-    use std::process;
 
     #[test]
-    fn termite_basis() {
-        if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/termite")
-                .arg("/C")
-                .arg("mkdir build")
-                .output()
-                .expect("failed to compile");
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/termite")
-                .arg("-c")
-                .arg("mkdir build")
-                .output()
-                .expect("failed to compile");
-        };
+    fn termite() {
+        run_test("termite", false, false, false);
+    }
 
-        let compile_output = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/termite/build")
-                .arg("/C")
-                .arg("cmake ..")
-                .output()
-                .expect("failed to compile")
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/termite/build")
-                .arg("-c")
-                .arg("cmake ..")
-                .output()
-                .expect("failed to compile")
-        };
+    #[test]
+    fn termite_yaml() {
+        run_test("termite_yaml", false, true, false);
+    }
 
-        assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
-        assert_eq!(compile_output.stderr.len(), 0);
-
-        let compile_output2 = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/termite/build")
-                .arg("/C")
-                .arg("cmake --build .")
-                .output()
-                .expect("failed to compile")
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/termite/build")
-                .arg("-c")
-                .arg("cmake --build .")
-                .output()
-                .expect("failed to compile")
-        };
-
-        assert_eq!(compile_output2.status.code().expect("Unable to compile"), 0);
-        assert_eq!(compile_output2.stderr.len(), 0);
-
-        let test_output = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/termite/build")
-                .arg("/C")
-                .arg(".\\Debug\\termite.exe")
-                .output()
-                .expect("failed to test")
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/termite/build")
-                .arg("-c")
-                .arg("./termite")
-                .output()
-                .expect("failed to test")
-        };
-
-        assert_eq!(test_output.status.code().expect("Unable to run"), 0);
-
-        let test_output_yaml = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/termite/build")
-                .arg("/C")
-                .arg(".\\Debug\\termite-yaml.exe")
-                .output()
-                .expect("failed to test")
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/termite/build")
-                .arg("-c")
-                .arg("./termite-yaml")
-                .output()
-                .expect("failed to test")
-        };
-
-        assert_eq!(test_output_yaml.status.code().expect("Unable to run"), 0);
-
-        let test_output_json = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/termite/build")
-                .arg("/C")
-                .arg(".\\Debug\\termite-json.exe")
-                .output()
-                .expect("failed to test")
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/termite/build")
-                .arg("-c")
-                .arg("./termite-json")
-                .output()
-                .expect("failed to test")
-        };
-
-        assert_eq!(test_output_json.status.code().expect("Unable to run"), 0);
+    #[test]
+    fn termite_json() {
+        run_test("termite_json", false, false, true);
     }
 
     #[test]
     fn header() {
-        // Check c++ code
-        compile_and_test("header");
-
-        // Make sure it generates the correct code
-        let data_model = DataModel {
-            headers: Headers {
-                header: "// header header".to_string(),
-                source: "// header source".to_string(),
-            },
-            footers: Footers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            data_types: vec![],
-            namespace: vec![],
-            macros: HashMap::new(),
-        };
-
-        // Create the header file
-        let header_file = data_model.get_header("HEADER", 2).unwrap();
-        let source_file = data_model.get_source("header", 2).unwrap();
+        run_test("header", true, false, false);
     }
 
     #[test]
     fn footer() {
-        // Check c++ code
-        compile_and_test("footer");
-
-        // Make sure it generates the correct code
-        let data_model = DataModel {
-            headers: Headers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            footers: Footers {
-                header: "// footer header".to_string(),
-                source: "// footer source".to_string(),
-            },
-            data_types: vec![],
-            namespace: vec![],
-            macros: HashMap::new(),
-        };
-
-        // Create the header file
-        let header_file = data_model.get_header("HEADER", 2).unwrap();
-        let source_file = data_model.get_source("footer", 2).unwrap();
+        run_test("footer", true, false, false);
     }
 
     #[test]
     fn namespace() {
-        // Check c++ code
-        compile_and_test("namespace");
-
-        // Make sure it generates the correct code
-        let data_model = DataModel {
-            headers: Headers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            footers: Footers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            data_types: vec![],
-            namespace: vec!["test1".to_string(), "test2".to_string()],
-            macros: HashMap::new(),
-        };
-
-        // Create the header file
-        let header_file = data_model.get_header("HEADER", 2).unwrap();
-        let source_file = data_model.get_source("namespace", 2).unwrap();
+        run_test("namespace", true, false, false);
     }
 
     #[test]
     fn outline() {
-        // Check c++ code
-        compile_and_test("outline");
-
-        // Make sure it generates the correct code
-        let data_model = DataModel {
-            headers: Headers {
-                header: "// Header header".to_string(),
-                source: "// Header source".to_string(),
-            },
-            footers: Footers {
-                header: "// Footer header".to_string(),
-                source: "// Footer source".to_string(),
-            },
-            data_types: vec![
-                DataType {
-                    name: "DataType1".to_string(),
-                    description: Some("description1".to_string()),
-                    data: DataTypeData::Struct(Struct { fields: vec![] }),
-                },
-                DataType {
-                    name: "DataType2".to_string(),
-                    description: Some("description2".to_string()),
-                    data: DataTypeData::Struct(Struct { fields: vec![] }),
-                },
-            ],
-            namespace: vec!["test".to_string()],
-            macros: HashMap::new(),
-        };
-
-        // Create the header file
-        let header_file = data_model.get_header("HEADER", 2).unwrap();
-        let source_file = data_model.get_source("outline", 2).unwrap();
+        run_test("outline", true, false, false);
     }
 
     #[test]
     fn full_example() {
-        run_test("full_example", true);
+        run_test("full_example", true, true, false);
     }
 }

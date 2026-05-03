@@ -4,6 +4,21 @@ macros:
   VersionMajor: 1
   VersionMinor: 0
   VersionPatch: 0
+namespace:
+- test
+- name
+- space
+headers:
+  cpp-header: |
+    // This is my .h file
+    #include "custom.h"
+    #include <string>
+
+    using String = std::string;
+  cpp-source: // This is my .cpp file
+footers:
+  cpp-header: // This is the end of my .h file
+  cpp-source: // This is the end of my .cpp file
 data_types:
 - name: VersionString
   description: A string that represents a version number
@@ -120,18 +135,3 @@ data_types:
       description: A list of geometries
       data_type: GeometryList
       default: Required
-headers:
-  cpp-header: |
-    // This is my .h file
-    #include "custom.h"
-    #include <string>
-
-    using String = std::string;
-  cpp-source: // This is my .cpp file
-footers:
-  cpp-header: // This is the end of my .h file
-  cpp-source: // This is the end of my .cpp file
-namespace:
-- test
-- name
-- space

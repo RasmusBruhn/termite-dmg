@@ -13,13 +13,14 @@ endif()
 set(CMAKE_CXX_STANDARD 17)
 
 set(INCLUDE_YAML %%INCLUDE_YAML%%)
+set(INCLUDE_JSON %%INCLUDE_JSON%%)
 
 # Add the test executable
 file(GLOB GeneratedSRC
   "*.cpp"
 )
 
-add_executable(full_example
+add_executable(%%TEST_NAME%%
   ../%%TEST_NAME%%_test.cpp
   ${GeneratedSRC}
 )
@@ -45,5 +46,26 @@ if(NOT yaml-cpp_POPULATED)
 endif()
 
 target_sources(%%TEST_NAME%% PRIVATE %%TERMITE_PATH%%/termite-yaml.cpp)
-target_link_libraries(%%TEST_NAME%% PUBLIC yaml-cpp::yaml-cpp)
+target_link_libraries(%%TEST_NAME%% PRIVATE yaml-cpp::yaml-cpp)
+endif()
+
+# Add nlohmann-json
+if(INCLUDE_JSON)
+include(FetchContent)
+
+FetchContent_Declare(
+  json
+  GIT_REPOSITORY https://github.com/nlohmann/json
+  GIT_TAG v3.12.0
+)
+FetchContent_GetProperties(json)
+
+if(NOT json_POPULATED)
+  message(STATUS "Fetching json...")
+  FetchContent_Populate(json)
+  add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR})
+endif()
+
+target_sources(%%TEST_NAME%% PRIVATE %%TERMITE_PATH%%/termite-json.cpp)
+target_link_libraries(%%TEST_NAME%% PRIVATE nlohmann_json::nlohmann_json)
 endif()
