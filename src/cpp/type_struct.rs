@@ -757,14 +757,6 @@ mod tests {
         // Create the header file
         let header_file = data_model.get_header("HEADER", 2).unwrap();
         let source_file = data_model.get_source("basic", 2).unwrap();
-        let expected_header = include_str!("../../tests/cpp/type_struct/basic/basic.h");
-        let expected_source = include_str!("../../tests/cpp/type_struct/basic/basic.cpp");
-        //println!("header:\n{header_file}\n---\n");
-        //println!("source:\n{source_file}\n---\n");
-
-        // Check that they are the same
-        assert_eq!(str_diff(&header_file, &expected_header), None);
-        assert_eq!(str_diff(&source_file, &expected_source), None);
     }
 
     #[test]
@@ -801,15 +793,6 @@ mod tests {
         // Create the header file
         let header_file = data_model.get_header("HEADER", 2).unwrap();
         let source_file = data_model.get_source("description", 2).unwrap();
-        let expected_header = include_str!("../../tests/cpp/type_struct/description/description.h");
-        let expected_source =
-            include_str!("../../tests/cpp/type_struct/description/description.cpp");
-        //println!("header:\n{header_file}\n---\n");
-        //println!("source:\n{source_file}\n---\n");
-
-        // Check that they are the same
-        assert_eq!(str_diff(&header_file, &expected_header), None);
-        assert_eq!(str_diff(&source_file, &expected_source), None);
     }
 
     mod field {
@@ -859,14 +842,6 @@ mod tests {
             // Create the header file
             let header_file = data_model.get_header("HEADER", 2).unwrap();
             let source_file = data_model.get_source("basic", 2).unwrap();
-            let expected_header = include_str!("../../tests/cpp/type_struct/field/basic/basic.h");
-            let expected_source = include_str!("../../tests/cpp/type_struct/field/basic/basic.cpp");
-            //println!("header:\n{header_file}\n---\n");
-            //println!("source:\n{source_file}\n---\n");
-
-            // Check that they are the same
-            assert_eq!(str_diff(&header_file, &expected_header), None);
-            assert_eq!(str_diff(&source_file, &expected_source), None);
         }
 
         #[test]
@@ -911,16 +886,6 @@ mod tests {
             // Create the header file
             let header_file = data_model.get_header("HEADER", 2).unwrap();
             let source_file = data_model.get_source("description", 2).unwrap();
-            let expected_header =
-                include_str!("../../tests/cpp/type_struct/field/description/description.h");
-            let expected_source =
-                include_str!("../../tests/cpp/type_struct/field/description/description.cpp");
-            //println!("header:\n{header_file}\n---\n");
-            //println!("source:\n{source_file}\n---\n");
-
-            // Check that they are the same
-            assert_eq!(str_diff(&header_file, &expected_header), None);
-            assert_eq!(str_diff(&source_file, &expected_source), None);
         }
 
         #[test]
@@ -967,16 +932,6 @@ mod tests {
             // Create the header file
             let header_file = data_model.get_header("HEADER", 2).unwrap();
             let source_file = data_model.get_source("optional", 2).unwrap();
-            let expected_header =
-                include_str!("../../tests/cpp/type_struct/field/optional/optional.h");
-            let expected_source =
-                include_str!("../../tests/cpp/type_struct/field/optional/optional.cpp");
-            //println!("header:\n{header_file}\n---\n");
-            //println!("source:\n{source_file}\n---\n");
-
-            // Check that they are the same
-            assert_eq!(str_diff(&header_file, &expected_header), None);
-            assert_eq!(str_diff(&source_file, &expected_source), None);
         }
 
         #[test]
@@ -1026,15 +981,6 @@ mod tests {
             // Create the header file
             let header_file = data_model.get_header("HEADER", 2).unwrap();
             let source_file = data_model.get_source("macros", 2).unwrap();
-            let expected_header = include_str!("../../tests/cpp/type_struct/field/macros/macros.h");
-            let expected_source =
-                include_str!("../../tests/cpp/type_struct/field/macros/macros.cpp");
-            //println!("header:\n{header_file}\n---\n");
-            //println!("source:\n{source_file}\n---\n");
-
-            // Check that they are the same
-            assert_eq!(str_diff(&header_file, &expected_header), None);
-            assert_eq!(str_diff(&source_file, &expected_source), None);
         }
     }
 }

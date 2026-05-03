@@ -1,4 +1,4 @@
-#include "full_example.h"
+#include "generated/full_example.h"
 
 #include <iostream>
 #include <fstream>

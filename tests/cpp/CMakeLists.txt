@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Set the project name
-project (full_example)
+project (%%TEST_NAME%%)
 
 # Stop fetch content warning
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.30.0")
@@ -12,13 +12,23 @@ endif()
 # Set the c++ standard
 set(CMAKE_CXX_STANDARD 17)
 
-# Add an executables
-add_executable(full_example full_example_test.cpp full_example.cpp ../../../src/cpp/termite-yaml.cpp)
+set(INCLUDE_YAML %%INCLUDE_YAML%%)
+
+# Add the test executable
+file(GLOB GeneratedSRC
+  "*.cpp"
+)
+
+add_executable(full_example
+  ../%%TEST_NAME%%_test.cpp
+  ${GeneratedSRC}
+)
 
 # Add the hpp files
-target_include_directories(full_example PRIVATE ../../../src/cpp)
+target_include_directories(%%TEST_NAME%% PRIVATE . .. %%TERMITE_PATH%%)
 
 # Add yaml-cpp
+if(INCLUDE_YAML)
 include(FetchContent)
 
 FetchContent_Declare(
@@ -34,4 +44,6 @@ if(NOT yaml-cpp_POPULATED)
   add_subdirectory(${yaml-cpp_SOURCE_DIR} ${yaml-cpp_BINARY_DIR})
 endif()
 
-target_link_libraries(full_example PUBLIC yaml-cpp::yaml-cpp)
+target_sources(%%TEST_NAME%% PRIVATE %%TERMITE_PATH%%/termite-yaml.cpp)
+target_link_libraries(%%TEST_NAME%% PUBLIC yaml-cpp::yaml-cpp)
+endif()

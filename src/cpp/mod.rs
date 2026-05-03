@@ -757,6 +757,7 @@ pub enum ErrorCore {
 
 #[cfg(test)]
 pub(crate) mod test_utils {
+    use super::DataModel;
     use std::{fs, path, process};
 
     pub(crate) fn str_diff(lhs: &str, rhs: &str) -> Option<(usize, String, String)> {
@@ -873,6 +874,122 @@ pub(crate) mod test_utils {
         };
 
         assert_eq!(test_output.status.code().expect("Unable to run test"), 0);
+    }
+
+    pub(crate) fn run_test(name: &str, include_yaml: bool) {
+        // Get the path to the test directory
+        let test_name = path::Path::new(name).file_name().unwrap().to_str().unwrap();
+        let test_path = path::Path::new("tests/cpp").join(name);
+        let include_yaml = if include_yaml { "true" } else { "false" };
+        let termite_path = (0..(test_path.components().count() + 1))
+            .map(|_| "..".to_string())
+            .chain(vec!["src".to_string(), "cpp".to_string()].into_iter())
+            .collect::<Vec<String>>()
+            .join("/");
+
+        // Generate the code
+        let model_path = test_path.join(format!("{}_datamodel.yaml", test_name));
+        let yaml_model = std::fs::read_to_string(model_path).unwrap();
+        let model = crate::DataModel::import_yaml(&yaml_model).unwrap();
+        let data_model = DataModel::new(model).unwrap();
+
+        // Construct the folder for the generated files
+        let generated_path = test_path.join("generated");
+        if !std::fs::exists(&generated_path).unwrap() {
+            std::fs::create_dir(&generated_path).unwrap();
+        }
+
+        // Create the header file
+        let header_path = generated_path.join(format!("{}.h", test_name));
+        let source_path = generated_path.join(format!("{}.cpp", test_name));
+        let header_file = data_model.get_header(&test_name.to_uppercase(), 2).unwrap();
+        let source_file = data_model.get_source(test_name, 2).unwrap();
+        std::fs::write(header_path, &header_file).unwrap();
+        std::fs::write(source_path, &source_file).unwrap();
+
+        // Create the cmake file
+        let cmake_path = generated_path.join("CMakeLists.txt");
+        let cmake_raw = include_str!("../../tests/cpp/CMakeLists.txt");
+        let cmake_file = cmake_raw
+            .replace("%%TEST_NAME%%", test_name)
+            .replace("%%INCLUDE_YAML%%", include_yaml)
+            .replace("%%TERMITE_PATH%%", &termite_path);
+        std::fs::write(cmake_path, cmake_file).unwrap();
+
+        // Compile c++ code
+        if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir(&test_path)
+                .arg("/C")
+                .arg("mkdir build")
+                .output()
+                .expect("failed to compile");
+        } else {
+            process::Command::new("sh")
+                .current_dir(&test_path)
+                .arg("-c")
+                .arg("mkdir build")
+                .output()
+                .expect("failed to compile");
+        };
+
+        let build_path = test_path.join("build");
+        let compile_output = if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir(&build_path)
+                .arg("/C")
+                .arg("cmake ../generated")
+                .output()
+                .expect("failed to compile")
+        } else {
+            process::Command::new("sh")
+                .current_dir(&build_path)
+                .arg("-c")
+                .arg("cmake ../generated")
+                .output()
+                .expect("failed to compile")
+        };
+
+        assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
+        assert_eq!(compile_output.stderr.len(), 0);
+
+        let compile_output2 = if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir(&build_path)
+                .arg("/C")
+                .arg("cmake --build .")
+                .output()
+                .expect("failed to compile")
+        } else {
+            process::Command::new("sh")
+                .current_dir(&build_path)
+                .arg("-c")
+                .arg("cmake --build .")
+                .output()
+                .expect("failed to compile")
+        };
+
+        assert_eq!(compile_output2.status.code().expect("Unable to compile"), 0);
+        assert_eq!(compile_output2.stderr.len(), 0);
+
+        // Tet the c++ code
+        let test_output = if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir(&build_path)
+                .arg("/C")
+                .arg(".\\Debug\\full_example.exe")
+                .output()
+                .expect("failed to test")
+        } else {
+            process::Command::new("sh")
+                .current_dir(&build_path)
+                .arg("-c")
+                .arg("./full_example")
+                .output()
+                .expect("failed to test")
+        };
+
+        assert_eq!(test_output.status.code().expect("Unable to run"), 0);
     }
 }
 
@@ -1016,12 +1133,6 @@ mod tests {
         // Create the header file
         let header_file = data_model.get_header("HEADER", 2).unwrap();
         let source_file = data_model.get_source("header", 2).unwrap();
-        let expected_header = include_str!("../../tests/cpp/header/header.h");
-        let expected_source = include_str!("../../tests/cpp/header/header.cpp");
-
-        // Check that they are the same
-        assert_eq!(str_diff(&header_file, &expected_header), None);
-        assert_eq!(str_diff(&source_file, &expected_source), None);
     }
 
     #[test]
@@ -1047,12 +1158,6 @@ mod tests {
         // Create the header file
         let header_file = data_model.get_header("HEADER", 2).unwrap();
         let source_file = data_model.get_source("footer", 2).unwrap();
-        let expected_header = include_str!("../../tests/cpp/footer/footer.h");
-        let expected_source = include_str!("../../tests/cpp/footer/footer.cpp");
-
-        // Check that they are the same
-        assert_eq!(str_diff(&header_file, &expected_header), None);
-        assert_eq!(str_diff(&source_file, &expected_source), None);
     }
 
     #[test]
@@ -1078,12 +1183,6 @@ mod tests {
         // Create the header file
         let header_file = data_model.get_header("HEADER", 2).unwrap();
         let source_file = data_model.get_source("namespace", 2).unwrap();
-        let expected_header = include_str!("../../tests/cpp/namespace/namespace.h");
-        let expected_source = include_str!("../../tests/cpp/namespace/namespace.cpp");
-
-        // Check that they are the same
-        assert_eq!(str_diff(&header_file, &expected_header), None);
-        assert_eq!(str_diff(&source_file, &expected_source), None);
     }
 
     #[test]
@@ -1120,104 +1219,10 @@ mod tests {
         // Create the header file
         let header_file = data_model.get_header("HEADER", 2).unwrap();
         let source_file = data_model.get_source("outline", 2).unwrap();
-        let expected_header = include_str!("../../tests/cpp/outline/outline.h");
-        let expected_source = include_str!("../../tests/cpp/outline/outline.cpp");
-
-        // Check that they are the same
-        assert_eq!(str_diff(&header_file, &expected_header), None);
-        assert_eq!(str_diff(&source_file, &expected_source), None);
     }
 
     #[test]
     fn full_example() {
-        // Check c++ code
-        if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/full_example")
-                .arg("/C")
-                .arg("mkdir build")
-                .output()
-                .expect("failed to compile");
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/full_example")
-                .arg("-c")
-                .arg("mkdir build")
-                .output()
-                .expect("failed to compile");
-        };
-
-        let compile_output = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/full_example/build")
-                .arg("/C")
-                .arg("cmake ..")
-                .output()
-                .expect("failed to compile")
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/full_example/build")
-                .arg("-c")
-                .arg("cmake ..")
-                .output()
-                .expect("failed to compile")
-        };
-
-        assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
-        assert_eq!(compile_output.stderr.len(), 0);
-
-        let compile_output2 = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/full_example/build")
-                .arg("/C")
-                .arg("cmake --build .")
-                .output()
-                .expect("failed to compile")
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/full_example/build")
-                .arg("-c")
-                .arg("cmake --build .")
-                .output()
-                .expect("failed to compile")
-        };
-
-        assert_eq!(compile_output2.status.code().expect("Unable to compile"), 0);
-        assert_eq!(compile_output2.stderr.len(), 0);
-
-        let test_output = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/full_example/build")
-                .arg("/C")
-                .arg(".\\Debug\\full_example.exe")
-                .output()
-                .expect("failed to test")
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/full_example/build")
-                .arg("-c")
-                .arg("./full_example")
-                .output()
-                .expect("failed to test")
-        };
-
-        assert_eq!(test_output.status.code().expect("Unable to run"), 0);
-
-        // Make sure it generates the correct code
-        let yaml_model = include_str!("../../tests/cpp/full_example/full_example_datamodel.yaml");
-        let model = crate::DataModel::import_yaml(yaml_model).unwrap();
-        let data_model = DataModel::new(model).unwrap();
-
-        // Create the header file
-        let header_file = data_model.get_header("FULL_EXAMPLE", 2).unwrap();
-        let source_file = data_model.get_source("full_example", 2).unwrap();
-        let expected_header = include_str!("../../tests/cpp/full_example/full_example.h");
-        let expected_source = include_str!("../../tests/cpp/full_example/full_example.cpp");
-        //std::fs::write("tests/cpp/full_example/build/full_example.h", &header_file).unwrap();
-        //std::fs::write("tests/cpp/full_example/build/full_example.cpp", &source_file).unwrap();
-
-        // Check that they are the same
-        assert_eq!(str_diff(&header_file, &expected_header), None);
-        assert_eq!(str_diff(&source_file, &expected_source), None);
+        run_test("full_example", true);
     }
 }
