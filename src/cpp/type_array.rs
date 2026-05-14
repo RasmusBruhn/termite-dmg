@@ -214,46 +214,10 @@ impl Array {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::cpp::test_utils::*;
 
     #[test]
     fn basic() {
-        // Check c++ code
-        compile_and_test("type_array/basic");
-
-        // Make sure it generates the correct code
-        let data_model = DataModel {
-            headers: Headers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            footers: Footers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            data_types: vec![
-                DataType {
-                    name: "DataType1".to_string(),
-                    description: None,
-                    data: DataTypeData::Array(Array {
-                        data_type: "int".to_string(),
-                    }),
-                },
-                DataType {
-                    name: "DataType2".to_string(),
-                    description: None,
-                    data: DataTypeData::Array(Array {
-                        data_type: "float".to_string(),
-                    }),
-                },
-            ],
-            namespace: vec!["test".to_string()],
-            macros: HashMap::new(),
-        };
-
-        // Create the header file
-        let header_file = data_model.get_header("HEADER", 2).unwrap();
-        let source_file = data_model.get_source("basic", 2).unwrap();
+        run_test("type_array/basic", true, true, false);
     }
 }

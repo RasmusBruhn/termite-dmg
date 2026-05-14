@@ -1,4 +1,4 @@
 /target
-tests/cpp/*/build/*
-tests/cpp/*/generated/*
+tests/cpp/**/build/*
+tests/cpp/**/generated/*
 json_include

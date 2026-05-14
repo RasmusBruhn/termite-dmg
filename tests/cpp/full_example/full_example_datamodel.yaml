@@ -29,7 +29,7 @@ data_types:
 - name: SizeValue
   description: A single size value
   data: !ConstrainedType
-    data_type: int
+    data_type: integer
     constraints:
     - !Arithmetic x > 0
 - name: Size
@@ -50,11 +50,11 @@ data_types:
     fields:
     - name: x
       description: The x coordinate of the point
-      data_type: int
+      data_type: integer
       default: Required
     - name: y
       description: The y coordinate of the point
-      data_type: int
+      data_type: integer
       default: Required
 - name: State
   description: The state of a geometry
