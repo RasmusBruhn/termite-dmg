@@ -131,7 +131,7 @@ int main() {
       "test_error_eq_count_many",
       "test_error_eq_elem_diff",
       "test_load",
-      "test_error_load",
+      "test_error_load_elem",
       "test_error_load",
       "test_reload",
   };
@@ -141,7 +141,7 @@ int main() {
       test_error_eq_count_many,
       test_error_eq_elem_diff,
       test_load,
-      test_error_load,
+      test_error_load_elem,
       test_error_load,
       test_reload,
   };
