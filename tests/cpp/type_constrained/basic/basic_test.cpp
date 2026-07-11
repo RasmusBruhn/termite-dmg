@@ -1,6 +1,7 @@
 #include "generated/basic.h"
 
 #include <iostream>
+#include <sstream>
 
 /**
  * @brief Checks an element is equal to itself
@@ -22,8 +23,12 @@ std::optional<std::string> test_error_eq_self() {
  */
 std::optional<std::string> test_error_eq_diff() {
   auto value = test::DataType(1);
-  if (value == test::DataType(2)) {
-    return "Two different constrained types were equal";
+  auto compare = test::DataType(2);
+  if (value == compare) {
+    std::stringstream ss;
+    ss << "Two different constrained types were equal: " << value.get()
+       << " vs " << compare.get();
+    return ss.str();
   }
   return std::nullopt;
 }
@@ -38,10 +43,17 @@ std::optional<std::string> test_load() {
   termite::Node node(termite::Node::Value("1"));
   auto value_read = node.to_value<test::DataType>();
   if (!value_read.is_ok()) {
-    return "Unable to convert node to constrained type";
+    std::stringstream ss;
+    ss << "Unable to convert node to constrained type: "
+       << value_read.get_err();
+    return ss.str();
   }
-  if (value_read.get_ok() != value) {
-    return "Failed to convert node to constrained type";
+  auto inner_value = value_read.get_ok();
+  if (inner_value != value) {
+    std::stringstream ss;
+    ss << "Failed to convert node to constrained type: expected " << value.get()
+       << ", got " << inner_value.get();
+    return ss.str();
   }
   return std::nullopt;
 }
@@ -90,10 +102,16 @@ std::optional<std::string> test_reload() {
   termite::Node converted_node = termite::Node::from_value(value);
   auto converted_value = converted_node.to_value<test::DataType>();
   if (!converted_value.is_ok()) {
-    return "Unable to reload constrained type";
+    std::stringstream ss;
+    ss << "Unable to reload constrained type: " << converted_value.get_err();
+    return ss.str();
   }
-  if (converted_value.get_ok() != value) {
-    return "Failed to reload constrained type";
+  auto inner_value = converted_value.get_ok();
+  if (inner_value != value) {
+    std::stringstream ss;
+    ss << "Failed to reload constrained type: expected " << value.get()
+       << ", got " << inner_value.get();
+    return ss.str();
   }
   return std::nullopt;
 }

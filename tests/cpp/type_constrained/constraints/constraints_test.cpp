@@ -1,6 +1,7 @@
 #include "generated/constraints.h"
 
 #include <iostream>
+#include <sstream>
 
 /**
  * @brief Checks an element is equal to itself
@@ -22,8 +23,12 @@ std::optional<std::string> test_error_eq_self() {
  */
 std::optional<std::string> test_error_eq_diff() {
   auto value = test::DataType(2);
-  if (value == test::DataType(4)) {
-    return "Two different constrained types were equal";
+  auto compare = test::DataType(4);
+  if (value == compare) {
+    std::stringstream ss;
+    ss << "Two different constrained types were equal: " << value.get()
+       << " vs " << compare.get();
+    return ss.str();
   }
   return std::nullopt;
 }
@@ -38,10 +43,17 @@ std::optional<std::string> test_load() {
   termite::Node node(termite::Node::Value("2"));
   auto value_read = node.to_value<test::DataType>();
   if (!value_read.is_ok()) {
-    return "Unable to convert node to constrained type";
+    std::stringstream ss;
+    ss << "Unable to convert node to constrained type: "
+       << value_read.get_err();
+    return ss.str();
   }
-  if (value_read.get_ok() != value) {
-    return "Failed to convert node to constrained type";
+  auto inner_value = value_read.get_ok();
+  if (inner_value != value) {
+    std::stringstream ss;
+    ss << "Failed to convert node to constrained type: expected " << value.get()
+       << ", got " << inner_value.get();
+    return ss.str();
   }
   return std::nullopt;
 }
@@ -56,8 +68,10 @@ std::optional<std::string> test_error_constraint_1() {
   termite::Node node(termite::Node::Value("0"));
   auto value_read = node.to_value<test::DataType>();
   if (value_read.is_ok()) {
-    return "A constrained type was constructed from node with invalid "
-           "constraint 1";
+    std::stringstream ss;
+    ss << "A constrained type was constructed from node with invalid "
+          "constraint 1 (value: 0)";
+    return ss.str();
   }
   return std::nullopt;
 }
@@ -72,8 +86,10 @@ std::optional<std::string> test_error_constraint_2() {
   termite::Node node(termite::Node::Value("1"));
   auto value_read = node.to_value<test::DataType>();
   if (value_read.is_ok()) {
-    return "A constrained type was constructed from node with invalid "
-           "constraint 2";
+    std::stringstream ss;
+    ss << "A constrained type was constructed from node with invalid "
+          "constraint 2 (value: 1)";
+    return ss.str();
   }
   return std::nullopt;
 }
@@ -89,10 +105,16 @@ std::optional<std::string> test_reload() {
   termite::Node converted_node = termite::Node::from_value(value);
   auto converted_value = converted_node.to_value<test::DataType>();
   if (!converted_value.is_ok()) {
-    return "Unable to reload constrained type";
+    std::stringstream ss;
+    ss << "Unable to reload constrained type: " << converted_value.get_err();
+    return ss.str();
   }
-  if (converted_value.get_ok() != value) {
-    return "Failed to reload constrained type";
+  auto inner_value = converted_value.get_ok();
+  if (inner_value != value) {
+    std::stringstream ss;
+    ss << "Failed to reload constrained type: expected " << value.get()
+       << ", got " << inner_value.get();
+    return ss.str();
   }
   return std::nullopt;
 }

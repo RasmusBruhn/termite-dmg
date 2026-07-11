@@ -258,37 +258,10 @@ impl Variant {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::cpp::test_utils::*;
 
     #[test]
     fn basic() {
-        // Check c++ code
-        compile_and_test("type_variant/basic");
-
-        // Make sure it generates the correct code
-        let data_model = DataModel {
-            headers: Headers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            footers: Footers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            data_types: vec![DataType {
-                name: "DataType".to_string(),
-                description: None,
-                data: DataTypeData::Variant(Variant {
-                    data_types: vec!["int".to_string(), "float".to_string()],
-                }),
-            }],
-            namespace: vec!["test".to_string()],
-            macros: HashMap::new(),
-        };
-
-        // Create the header file
-        let header_file = data_model.get_header("HEADER", 2).unwrap();
-        let source_file = data_model.get_source("basic", 2).unwrap();
+        run_test("type_variant/basic", true, false, false);
     }
 }

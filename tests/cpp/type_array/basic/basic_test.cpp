@@ -1,5 +1,7 @@
 #include "generated/basic.h"
+
 #include <iostream>
+#include <sstream>
 
 /**
  * @brief Checks an element is equal to itself
@@ -21,8 +23,12 @@ std::optional<std::string> test_error_eq_self() {
  */
 std::optional<std::string> test_error_eq_count_few() {
   auto value = test::DataType({1, 2});
-  if (value == test::DataType({1})) {
-    return "Two arrays with different number of elements were equal";
+  auto compare = test::DataType({1});
+  if (value == compare) {
+    std::stringstream ss;
+    ss << "Two arrays with different number of elements were equal: " << value
+       << ", " << compare;
+    return ss.str();
   }
   return std::nullopt;
 }
@@ -34,8 +40,12 @@ std::optional<std::string> test_error_eq_count_few() {
  */
 std::optional<std::string> test_error_eq_count_many() {
   auto value = test::DataType({1, 2});
-  if (value == test::DataType({1, 2, 3})) {
-    return "Two arrays with different number of elements were equal";
+  auto compare = test::DataType({1, 2, 3});
+  if (value == compare) {
+    std::stringstream ss;
+    ss << "Two arrays with different number of elements were equal: " << value
+       << ", " << compare;
+    return ss.str();
   }
   return std::nullopt;
 }
@@ -47,8 +57,12 @@ std::optional<std::string> test_error_eq_count_many() {
  */
 std::optional<std::string> test_error_eq_elem_diff() {
   auto value = test::DataType({1, 2});
-  if (value == test::DataType({1, 3})) {
-    return "Two arrays with different elements were equal";
+  auto compare = test::DataType({1, 3});
+  if (value == compare) {
+    std::stringstream ss;
+    ss << "Two arrays with different elements were equal: " << value << ", "
+       << compare;
+    return ss.str();
   }
   return std::nullopt;
 }
@@ -66,10 +80,16 @@ std::optional<std::string> test_load() {
   termite::Node node_correct(termite::Node::List(std::move(vector_correct)));
   auto value_read_correct = node_correct.to_value<test::DataType>();
   if (!value_read_correct.is_ok()) {
-    return "Unable to convert node to array";
+    std::stringstream ss;
+    ss << "Unable to convert node to array: " << value_read_correct.get_err();
+    return ss.str();
   }
-  if (value_read_correct.get_ok() != value) {
-    return "Failed to convert node to array";
+  auto inner_value = value_read_correct.get_ok();
+  if (inner_value != value) {
+    std::stringstream ss;
+    ss << "Failed to convert node to array: expected " << value << ", got "
+       << inner_value;
+    return ss.str();
   }
   return std::nullopt;
 }
@@ -116,10 +136,16 @@ std::optional<std::string> test_reload() {
   termite::Node converted_node = termite::Node::from_value(value);
   auto converted_value = converted_node.to_value<test::DataType>();
   if (!converted_value.is_ok()) {
-    return "Unable to reload array";
+    std::stringstream ss;
+    ss << "Unable to reload array: " << converted_value.get_err();
+    return ss.str();
   }
-  if (converted_value.get_ok() != value) {
-    return "Failed to reload array";
+  auto inner_value = converted_value.get_ok();
+  if (inner_value != value) {
+    std::stringstream ss;
+    ss << "Failed to reload array: expected " << value << ", got "
+       << inner_value;
+    return ss.str();
   }
   return std::nullopt;
 }

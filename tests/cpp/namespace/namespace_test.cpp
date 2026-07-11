@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include "generated/namespace.h"
 
 /**
@@ -24,8 +25,11 @@ std::optional<std::string> test_from_map() {
   termite::Node node_correct(termite::Node::Map(std::move(map_correct)));
   auto value_read_correct = node_correct.to_value<test1::test2::DataType>();
   if (!value_read_correct.is_ok()) {
-    return "Unable to construct from a map";
+    std::stringstream ss;
+    ss << "Unable to construct from a map: " << value_read_correct.get_err();
+    return ss.str();
   }
+  return std::nullopt;
 }
 
 int main() {

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <sstream>
 #include "generated/outline.h"
 
 /**
@@ -37,8 +38,11 @@ std::optional<std::string> test_from_map_1() {
   termite::Node node_correct(termite::Node::Map(std::move(map_correct)));
   auto value_read_correct = node_correct.to_value<test::DataType1>();
   if (!value_read_correct.is_ok()) {
-    return "Unable to construct DataType1 from a map";
+    std::stringstream ss;
+    ss << "Unable to construct DataType1 from a map: " << value_read_correct.get_err();
+    return ss.str();
   }
+  return std::nullopt;
 }
 
 /**
@@ -51,8 +55,11 @@ std::optional<std::string> test_from_map_2() {
   termite::Node node_correct(termite::Node::Map(std::move(map_correct)));
   auto value_read_correct = node_correct.to_value<test::DataType2>();
   if (!value_read_correct.is_ok()) {
-    return "Unable to construct DataType2 from a map";
+    std::stringstream ss;
+    ss << "Unable to construct DataType2 from a map: " << value_read_correct.get_err();
+    return ss.str();
   }
+  return std::nullopt;
 }
 
 /**
@@ -66,8 +73,11 @@ std::optional<std::string> test_from_map_large_1() {
   termite::Node node_many(termite::Node::Map(std::move(map_many)));
   auto value_read_many = node_many.to_value<test::DataType1>();
   if (!value_read_many.is_ok()) {
-    return "Unable to construct DataType1 from a map with too many fields";
+    std::stringstream ss;
+    ss << "Unable to construct DataType1 from a map with too many fields: " << value_read_many.get_err();
+    return ss.str();
   }
+  return std::nullopt;
 }
 
 /**
@@ -81,8 +91,11 @@ std::optional<std::string> test_from_map_large_2() {
   termite::Node node_many(termite::Node::Map(std::move(map_many)));
   auto value_read_many = node_many.to_value<test::DataType2>();
   if (!value_read_many.is_ok()) {
-    return "Unable to construct DataType2 from a map with too many fields";
+    std::stringstream ss;
+    ss << "Unable to construct DataType2 from a map with too many fields: " << value_read_many.get_err();
+    return ss.str();
   }
+  return std::nullopt;
 }
 
 /**
