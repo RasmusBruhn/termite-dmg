@@ -109,6 +109,7 @@ std::optional<std::string> test_error_node_type_1() {
   if (value_wrong_wrong.is_ok()) {
     return "Constructed DataType1 from wrong node type";
   }
+  return std::nullopt;
 }
 
 /**
@@ -122,6 +123,7 @@ std::optional<std::string> test_error_node_type_2() {
   if (value_wrong_wrong.is_ok()) {
     return "Constructed DataType2 from wrong node type";
   }
+  return std::nullopt;
 }
 
 int main() {
