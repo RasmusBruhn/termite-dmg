@@ -154,3 +154,102 @@ impl data_model::DataTypeData {
         };
     }
 }
+
+#[cfg(test)]
+pub(crate) mod test_utils {
+    use std::{path, process};
+
+    pub(crate) fn run_test(name: &str, generate_model: bool, include_json: bool) {
+        let test_name = path::Path::new(name).file_name().unwrap().to_str().unwrap();
+        let test_path = path::Path::new("tests/dart").join(name);
+        let generated_path = test_path.join("generated");
+
+        if !std::fs::exists(&generated_path).unwrap() {
+            std::fs::create_dir(&generated_path).unwrap();
+        }
+
+        let (termite, termite_types) = super::get_termite_dependency();
+        std::fs::write(generated_path.join("termite.dart"), termite).unwrap();
+        std::fs::write(generated_path.join("termite-types.dart"), termite_types).unwrap();
+
+        if include_json {
+            std::fs::write(
+                generated_path.join("termite-json.dart"),
+                super::get_json_interface(),
+            )
+            .unwrap();
+        }
+
+        if generate_model {
+            let model_path = test_path.join(format!("{}_datamodel.yaml", test_name));
+            let yaml_model = std::fs::read_to_string(model_path).unwrap();
+            let model = crate::DataModel::import_yaml(&yaml_model).unwrap();
+            let dart = model.get_dart(2).unwrap();
+            std::fs::write(generated_path.join(format!("{}.dart", test_name)), dart).unwrap();
+        }
+
+        let output = if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir(&test_path)
+                .arg("/C")
+                .arg(format!("dart run {}_test.dart", test_name))
+                .output()
+                .expect("failed to run dart test")
+        } else {
+            process::Command::new("sh")
+                .current_dir(&test_path)
+                .arg("-c")
+                .arg(format!("dart run {}_test.dart", test_name))
+                .output()
+                .expect("failed to run dart test")
+        };
+
+        if output.status.code().unwrap_or(1) != 0 || !output.stderr.is_empty() {
+            panic!(
+                "Dart test failed:\nstdout:\n{}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr),
+            );
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::dart::test_utils::*;
+
+    #[test]
+    fn termite() {
+        run_test("termite", false, false);
+    }
+
+    #[test]
+    fn termite_json() {
+        run_test("termite_json", false, true);
+    }
+
+    #[test]
+    fn header() {
+        run_test("header", true, false);
+    }
+
+    #[test]
+    fn footer() {
+        run_test("footer", true, false);
+    }
+
+    #[test]
+    fn namespace() {
+        run_test("namespace", true, false);
+    }
+
+    #[test]
+    fn outline() {
+        run_test("outline", true, false);
+    }
+
+    #[test]
+    fn full_example() {
+        run_test("full_example", true, true);
+    }
+}

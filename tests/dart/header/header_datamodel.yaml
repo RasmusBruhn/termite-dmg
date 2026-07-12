@@ -1,0 +1,6 @@
+headers:
+  dart: "// Header dart"
+data_types:
+- name: DataType
+  data: !Struct
+    fields: []

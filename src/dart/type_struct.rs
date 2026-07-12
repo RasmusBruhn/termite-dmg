@@ -319,6 +319,45 @@ impl data_model::StructField {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use crate::dart::test_utils::*;
+
+    #[test]
+    fn basic() {
+        run_test("type_struct/basic", true, false);
+    }
+
+    #[test]
+    fn description() {
+        run_test("type_struct/description", true, false);
+    }
+
+    mod field {
+        use super::*;
+
+        #[test]
+        fn basic() {
+            run_test("type_struct/field/basic", true, false);
+        }
+
+        #[test]
+        fn description() {
+            run_test("type_struct/field/description", true, false);
+        }
+
+        #[test]
+        fn optional() {
+            run_test("type_struct/field/optional", true, false);
+        }
+
+        #[test]
+        fn macros() {
+            run_test("type_struct/field/macros", true, false);
+        }
+    }
+}
+
 impl data_model::SerializationModel {
     /// Generates the Dart source code for a serialization model in a default value
     ///

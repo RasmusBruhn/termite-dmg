@@ -1,0 +1,13 @@
+headers:
+  dart: "// Header dart"
+footers:
+  dart: "// Footer dart"
+data_types:
+- name: DataType1
+  description: description1
+  data: !Struct
+    fields: []
+- name: DataType2
+  description: description2
+  data: !Struct
+    fields: []
