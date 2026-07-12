@@ -219,7 +219,7 @@ std::optional<std::string> test_json_file() {
   map.insert(
       std::make_pair("field2", termite::Node(termite::Node::List(std::move(list)))));
   termite::Node correct(termite::Node::Map(std::move(map)));
-  auto result = termite::from_JSON_file("../files/json_test.json");
+  auto result = termite::from_JSON_file("../json_test.json");
 
   if (!result.is_ok()) {
     std::stringstream ss;

@@ -720,321 +720,39 @@ fn serialization_to_termite_node(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::cpp::test_utils::*;
 
     #[test]
     fn basic() {
-        // Check c++ code
-        compile_and_test("type_struct/basic");
-
-        // Make sure it generates the correct code
-        let data_model = DataModel {
-            headers: Headers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            footers: Footers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            data_types: vec![
-                DataType {
-                    name: "DataType1".to_string(),
-                    description: None,
-                    data: DataTypeData::Struct(Struct { fields: vec![] }),
-                },
-                DataType {
-                    name: "DataType2".to_string(),
-                    description: None,
-                    data: DataTypeData::Struct(Struct { fields: vec![] }),
-                },
-            ],
-            namespace: vec!["test".to_string()],
-            macros: HashMap::new(),
-        };
-
-        // Create the header file
-        let header_file = data_model.get_header("HEADER", 2).unwrap();
-        let source_file = data_model.get_source("basic", 2).unwrap();
-        let expected_header = include_str!("../../tests/cpp/type_struct/basic/basic.h");
-        let expected_source = include_str!("../../tests/cpp/type_struct/basic/basic.cpp");
-        //println!("header:\n{header_file}\n---\n");
-        //println!("source:\n{source_file}\n---\n");
-
-        // Check that they are the same
-        assert_eq!(str_diff(&header_file, &expected_header), None);
-        assert_eq!(str_diff(&source_file, &expected_source), None);
+        run_test("type_struct/basic", true, false, false);
     }
 
     #[test]
     fn description() {
-        // Check c++ code
-        compile_and_test("type_struct/description");
-
-        // Make sure it generates the correct code
-        let data_model = DataModel {
-            headers: Headers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            footers: Footers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            data_types: vec![
-                DataType {
-                    name: "DataType1".to_string(),
-                    description: Some("description1".to_string()),
-                    data: DataTypeData::Struct(Struct { fields: vec![] }),
-                },
-                DataType {
-                    name: "DataType2".to_string(),
-                    description: Some("description2".to_string()),
-                    data: DataTypeData::Struct(Struct { fields: vec![] }),
-                },
-            ],
-            namespace: vec!["test".to_string()],
-            macros: HashMap::new(),
-        };
-
-        // Create the header file
-        let header_file = data_model.get_header("HEADER", 2).unwrap();
-        let source_file = data_model.get_source("description", 2).unwrap();
-        let expected_header = include_str!("../../tests/cpp/type_struct/description/description.h");
-        let expected_source =
-            include_str!("../../tests/cpp/type_struct/description/description.cpp");
-        //println!("header:\n{header_file}\n---\n");
-        //println!("source:\n{source_file}\n---\n");
-
-        // Check that they are the same
-        assert_eq!(str_diff(&header_file, &expected_header), None);
-        assert_eq!(str_diff(&source_file, &expected_source), None);
+        run_test("type_struct/description", true, false, false);
     }
 
     mod field {
-        use crate::SerializationModel;
-
         use super::*;
 
         #[test]
         fn basic() {
-            // Check c++ code
-            compile_and_test("type_struct/field/basic");
-
-            // Make sure it generates the correct code
-            let data_model = DataModel {
-                headers: Headers {
-                    header: "".to_string(),
-                    source: "".to_string(),
-                },
-                footers: Footers {
-                    header: "".to_string(),
-                    source: "".to_string(),
-                },
-                data_types: vec![DataType {
-                    name: "DataType".to_string(),
-                    description: None,
-                    data: DataTypeData::Struct(Struct {
-                        fields: vec![
-                            StructField {
-                                name: "field1".to_string(),
-                                description: None,
-                                data_type: "int".to_string(),
-                                default: DefaultType::Required,
-                            },
-                            StructField {
-                                name: "field2".to_string(),
-                                description: None,
-                                data_type: "float".to_string(),
-                                default: DefaultType::Required,
-                            },
-                        ],
-                    }),
-                }],
-                namespace: vec!["test".to_string()],
-                macros: HashMap::new(),
-            };
-
-            // Create the header file
-            let header_file = data_model.get_header("HEADER", 2).unwrap();
-            let source_file = data_model.get_source("basic", 2).unwrap();
-            let expected_header = include_str!("../../tests/cpp/type_struct/field/basic/basic.h");
-            let expected_source = include_str!("../../tests/cpp/type_struct/field/basic/basic.cpp");
-            //println!("header:\n{header_file}\n---\n");
-            //println!("source:\n{source_file}\n---\n");
-
-            // Check that they are the same
-            assert_eq!(str_diff(&header_file, &expected_header), None);
-            assert_eq!(str_diff(&source_file, &expected_source), None);
+            run_test("type_struct/field/basic", true, false, false);
         }
 
         #[test]
         fn description() {
-            // Check c++ code
-            compile_and_test("type_struct/field/description");
-
-            // Make sure it generates the correct code
-            let data_model = DataModel {
-                headers: Headers {
-                    header: "".to_string(),
-                    source: "".to_string(),
-                },
-                footers: Footers {
-                    header: "".to_string(),
-                    source: "".to_string(),
-                },
-                data_types: vec![DataType {
-                    name: "DataType".to_string(),
-                    description: None,
-                    data: DataTypeData::Struct(Struct {
-                        fields: vec![
-                            StructField {
-                                name: "field1".to_string(),
-                                description: Some("description1".to_string()),
-                                data_type: "int".to_string(),
-                                default: DefaultType::Required,
-                            },
-                            StructField {
-                                name: "field2".to_string(),
-                                description: Some("description2".to_string()),
-                                data_type: "float".to_string(),
-                                default: DefaultType::Required,
-                            },
-                        ],
-                    }),
-                }],
-                namespace: vec!["test".to_string()],
-                macros: HashMap::new(),
-            };
-
-            // Create the header file
-            let header_file = data_model.get_header("HEADER", 2).unwrap();
-            let source_file = data_model.get_source("description", 2).unwrap();
-            let expected_header =
-                include_str!("../../tests/cpp/type_struct/field/description/description.h");
-            let expected_source =
-                include_str!("../../tests/cpp/type_struct/field/description/description.cpp");
-            //println!("header:\n{header_file}\n---\n");
-            //println!("source:\n{source_file}\n---\n");
-
-            // Check that they are the same
-            assert_eq!(str_diff(&header_file, &expected_header), None);
-            assert_eq!(str_diff(&source_file, &expected_source), None);
+            run_test("type_struct/field/description", true, false, false);
         }
 
         #[test]
         fn optional() {
-            // Check c++ code
-            compile_and_test("type_struct/field/optional");
-
-            // Make sure it generates the correct code
-            let data_model = DataModel {
-                headers: Headers {
-                    header: "".to_string(),
-                    source: "".to_string(),
-                },
-                footers: Footers {
-                    header: "".to_string(),
-                    source: "".to_string(),
-                },
-                data_types: vec![DataType {
-                    name: "DataType".to_string(),
-                    description: None,
-                    data: DataTypeData::Struct(Struct {
-                        fields: vec![
-                            StructField {
-                                name: "field1".to_string(),
-                                description: None,
-                                data_type: "int".to_string(),
-                                default: DefaultType::Default(
-                                    data_model::SerializationModel::Value("1".to_string()),
-                                ),
-                            },
-                            StructField {
-                                name: "field2".to_string(),
-                                description: None,
-                                data_type: "float".to_string(),
-                                default: DefaultType::Optional,
-                            },
-                        ],
-                    }),
-                }],
-                namespace: vec!["test".to_string()],
-                macros: HashMap::new(),
-            };
-
-            // Create the header file
-            let header_file = data_model.get_header("HEADER", 2).unwrap();
-            let source_file = data_model.get_source("optional", 2).unwrap();
-            let expected_header =
-                include_str!("../../tests/cpp/type_struct/field/optional/optional.h");
-            let expected_source =
-                include_str!("../../tests/cpp/type_struct/field/optional/optional.cpp");
-            //println!("header:\n{header_file}\n---\n");
-            //println!("source:\n{source_file}\n---\n");
-
-            // Check that they are the same
-            assert_eq!(str_diff(&header_file, &expected_header), None);
-            assert_eq!(str_diff(&source_file, &expected_source), None);
+            run_test("type_struct/field/optional", true, false, false);
         }
 
         #[test]
         fn macros() {
-            // Check c++ code
-            compile_and_test("type_struct/field/macros");
-
-            // Make sure it generates the correct code
-            let data_model = DataModel {
-                headers: Headers {
-                    header: "".to_string(),
-                    source: "".to_string(),
-                },
-                footers: Footers {
-                    header: "".to_string(),
-                    source: "".to_string(),
-                },
-                data_types: vec![DataType {
-                    name: "DataType".to_string(),
-                    description: None,
-                    data: DataTypeData::Struct(Struct {
-                        fields: vec![
-                            StructField {
-                                name: "field1".to_string(),
-                                description: None,
-                                data_type: "int".to_string(),
-                                default: DefaultType::Default(
-                                    data_model::SerializationModel::Value("$MACRO$".to_string()),
-                                ),
-                            },
-                            StructField {
-                                name: "field2".to_string(),
-                                description: None,
-                                data_type: "float".to_string(),
-                                default: DefaultType::Optional,
-                            },
-                        ],
-                    }),
-                }],
-                namespace: vec!["test".to_string()],
-                macros: HashMap::from([(
-                    "MACRO".to_string(),
-                    SerializationModel::Value("1".to_string()),
-                )]),
-            };
-
-            // Create the header file
-            let header_file = data_model.get_header("HEADER", 2).unwrap();
-            let source_file = data_model.get_source("macros", 2).unwrap();
-            let expected_header = include_str!("../../tests/cpp/type_struct/field/macros/macros.h");
-            let expected_source =
-                include_str!("../../tests/cpp/type_struct/field/macros/macros.cpp");
-            //println!("header:\n{header_file}\n---\n");
-            //println!("source:\n{source_file}\n---\n");
-
-            // Check that they are the same
-            assert_eq!(str_diff(&header_file, &expected_header), None);
-            assert_eq!(str_diff(&source_file, &expected_source), None);
+            run_test("type_struct/field/macros", true, false, false);
         }
     }
 }

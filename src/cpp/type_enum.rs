@@ -597,66 +597,10 @@ impl EnumType {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::cpp::test_utils::*;
 
     #[test]
     fn basic() {
-        // Check c++ code
-        compile_and_test("type_enum/basic");
-
-        // Make sure it generates the correct code
-        let data_model = DataModel {
-            headers: Headers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            footers: Footers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            data_types: vec![DataType {
-                name: "DataType".to_string(),
-                description: None,
-                data: DataTypeData::Enum(Enum {
-                    types: vec![
-                        EnumType {
-                            name: "Int1".to_string(),
-                            description: Some("An integer".to_string()),
-                            data_type: Some("int".to_string()),
-                        },
-                        EnumType {
-                            name: "Int2".to_string(),
-                            description: Some("Another integer".to_string()),
-                            data_type: Some("int".to_string()),
-                        },
-                        EnumType {
-                            name: "Float".to_string(),
-                            description: None,
-                            data_type: Some("float".to_string()),
-                        },
-                        EnumType {
-                            name: "Empty".to_string(),
-                            description: Some("Nothing".to_string()),
-                            data_type: None,
-                        },
-                    ],
-                }),
-            }],
-            namespace: vec!["test".to_string()],
-            macros: HashMap::new(),
-        };
-
-        // Create the header file
-        let header_file = data_model.get_header("HEADER", 2).unwrap();
-        let source_file = data_model.get_source("basic", 2).unwrap();
-        let expected_header = include_str!("../../tests/cpp/type_enum/basic/basic.h");
-        let expected_source = include_str!("../../tests/cpp/type_enum/basic/basic.cpp");
-        //println!("header:\n{header_file}\n---\n");
-        //println!("source:\n{source_file}\n---\n");
-
-        // Check that they are the same
-        assert_eq!(str_diff(&header_file, &expected_header), None);
-        assert_eq!(str_diff(&source_file, &expected_source), None);
+        run_test("type_enum/basic", true, false, false);
     }
 }

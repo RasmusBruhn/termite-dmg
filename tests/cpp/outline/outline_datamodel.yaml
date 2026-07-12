@@ -1,0 +1,17 @@
+namespace:
+- test
+headers:
+  cpp-header: "// Header header"
+  cpp-source: "// Header source"
+footers:
+  cpp-header: "// Footer header"
+  cpp-source: "// Footer source"
+data_types:
+- name: DataType1
+  description: description1
+  data: !Struct
+    fields: []
+- name: DataType2
+  description: description2
+  data: !Struct
+    fields: []

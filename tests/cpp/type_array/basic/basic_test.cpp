@@ -1,86 +1,191 @@
+#include "generated/basic.h"
+
 #include <iostream>
-#include "basic.h"
+#include <sstream>
+
+/**
+ * @brief Checks an element is equal to itself
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_error_eq_self() {
+  auto value = test::DataType({1, 2});
+  if (value != value) {
+    return "An array was not equal to itself";
+  }
+  return std::nullopt;
+}
+
+/**
+ * @brief Checks that it is not equal when there are too few elements
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_error_eq_count_few() {
+  auto value = test::DataType({1, 2});
+  auto compare = test::DataType({1});
+  if (value == compare) {
+    std::stringstream ss;
+    ss << "Two arrays with different number of elements were equal: " << value
+       << ", " << compare;
+    return ss.str();
+  }
+  return std::nullopt;
+}
+
+/**
+ * @brief Checks that it is not equal when there are too many elements
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_error_eq_count_many() {
+  auto value = test::DataType({1, 2});
+  auto compare = test::DataType({1, 2, 3});
+  if (value == compare) {
+    std::stringstream ss;
+    ss << "Two arrays with different number of elements were equal: " << value
+       << ", " << compare;
+    return ss.str();
+  }
+  return std::nullopt;
+}
+
+/**
+ * @brief Checks that two arrays with different element values are not equal
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_error_eq_elem_diff() {
+  auto value = test::DataType({1, 2});
+  auto compare = test::DataType({1, 3});
+  if (value == compare) {
+    std::stringstream ss;
+    ss << "Two arrays with different elements were equal: " << value << ", "
+       << compare;
+    return ss.str();
+  }
+  return std::nullopt;
+}
+
+/**
+ * @brief Checks that an array can be correctly loaded
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_load() {
+  auto value = test::DataType({1, 2});
+  std::vector<termite::Node> vector_correct;
+  vector_correct.emplace_back(termite::Node::Value("1"));
+  vector_correct.emplace_back(termite::Node::Value("2"));
+  termite::Node node_correct(termite::Node::List(std::move(vector_correct)));
+  auto value_read_correct = node_correct.to_value<test::DataType>();
+  if (!value_read_correct.is_ok()) {
+    std::stringstream ss;
+    ss << "Unable to convert node to array: " << value_read_correct.get_err();
+    return ss.str();
+  }
+  auto inner_value = value_read_correct.get_ok();
+  if (inner_value != value) {
+    std::stringstream ss;
+    ss << "Failed to convert node to array: expected " << value << ", got "
+       << inner_value;
+    return ss.str();
+  }
+  return std::nullopt;
+}
+
+/**
+ * @brief Checks that an array cannot be constructed from a node with invalid
+ * sub elements
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_error_load_elem() {
+  std::vector<termite::Node> vector_correct;
+  vector_correct.emplace_back(termite::Node::Value("1"));
+  vector_correct.emplace_back(termite::Node::Value("2.5"));
+  termite::Node node_correct(termite::Node::List(std::move(vector_correct)));
+  auto value_read_correct = node_correct.to_value<test::DataType>();
+  if (value_read_correct.is_ok()) {
+    return "Array was constructed from node with invalid sub elements";
+  }
+  return std::nullopt;
+}
+
+/**
+ * @brief Checks that an array cannot be constructed from an invalid node
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_error_load() {
+  termite::Node node_wrong(termite::Node::Value("1.0"));
+  auto value_read_correct = node_wrong.to_value<test::DataType>();
+  if (value_read_correct.is_ok()) {
+    return "Array was constructed from invalid node";
+  }
+  return std::nullopt;
+}
+
+/**
+ * @brief Checks that an array can be saved to a node and reloaded again
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_reload() {
+  auto value = test::DataType({1, 2});
+  termite::Node converted_node = termite::Node::from_value(value);
+  auto converted_value = converted_node.to_value<test::DataType>();
+  if (!converted_value.is_ok()) {
+    std::stringstream ss;
+    ss << "Unable to reload array: " << converted_value.get_err();
+    return ss.str();
+  }
+  auto inner_value = converted_value.get_ok();
+  if (inner_value != value) {
+    std::stringstream ss;
+    ss << "Failed to reload array: expected " << value << ", got "
+       << inner_value;
+    return ss.str();
+  }
+  return std::nullopt;
+}
 
 int main() {
-  auto value1 = test::DataType1({1, 2});
-  auto value2 = test::DataType2({1.5, -3.5});
-  if (value1 != value1) {
-    return 1;
-  }
-  if (value1 == test::DataType1({1, 2, 3})) {
-    return 3;
-  }
-  if (value1 == test::DataType1({1, 3})) {
-    return 4;
-  }
-  if (value2 == test::DataType2({1.5})) {
-    return 5;
-  }
-  if (value2 == test::DataType2({1.5, 3.5})) {
-    return 6;
+  auto names = {
+      "test_error_eq_self",
+      "test_error_eq_count_few",
+      "test_error_eq_count_many",
+      "test_error_eq_elem_diff",
+      "test_load",
+      "test_error_load_elem",
+      "test_error_load",
+      "test_reload",
+  };
+  auto functions = {
+      test_error_eq_self,
+      test_error_eq_count_few,
+      test_error_eq_count_many,
+      test_error_eq_elem_diff,
+      test_load,
+      test_error_load_elem,
+      test_error_load,
+      test_reload,
+  };
+
+  std::cout << "Running " << names.size() << " tests" << std::endl;
+
+  int progress = 1;
+  auto name_it = names.begin();
+  for (auto function_it = functions.begin(); function_it < functions.end();
+       ++function_it, ++name_it, ++progress) {
+    if (auto error = (*function_it)()) {
+      std::cout << "Error occured at \"" << *name_it << "\": " << *error
+                << std::endl;
+      return progress;
+    }
   }
 
-  value1 = test::DataType1({1, 2});
-  value2 = test::DataType2({1.5, -3.5});
-
-  std::vector<termite::Node> vector_correct1;
-  vector_correct1.emplace_back(termite::Node::Value("1"));
-  vector_correct1.emplace_back(termite::Node::Value("2"));
-  termite::Node node_correct1(termite::Node::List(std::move(vector_correct1)));
-  auto value_read_correct1 = node_correct1.to_value<test::DataType1>();
-  if (!value_read_correct1.is_ok()) {
-    return 11;
-  }
-  if (value_read_correct1.get_ok() != value1) {
-    return 12;
-  }
-
-  std::vector<termite::Node> vector_correct2;
-  vector_correct2.emplace_back(termite::Node::Value("1.5"));
-  vector_correct2.emplace_back(termite::Node::Value("-3.5"));
-  termite::Node node_correct2(termite::Node::List(std::move(vector_correct2)));
-  auto value_read_correct2 = node_correct2.to_value<test::DataType2>();
-  if (!value_read_correct2.is_ok()) {
-    return 13;
-  }
-  if (value_read_correct2.get_ok() != value2) {
-    return 14;
-  }
-
-  std::vector<termite::Node> vector_type1;
-  vector_type1.emplace_back(termite::Node::Value("1"));
-  vector_type1.emplace_back(termite::Node::Value("2.5"));
-  termite::Node node_type1(termite::Node::List(std::move(vector_type1)));
-  auto value_read_type1 = node_type1.to_value<test::DataType1>();
-  if (value_read_type1.is_ok()) {
-    return 15;
-  }
-
-  std::vector<termite::Node> vector_type2;
-  vector_type2.emplace_back(termite::Node::Value("1k"));
-  vector_type2.emplace_back(termite::Node::Value("-3.5"));
-  termite::Node node_type2(termite::Node::List(std::move(vector_type2)));
-  auto value_read_type2 = node_type2.to_value<test::DataType2>();
-  if (value_read_type2.is_ok()) {
-    return 16;
-  }
-
-  termite::Node node_wrong(termite::Node::Value("1.0"));
-  auto value_wrong_wrong = node_wrong.to_value<test::DataType1>();
-  if (value_wrong_wrong.is_ok()) {
-    return 17;
-  }
-
-  termite::Node converted_node = termite::Node::from_value(value1);
-  auto converted_value = converted_node.to_value<test::DataType1>();
-  if (!converted_value.is_ok()) {
-    return 18;
-  }
-  if (converted_value.get_ok() != value1) {
-    return 19;
-  }
-
-  std::cout << "Done" << std::endl;
+  std::cout << "No errors" << std::endl;
 
   return 0;
 }

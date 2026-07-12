@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Set the project name
-project (termite)
+project (%%TEST_NAME%%)
 
 # Stop fetch content warning
 if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.30.0")
@@ -12,18 +12,24 @@ endif()
 # Set the c++ standard
 set(CMAKE_CXX_STANDARD 17)
 
-# Add an executables
-add_executable(termite termite_test.cpp)
-add_executable(termite-yaml termite_yaml_test.cpp ../../../src/cpp/termite-yaml.cpp)
-add_executable(termite-json termite_json_test.cpp ../../../src/cpp/termite-json.cpp)
+set(INCLUDE_YAML %%INCLUDE_YAML%%)
+set(INCLUDE_JSON %%INCLUDE_JSON%%)
+
+# Add the test executable
+file(GLOB GeneratedSRC
+  "*.cpp"
+)
+
+add_executable(%%TEST_NAME%%
+  ../%%TEST_NAME%%_test.cpp
+  ${GeneratedSRC}
+)
 
 # Add the hpp files
-target_include_directories(termite PRIVATE ../../../src/cpp)
-target_include_directories(termite-yaml PRIVATE ../../../src/cpp)
-target_include_directories(termite-yaml PRIVATE ../../../src/cpp)
-target_include_directories(termite-json PRIVATE ../../../src/cpp)
+target_include_directories(%%TEST_NAME%% PRIVATE . .. %%TERMITE_PATH%%)
 
 # Add yaml-cpp
+if(INCLUDE_YAML)
 include(FetchContent)
 
 FetchContent_Declare(
@@ -39,7 +45,14 @@ if(NOT yaml-cpp_POPULATED)
   add_subdirectory(${yaml-cpp_SOURCE_DIR} ${yaml-cpp_BINARY_DIR})
 endif()
 
-# Add json
+target_sources(%%TEST_NAME%% PRIVATE %%TERMITE_PATH%%/termite-yaml.cpp)
+target_link_libraries(%%TEST_NAME%% PRIVATE yaml-cpp::yaml-cpp)
+endif()
+
+# Add nlohmann-json
+if(INCLUDE_JSON)
+include(FetchContent)
+
 FetchContent_Declare(
   json
   GIT_REPOSITORY https://github.com/nlohmann/json
@@ -53,5 +66,6 @@ if(NOT json_POPULATED)
   add_subdirectory(${json_SOURCE_DIR} ${json_BINARY_DIR})
 endif()
 
-target_link_libraries(termite-yaml PUBLIC yaml-cpp::yaml-cpp)
-target_link_libraries(termite-json PUBLIC nlohmann_json::nlohmann_json)
+target_sources(%%TEST_NAME%% PRIVATE %%TERMITE_PATH%%/termite-json.cpp)
+target_link_libraries(%%TEST_NAME%% PRIVATE nlohmann_json::nlohmann_json)
+endif()
