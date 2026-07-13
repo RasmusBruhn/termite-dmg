@@ -66,7 +66,7 @@ String? testReloadThroughJson() {
   }
 
   final loadedModel = loaded.value;
-  if (loadedModel.version.value.value != '1.0.1') {
+  if (loadedModel.version.value != '1.0.1') {
     return 'Version mismatch after reload';
   }
   if (loadedModel.geometries.values.length != 2) {

@@ -19,7 +19,7 @@ int runTests(Map<String, TestFunction> tests) {
 }
 
 String? testErrorFormatting() {
-  final base = const termite.Error<void>('Message', '');
+  final base = const termite.Result.error('Message', '') as termite.Error;
   final withField = base.addField('field1');
   final withIndex = withField.addIndex('2');
   if (withIndex.location != '[2].field1') {
