@@ -843,8 +843,13 @@ pub(crate) mod test_utils {
                 .expect("failed to compile")
         };
 
-        assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
-        assert_eq!(compile_output.stderr.len(), 0);
+        if compile_output.status.code().unwrap_or(1) != 0 || !compile_output.stderr.is_empty() {
+            panic!(
+                "C++ test failed:\nstdout:\n{}\nstderr:\n{}",
+                String::from_utf8_lossy(&compile_output.stdout),
+                String::from_utf8_lossy(&compile_output.stderr),
+            );
+        }
 
         let compile_output2 = if cfg!(target_os = "windows") {
             process::Command::new("cmd")
@@ -862,8 +867,13 @@ pub(crate) mod test_utils {
                 .expect("failed to compile")
         };
 
-        assert_eq!(compile_output2.status.code().expect("Unable to compile"), 0);
-        assert_eq!(compile_output2.stderr.len(), 0);
+        if compile_output2.status.code().unwrap_or(1) != 0 || !compile_output2.stderr.is_empty() {
+            panic!(
+                "C++ test failed:\nstdout:\n{}\nstderr:\n{}",
+                String::from_utf8_lossy(&compile_output2.stdout),
+                String::from_utf8_lossy(&compile_output2.stderr),
+            );
+        }
 
         // Tet the c++ code
         let test_output = if cfg!(target_os = "windows") {
@@ -882,7 +892,13 @@ pub(crate) mod test_utils {
                 .expect("failed to test")
         };
 
-        assert_eq!(test_output.status.code().expect("Unable to run"), 0);
+        if test_output.status.code().unwrap_or(1) != 0 {
+            panic!(
+                "C++ test failed:\nstdout:\n{}\nstderr:\n{}",
+                String::from_utf8_lossy(&test_output.stdout),
+                String::from_utf8_lossy(&test_output.stderr),
+            );
+        }
     }
 }
 

@@ -27,12 +27,15 @@ impl data_model::Struct {
             .collect::<Vec<_>>()
             .join(&format!("\n\n{0:indent$}", ""));
 
-        let constructor_parameters = self
+        let mut constructor_parameters = self
             .fields
             .iter()
             .map(|field| field.get_constructor_parameter())
             .collect::<Vec<_>>()
             .join(&format!("\n{0:indent$}{0:indent$}", ""));
+        if !constructor_parameters.is_empty() {
+            constructor_parameters = format!("{{\n{0:indent$}{0:indent$}{constructor_parameters}\n{0:indent$}}}", "");
+        }
 
         let constructor = self
             .fields
@@ -83,9 +86,7 @@ impl data_model::Struct {
             class {name} {{
             {0:indent$}{definitions}
 
-            {0:indent$}{name}({{
-            {0:indent$}{0:indent$}{constructor_parameters}
-            {0:indent$}}}) {{
+            {0:indent$}{name}({constructor_parameters}) {{
             {0:indent$}{0:indent$}{constructor}
             {0:indent$}}}
 
@@ -316,6 +317,45 @@ impl data_model::StructField {
     /// Generates the Dart source code for the parser return of a single field in a struct
     fn get_parser_return(&self) -> String {
         return format!("{name}: {name},", name = &self.name);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::dart::test_utils::*;
+
+    #[test]
+    fn basic() {
+        run_test("type_struct/basic", true, false);
+    }
+
+    #[test]
+    fn description() {
+        run_test("type_struct/description", true, false);
+    }
+
+    mod field {
+        use super::*;
+
+        #[test]
+        fn basic() {
+            run_test("type_struct/field/basic", true, false);
+        }
+
+        #[test]
+        fn description() {
+            run_test("type_struct/field/description", true, false);
+        }
+
+        #[test]
+        fn optional() {
+            run_test("type_struct/field/optional", true, false);
+        }
+
+        #[test]
+        fn macros() {
+            run_test("type_struct/field/macros", true, false);
+        }
     }
 }
 

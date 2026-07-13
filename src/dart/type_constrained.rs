@@ -116,3 +116,18 @@ impl data_model::Constraint {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::dart::test_utils::*;
+
+    #[test]
+    fn basic() {
+        run_test("type_constrained/basic", true, false);
+    }
+
+    #[test]
+    fn constraints() {
+        run_test("type_constrained/constraints", true, false);
+    }
+}

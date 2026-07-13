@@ -64,3 +64,13 @@ impl data_model::Array {
         );
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::dart::test_utils::*;
+
+    #[test]
+    fn basic() {
+        run_test("type_array/basic", true, false);
+    }
+}

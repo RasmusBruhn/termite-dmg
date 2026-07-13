@@ -1,0 +1,7 @@
+namespace:
+- test
+data_types:
+- name: DataType
+  data: !ConstrainedType
+    data_type: integer
+    constraints: []

@@ -200,3 +200,13 @@ impl data_model::EnumType {
         };
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::dart::test_utils::*;
+
+    #[test]
+    fn basic() {
+        run_test("type_enum/basic", true, false);
+    }
+}
