@@ -89,7 +89,7 @@ impl data_model::DataModel {
             "
             // Generated with the Termite Data Model Generator
 
-            // ignore_for_file: no_leading_underscores_for_local_identifiers, non_constant_identifier_names, unnecessary_string_interpolations, camel_case_types, empty_constructor_bodies, camel_case_extensions
+            // ignore_for_file: no_leading_underscores_for_local_identifiers, non_constant_identifier_names, unnecessary_string_interpolations, camel_case_types, empty_constructor_bodies, camel_case_extensions, unused_import
 
             import 'termite.dart' as termite;
             import 'termite-types.dart';
