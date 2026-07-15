@@ -6,8 +6,9 @@ mod data_model;
 pub mod schema;
 
 pub use data_model::{
-    Array, ConstrainedType, Constraint, DataModel, DataType, DataTypeData, DefaultType, Enum,
-    EnumType, SerializationModel, Struct, StructField, Variant,
+    expand_macros, Array, ConstrainedType, Constraint, DataModel, DataType,
+    DataTypeData, DefaultType, Enum, EnumType, Error, ErrorCore, SerializationModel, Struct,
+    StructField, Variant,
 };
 
 #[cfg(test)]

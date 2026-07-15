@@ -233,7 +233,7 @@ pub enum SerializationModel {
 /// macros: The macros to use for expansions
 ///
 /// used_macros: A set of macros that are currently being used, used to prevent infinite recursion
-pub(crate) fn expand_macros<'a>(
+pub fn expand_macros<'a>(
     value: &SerializationModel,
     macros: &'a HashMap<String, SerializationModel>,
     used_macros: &mut HashSet<&'a str>,
