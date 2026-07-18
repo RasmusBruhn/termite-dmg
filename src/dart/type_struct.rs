@@ -2,192 +2,207 @@ use std::collections::{HashMap, HashSet};
 
 use indoc::formatdoc;
 
-use crate::data_model;
+use crate::*;
 
-impl data_model::Struct {
-    /// Generates the Dart source code for a struct type
-    ///
-    /// # Parameters
-    ///
-    /// name: The name of the struct type
-    ///
-    /// indent: The number of spaces per indentation level
-    ///
-    /// macros: The macros defined in the data model used for expanding default values
-    pub(super) fn get_dart<'a>(
-        &self,
-        name: &str,
-        indent: usize,
-        macros: &'a HashMap<String, data_model::SerializationModel>,
-    ) -> Result<String, data_model::Error> {
-        let definitions = self
-            .fields
-            .iter()
-            .map(|field| field.get_definition(indent))
-            .collect::<Vec<_>>()
-            .join(&format!("\n\n{0:indent$}", ""));
+/// Generates the Dart source code for a struct type
+///
+/// # Parameters
+///
+/// data: The struct to generate code for
+///
+/// name: The name of the struct type
+///
+/// indent: The number of spaces per indentation level
+///
+/// macros: The macros defined in the data model used for expanding default values
+pub(super) fn generate<'a>(
+    data: &Struct,
+    name: &str,
+    indent: usize,
+    macros: &'a HashMap<String, SerializationModel>,
+) -> Result<String, Error> {
+    let definitions = data
+        .fields
+        .iter()
+        .map(|field| struct_field::get_definition(field, indent))
+        .collect::<Vec<_>>()
+        .join(&format!("\n\n{0:indent$}", ""));
 
-        let mut constructor_parameters = self
-            .fields
-            .iter()
-            .map(|field| field.get_constructor_parameter())
-            .collect::<Vec<_>>()
-            .join(&format!("\n{0:indent$}{0:indent$}", ""));
-        if !constructor_parameters.is_empty() {
-            constructor_parameters = format!("{{\n{0:indent$}{0:indent$}{constructor_parameters}\n{0:indent$}}}", "");
-        }
-
-        let constructor = self
-            .fields
-            .iter()
-            .filter_map(|field| field.get_constructor())
-            .collect::<Vec<_>>()
-            .join(&format!("\n{0:indent$}{0:indent$}", ""));
-
-        let default_constructors = self
-            .fields
-            .iter()
-            .filter_map(|field| field.get_default_constructor(indent, macros))
-            .collect::<Result<Vec<_>, _>>()?
-            .join(&format!("\n\n{0:indent$}", ""));
-
-        let exports = self
-            .fields
-            .iter()
-            .map(|field| field.get_export())
-            .collect::<Vec<_>>()
-            .join(&format!("\n{0:indent$}{0:indent$}{0:indent$}", ""));
-
-        let printers = self
-            .fields
-            .iter()
-            .map(|field| field.get_printer())
-            .collect::<Vec<_>>()
-            .join(", ");
-
-        let parsers = self
-            .fields
-            .iter()
-            .map(|field| field.get_parser(name, indent))
-            .collect::<Vec<_>>()
-            .join(&format!("\n\n{0:indent$}{0:indent$}", ""));
-
-        let parser_returns = self
-            .fields
-            .iter()
-            .map(|field| field.get_parser_return())
-            .collect::<Vec<_>>()
-            .join(&format!(
-                "\n{0:indent$}{0:indent$}{0:indent$}{0:indent$}",
-                ""
-            ));
-
-        return Ok(formatdoc!("
-            class {name} {{
-            {0:indent$}{definitions}
-
-            {0:indent$}{name}({constructor_parameters}) {{
-            {0:indent$}{0:indent$}{constructor}
-            {0:indent$}}}
-
-            {0:indent$}{default_constructors}
-
-            {0:indent$}/// Constructs a [{name}] from a [termite.Node]
-            {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
-            {0:indent$}{0:indent$}return TermiteNodeParser{name}.fromNode(node);
-            {0:indent$}}}
-
-            {0:indent$}/// Converts the [{name}] to a [termite.Node]
-            {0:indent$}termite.Node toNode() {{
-            {0:indent$}{0:indent$}final Map<String, termite.Node?> __preMap = {{
-            {0:indent$}{0:indent$}{0:indent$}{exports}
-            {0:indent$}{0:indent$}}};
-            {0:indent$}{0:indent$}final Map<String, termite.Node> map = Map.fromEntries(
-            {0:indent$}{0:indent$}{0:indent$}__preMap.entries
-            {0:indent$}{0:indent$}{0:indent$}{0:indent$}.where((entry) => entry.value != null)
-            {0:indent$}{0:indent$}{0:indent$}{0:indent$}.map((entry) => MapEntry(entry.key, entry.value!)),
-            {0:indent$}{0:indent$});
-            {0:indent$}{0:indent$}return termite.Node.mapping(map);
-            {0:indent$}}}
-
-            {0:indent$}@override
-            {0:indent$}String toString() => '{{{printers}}}';
-            }}
-
-            extension TermiteNodeParser{name} on {name} {{
-            {0:indent$}/// Constructs a [{name}] from a [termite.Node]
-            {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
-            {0:indent$}{0:indent$}if (node is! termite.Mapping) {{
-            {0:indent$}{0:indent$}{0:indent$}return termite.Result.error('Unable to parse ${{node.runtimeType}} as a {name}', '');
-            {0:indent$}{0:indent$}}}
-
-            {0:indent$}{0:indent$}{parsers}
-
-            {0:indent$}{0:indent$}return termite.Result.ok(
-            {0:indent$}{0:indent$}{0:indent$}{name}(
-            {0:indent$}{0:indent$}{0:indent$}{0:indent$}{parser_returns}
-            {0:indent$}{0:indent$}{0:indent$}),
-            {0:indent$}{0:indent$});
-            {0:indent$}}}
-            }}",
-            "",
-        ));
+    let mut constructor_parameters = data
+        .fields
+        .iter()
+        .map(|field| struct_field::get_constructor_parameter(field))
+        .collect::<Vec<_>>()
+        .join(&format!("\n{0:indent$}{0:indent$}", ""));
+    if !constructor_parameters.is_empty() {
+        constructor_parameters = format!(
+            "{{\n{0:indent$}{0:indent$}{constructor_parameters}\n{0:indent$}}}",
+            ""
+        );
     }
+
+    let constructor = data
+        .fields
+        .iter()
+        .filter_map(|field| struct_field::get_constructor(field))
+        .collect::<Vec<_>>()
+        .join(&format!("\n{0:indent$}{0:indent$}", ""));
+
+    let default_constructors = data
+        .fields
+        .iter()
+        .filter_map(|field| struct_field::get_default_constructor(field, indent, macros))
+        .collect::<Result<Vec<_>, _>>()?
+        .join(&format!("\n\n{0:indent$}", ""));
+
+    let exports = data
+        .fields
+        .iter()
+        .map(|field| struct_field::get_export(field))
+        .collect::<Vec<_>>()
+        .join(&format!("\n{0:indent$}{0:indent$}{0:indent$}", ""));
+
+    let printers = data
+        .fields
+        .iter()
+        .map(|field| struct_field::get_printer(field))
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    let parsers = data
+        .fields
+        .iter()
+        .map(|field| struct_field::get_parser(field, name, indent))
+        .collect::<Vec<_>>()
+        .join(&format!("\n\n{0:indent$}{0:indent$}", ""));
+
+    let parser_returns = data
+        .fields
+        .iter()
+        .map(|field| struct_field::get_parser_return(field))
+        .collect::<Vec<_>>()
+        .join(&format!(
+            "\n{0:indent$}{0:indent$}{0:indent$}{0:indent$}",
+            ""
+        ));
+
+    return Ok(formatdoc!("
+        class {name} {{
+        {0:indent$}{definitions}
+
+        {0:indent$}{name}({constructor_parameters}) {{
+        {0:indent$}{0:indent$}{constructor}
+        {0:indent$}}}
+
+        {0:indent$}{default_constructors}
+
+        {0:indent$}/// Constructs a [{name}] from a [termite.Node]
+        {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
+        {0:indent$}{0:indent$}return TermiteNodeParser{name}.fromNode(node);
+        {0:indent$}}}
+
+        {0:indent$}/// Converts the [{name}] to a [termite.Node]
+        {0:indent$}termite.Node toNode() {{
+        {0:indent$}{0:indent$}final Map<String, termite.Node?> __preMap = {{
+        {0:indent$}{0:indent$}{0:indent$}{exports}
+        {0:indent$}{0:indent$}}};
+        {0:indent$}{0:indent$}final Map<String, termite.Node> map = Map.fromEntries(
+        {0:indent$}{0:indent$}{0:indent$}__preMap.entries
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}.where((entry) => entry.value != null)
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}.map((entry) => MapEntry(entry.key, entry.value!)),
+        {0:indent$}{0:indent$});
+        {0:indent$}{0:indent$}return termite.Node.mapping(map);
+        {0:indent$}}}
+
+        {0:indent$}@override
+        {0:indent$}String toString() => '{{{printers}}}';
+        }}
+
+        extension TermiteNodeParser{name} on {name} {{
+        {0:indent$}/// Constructs a [{name}] from a [termite.Node]
+        {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
+        {0:indent$}{0:indent$}if (node is! termite.Mapping) {{
+        {0:indent$}{0:indent$}{0:indent$}return termite.Result.error('Unable to parse ${{node.runtimeType}} as a {name}', '');
+        {0:indent$}{0:indent$}}}
+
+        {0:indent$}{0:indent$}{parsers}
+
+        {0:indent$}{0:indent$}return termite.Result.ok(
+        {0:indent$}{0:indent$}{0:indent$}{name}(
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}{parser_returns}
+        {0:indent$}{0:indent$}{0:indent$}),
+        {0:indent$}{0:indent$});
+        {0:indent$}}}
+        }}",
+        "",
+    ));
 }
 
-impl data_model::StructField {
+mod struct_field {
+    use super::*;
+
     /// Generates the Dart source code for a struct field definition
     ///
     /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
     ///
     /// indent: The number of spaces per indentation level
-    fn get_definition(&self, indent: usize) -> String {
-        let type_name = match &self.default {
-            data_model::DefaultType::Required => {
-                format!("{data_type}", data_type = &self.data_type)
+    pub(super) fn get_definition(data: &StructField, indent: usize) -> String {
+        let type_name = match &data.default {
+            DefaultType::Required => {
+                format!("{data_type}", data_type = &data.data_type)
             }
-            data_model::DefaultType::Optional => {
-                format!("{data_type}?", data_type = &self.data_type)
+            DefaultType::Optional => {
+                format!("{data_type}?", data_type = &data.data_type)
             }
-            data_model::DefaultType::Default(_) => {
-                format!("late {data_type}", data_type = &self.data_type)
+            DefaultType::Default(_) => {
+                format!("late {data_type}", data_type = &data.data_type)
             }
         };
 
-        let description = match &self.description {
+        let description = match &data.description {
             Some(description) => format!("/// {description}\n{0:indent$}", ""),
             None => "".to_string(),
         };
 
-        return format!("{description}{type_name} {name};", name = &self.name);
+        return format!("{description}{type_name} {name};", name = &data.name);
     }
 
     /// Generates the Dart source code for the constructor parameter for a single field in a struct
-    fn get_constructor_parameter(&self) -> String {
-        return match &self.default {
-            data_model::DefaultType::Required => {
-                format!("required this.{name},", name = &self.name)
+    /// 
+    /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
+    pub(super) fn get_constructor_parameter(data: &StructField) -> String {
+        return match &data.default {
+            DefaultType::Required => {
+                format!("required this.{name},", name = &data.name)
             }
-            data_model::DefaultType::Optional => {
-                format!("this.{name},", name = &self.name)
+            DefaultType::Optional => {
+                format!("this.{name},", name = &data.name)
             }
-            data_model::DefaultType::Default(_) => {
+            DefaultType::Default(_) => {
                 format!(
                     "{data_type}? {name},",
-                    data_type = &self.data_type,
-                    name = &self.name
+                    data_type = &data.data_type,
+                    name = &data.name
                 )
             }
         };
     }
 
     /// Generates the Dart source code for the constructor assignment for a single field in a struct
-    fn get_constructor(&self) -> Option<String> {
-        return if let data_model::DefaultType::Default(_) = &self.default {
+    /// 
+    /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
+    pub(super) fn get_constructor(data: &StructField) -> Option<String> {
+        return if let DefaultType::Default(_) = &data.default {
             Some(format!(
                 "this.{name} = {name} ?? getDefault{capital_name}();",
-                name = &self.name,
-                capital_name = self.get_capitalized_name(),
+                name = &data.name,
+                capital_name = get_capitalized_name(data),
             ))
         } else {
             None
@@ -197,21 +212,22 @@ impl data_model::StructField {
     /// Generates the Dart source code for the default constructor for a single field in a struct
     ///
     /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
     ///
     /// indent: The number of spaces per indentation level
     ///
     /// macros: The macros defined in the data model used for expanding default values
-    fn get_default_constructor<'a>(
-        &self,
+    pub(super) fn get_default_constructor<'a>(
+        data: &StructField,
         indent: usize,
-        macros: &'a HashMap<String, data_model::SerializationModel>,
-    ) -> Option<Result<String, data_model::Error>> {
-        return if let data_model::DefaultType::Default(default_value) = &self.default {
-            let expanded_default =
-                match data_model::expand_macros(default_value, macros, &mut HashSet::new()) {
-                    Ok(value) => value,
-                    Err(e) => return Some(Err(e)),
-                };
+        macros: &'a HashMap<String, SerializationModel>,
+    ) -> Option<Result<String, Error>> {
+        return if let DefaultType::Default(default_value) = &data.default {
+            let expanded_default = match expand_macros(default_value, macros, &mut HashSet::new()) {
+                Ok(value) => value,
+                Err(e) => return Some(Err(e)),
+            };
 
             Some(Ok(formatdoc!("
                 /// Gets the default value for [{name}]
@@ -220,10 +236,10 @@ impl data_model::StructField {
                 {0:indent$}{0:indent$}return (TermiteNodeParser{data_type}.fromNode(node) as termite.Ok<{data_type}>).value;
                 {0:indent$}}}",
                 "",
-                name = &self.name,
-                capital_name = &self.get_capitalized_name(),
-                data_type = &self.data_type,
-                node = &expanded_default.get_dart(indent, 2 * indent),
+                name = &data.name,
+                capital_name = &get_capitalized_name(data),
+                data_type = &data.data_type,
+                node = &serialization_model::generate(&expanded_default, indent, 2 * indent),
             )))
         } else {
             None
@@ -231,8 +247,12 @@ impl data_model::StructField {
     }
 
     /// Gets the name of the field with the first letter capitalized
-    fn get_capitalized_name(&self) -> String {
-        let mut name = self.name.clone();
+    /// 
+    /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
+    pub(super) fn get_capitalized_name(data: &StructField) -> String {
+        let mut name = data.name.clone();
         if let Some(first_char) = name.get_mut(0..1) {
             first_char.make_ascii_uppercase();
         };
@@ -240,29 +260,39 @@ impl data_model::StructField {
     }
 
     /// Generates the Dart source code for the node export of a single field in a struct
-    fn get_export(&self) -> String {
-        return if let data_model::DefaultType::Optional = &self.default {
-            format!("'{name}': {name}?.toNode(),", name = &self.name)
+    /// 
+    /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
+    pub(super) fn get_export(data: &StructField) -> String {
+        return if let DefaultType::Optional = &data.default {
+            format!("'{name}': {name}?.toNode(),", name = &data.name)
         } else {
-            format!("'{name}': {name}.toNode(),", name = &self.name)
+            format!("'{name}': {name}.toNode(),", name = &data.name)
         };
     }
 
     /// Generates the Dart source code for the printing code for a single field in a struct
-    fn get_printer(&self) -> String {
-        return format!("{name}: ${name}", name = &self.name);
+    /// 
+    /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
+    pub(super) fn get_printer(data: &StructField) -> String {
+        return format!("{name}: ${name}", name = &data.name);
     }
 
     /// Generates the Dart source code for the parser code for a single field in a struct
     ///
     /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
     ///
     /// struct_name: The name of the struct containing the field
     ///
     /// indent: The number of spaces per indentation level
-    fn get_parser(&self, struct_name: &str, indent: usize) -> String {
-        return match &self.default {
-            data_model::DefaultType::Required => {
+    pub(super) fn get_parser(data: &StructField, struct_name: &str, indent: usize) -> String {
+        return match &data.default {
+            DefaultType::Required => {
                 formatdoc!("
                     if (!node.map.containsKey('{name}')) {{
                     {0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('Missing field \"{name}\"', '');
@@ -274,11 +304,11 @@ impl data_model::StructField {
                     {0:indent$}{0:indent$}}}
                     {0:indent$}{0:indent$}final {data_type} {name} = (__{name} as termite.Ok<{data_type}>).value;",
                     "",
-                    name = &self.name,
-                    data_type = &self.data_type,
+                    name = &data.name,
+                    data_type = &data.data_type,
                 )
             }
-            data_model::DefaultType::Optional => {
+            DefaultType::Optional => {
                 formatdoc!("
                     {data_type}? {name};
                     {0:indent$}{0:indent$}if (node.map.containsKey('{name}')) {{
@@ -290,11 +320,11 @@ impl data_model::StructField {
                     {0:indent$}{0:indent$}{0:indent$}{name} = (__{name} as termite.Ok<{data_type}>).value;
                     {0:indent$}{0:indent$}}}",
                     "",
-                    name = &self.name,
-                    data_type = &self.data_type,
+                    name = &data.name,
+                    data_type = &data.data_type,
                 )
             }
-            data_model::DefaultType::Default(_) => {
+            DefaultType::Default(_) => {
                 formatdoc!("
                     {data_type} {name} = {struct_name}.getDefault{capital_name}();
                     {0:indent$}{0:indent$}if (node.map.containsKey('{name}')) {{
@@ -306,17 +336,74 @@ impl data_model::StructField {
                     {0:indent$}{0:indent$}{0:indent$}{name} = (__{name} as termite.Ok<{data_type}>).value;
                     {0:indent$}{0:indent$}}}",
                     "",
-                    name = &self.name,
-                    capital_name = &self.get_capitalized_name(),
-                    data_type = &self.data_type,
+                    name = &data.name,
+                    capital_name = &get_capitalized_name(data),
+                    data_type = &data.data_type,
                 )
             }
         };
     }
 
     /// Generates the Dart source code for the parser return of a single field in a struct
-    fn get_parser_return(&self) -> String {
-        return format!("{name}: {name},", name = &self.name);
+    /// 
+    /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
+    pub(super) fn get_parser_return(data: &StructField) -> String {
+        return format!("{name}: {name},", name = &data.name);
+    }
+}
+
+mod serialization_model {
+    use super::*;
+
+    /// Generates the Dart source code for a serialization model in a default value
+    ///
+    /// # Parameters
+    ///
+    /// data: The serialization model to generate Dart source code for
+    ///
+    /// indent: The number of spaces per indentation level
+    ///
+    /// base_indent: The base indentation level for the generated code
+    pub(super) fn generate(data: &SerializationModel, indent: usize, base_indent: usize) -> String {
+        return match data {
+            SerializationModel::Map(map) => {
+                let items = map
+                    .iter()
+                    .map(|(key, item)| {
+                        format!(
+                            "{0:base_indent$}{0:indent$}'{key}': {value},",
+                            "",
+                            value =
+                                serialization_model::generate(item, indent, base_indent + indent),
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n");
+
+                format!("termite.Node.mapping({{\n{items}\n{0:base_indent$}}})", "")
+            }
+            SerializationModel::Array(list) => {
+                let items = list
+                    .iter()
+                    .map(|item| {
+                        format!(
+                            "{0:base_indent$}{0:indent$}{value},",
+                            "",
+                            value =
+                                serialization_model::generate(item, indent, base_indent + indent)
+                        )
+                    })
+                    .collect::<Vec<_>>()
+                    .join("\n");
+
+                format!("termite.Node.sequence([\n{items}\n{0:base_indent$}])", "")
+            }
+            SerializationModel::Value(value) => {
+                format!("termite.Node.value('{value}')")
+            }
+        };
     }
 }
 
@@ -356,52 +443,5 @@ mod tests {
         fn macros() {
             run_test("type_struct/field/macros", true, false);
         }
-    }
-}
-
-impl data_model::SerializationModel {
-    /// Generates the Dart source code for a serialization model in a default value
-    ///
-    /// # Parameters
-    ///
-    /// indent: The number of spaces per indentation level
-    ///
-    /// base_indent: The base indentation level for the generated code
-    fn get_dart(&self, indent: usize, base_indent: usize) -> String {
-        return match self {
-            data_model::SerializationModel::Map(map) => {
-                let items = map
-                    .iter()
-                    .map(|(key, item)| {
-                        format!(
-                            "{0:base_indent$}{0:indent$}'{key}': {value},",
-                            "",
-                            value = item.get_dart(indent, base_indent + indent),
-                        )
-                    })
-                    .collect::<Vec<_>>()
-                    .join("\n");
-
-                format!("termite.Node.mapping({{\n{items}\n{0:base_indent$}}})", "")
-            }
-            data_model::SerializationModel::Array(list) => {
-                let items = list
-                    .iter()
-                    .map(|item| {
-                        format!(
-                            "{0:base_indent$}{0:indent$}{value},",
-                            "",
-                            value = item.get_dart(indent, base_indent + indent)
-                        )
-                    })
-                    .collect::<Vec<_>>()
-                    .join("\n");
-
-                format!("termite.Node.sequence([\n{items}\n{0:base_indent$}])", "")
-            }
-            data_model::SerializationModel::Value(value) => {
-                format!("termite.Node.value('{value}')")
-            }
-        };
     }
 }

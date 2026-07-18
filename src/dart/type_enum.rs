@@ -1,93 +1,97 @@
 use indoc::formatdoc;
 
-use crate::data_model;
+use crate::*;
 
-impl data_model::Enum {
-    /// Generates the Dart source code for a enum type
-    ///
-    /// # Parameters
-    ///
-    /// name: The name of the enum type
-    ///
-    /// indent: The number of spaces per indentation level
-    pub(super) fn get_dart(&self, name: &str, indent: usize) -> String {
-        let constructors = self
-            .types
-            .iter()
-            .map(|enum_type| enum_type.get_constructor(name, indent))
-            .collect::<Vec<_>>()
-            .join(&format!("\n\n{0:indent$}", ""));
+/// Generates the Dart source code for a enum type
+///
+/// # Parameters
+///
+/// data: The enum to generate Dart source code for
+///
+/// name: The name of the enum type
+///
+/// indent: The number of spaces per indentation level
+pub(super) fn generate(data: &Enum, name: &str, indent: usize) -> String {
+    let constructors = data
+        .types
+        .iter()
+        .map(|enum_type| enum_type::get_constructor(enum_type, name, indent))
+        .collect::<Vec<_>>()
+        .join(&format!("\n\n{0:indent$}", ""));
 
-        let enum_types = self
-            .types
-            .iter()
-            .map(|enum_type| enum_type.get_dart(name, indent))
-            .collect::<Vec<_>>()
-            .join("\n\n");
+    let enum_types = data
+        .types
+        .iter()
+        .map(|enum_type| enum_type::generate(enum_type, name, indent))
+        .collect::<Vec<_>>()
+        .join("\n\n");
 
-        let parsers = self
-            .types
-            .iter()
-            .map(|enum_type| enum_type.get_parser(name, indent))
-            .collect::<Vec<_>>()
-            .join(&format!("\n{0:indent$}{0:indent$}{0:indent$}", ""));
+    let parsers = data
+        .types
+        .iter()
+        .map(|enum_type| enum_type::get_parser(enum_type, name, indent))
+        .collect::<Vec<_>>()
+        .join(&format!("\n{0:indent$}{0:indent$}{0:indent$}", ""));
 
-        return formatdoc!("
-            sealed class {name} {{
-            {0:indent$}{name}();
+    return formatdoc!("
+        sealed class {name} {{
+        {0:indent$}{name}();
 
-            {0:indent$}{constructors}
+        {0:indent$}{constructors}
 
-            {0:indent$}/// Constructs a [{name}] from a [termite.Node].
-            {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
-            {0:indent$}{0:indent$}return TermiteNodeParser{name}.fromNode(node);
-            {0:indent$}}}
+        {0:indent$}/// Constructs a [{name}] from a [termite.Node].
+        {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
+        {0:indent$}{0:indent$}return TermiteNodeParser{name}.fromNode(node);
+        {0:indent$}}}
 
-            {0:indent$}/// Converts the [{name}] to a [termite.Node]
-            {0:indent$}termite.Node toNode();
-            }}
+        {0:indent$}/// Converts the [{name}] to a [termite.Node]
+        {0:indent$}termite.Node toNode();
+        }}
 
-            {enum_types}
+        {enum_types}
 
-            extension TermiteNodeParser{name} on {name} {{
-            {0:indent$}/// Constructs a [{name}] from a [termite.Node].
-            {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
-            {0:indent$}{0:indent$}String id;
-            {0:indent$}{0:indent$}if (node is termite.Sequence) {{
-            {0:indent$}{0:indent$}{0:indent$}return termite.Result.error('Unable to parse ${{node.runtimeType}} as a {name}', '');
-            {0:indent$}{0:indent$}}} else if (node is termite.Mapping) {{
-            {0:indent$}{0:indent$}{0:indent$}if (node.map.length != 1) {{
-            {0:indent$}{0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('Unable to parse a Mapping with more or less than 1 entry as a {name}', '');
-            {0:indent$}{0:indent$}{0:indent$}}}
-            {0:indent$}{0:indent$}{0:indent$}id = node.map.keys.first;
-            {0:indent$}{0:indent$}}} else {{
-            {0:indent$}{0:indent$}{0:indent$}id = (node as termite.Value).value;
-            {0:indent$}{0:indent$}}}
+        extension TermiteNodeParser{name} on {name} {{
+        {0:indent$}/// Constructs a [{name}] from a [termite.Node].
+        {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
+        {0:indent$}{0:indent$}String id;
+        {0:indent$}{0:indent$}if (node is termite.Sequence) {{
+        {0:indent$}{0:indent$}{0:indent$}return termite.Result.error('Unable to parse ${{node.runtimeType}} as a {name}', '');
+        {0:indent$}{0:indent$}}} else if (node is termite.Mapping) {{
+        {0:indent$}{0:indent$}{0:indent$}if (node.map.length != 1) {{
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('Unable to parse a Mapping with more or less than 1 entry as a {name}', '');
+        {0:indent$}{0:indent$}{0:indent$}}}
+        {0:indent$}{0:indent$}{0:indent$}id = node.map.keys.first;
+        {0:indent$}{0:indent$}}} else {{
+        {0:indent$}{0:indent$}{0:indent$}id = (node as termite.Value).value;
+        {0:indent$}{0:indent$}}}
 
-            {0:indent$}{0:indent$}switch (id) {{
-            {0:indent$}{0:indent$}{0:indent$}{parsers}
-            {0:indent$}{0:indent$}{0:indent$}default:
-            {0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.error('Unknown type ($id) for {name}', '');
-            {0:indent$}{0:indent$}}}
-            {0:indent$}}}
-            }}",
-            "",
-        );
-    }
+        {0:indent$}{0:indent$}switch (id) {{
+        {0:indent$}{0:indent$}{0:indent$}{parsers}
+        {0:indent$}{0:indent$}{0:indent$}default:
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.error('Unknown type ($id) for {name}', '');
+        {0:indent$}{0:indent$}}}
+        {0:indent$}}}
+        }}",
+        "",
+    );
 }
 
-impl data_model::EnumType {
+mod enum_type {
+    use super::*;
+
     /// Generates the Dart source code for an enum type
     ///
     /// # Parameters
     ///
+    /// data: The enum type to generate Dart source code for
+    ///
     /// enum_name: The name of the parent enum
     ///
     /// indent: The number of spaces per indentation level
-    fn get_dart(&self, enum_name: &str, indent: usize) -> String {
-        let description = self.get_description();
+    pub(super) fn generate(data: &EnumType, enum_name: &str, indent: usize) -> String {
+        let description = get_description(data);
 
-        return if let Some(data_type) = self.data_type.as_ref() {
+        return if let Some(data_type) = data.data_type.as_ref() {
             formatdoc!(
                 "
                 {description}class {enum_name}Type{name} extends {enum_name} {{
@@ -104,7 +108,7 @@ impl data_model::EnumType {
                 {0:indent$}String toString() => '{name}($value)';
                 }}",
                 "",
-                name = self.name,
+                name = data.name,
             )
         } else {
             formatdoc!(
@@ -121,14 +125,18 @@ impl data_model::EnumType {
                 {0:indent$}String toString() => '{name}';
                 }}",
                 "",
-                name = self.name,
+                name = data.name,
             )
         };
     }
 
     /// Generates the Dart doc comment for an enum type
-    fn get_description(&self) -> String {
-        return if let Some(description) = self.description.as_ref() {
+    ///
+    /// # Parameters
+    ///
+    /// data: The enum type to generate the doc comment for
+    pub(super) fn get_description(data: &EnumType) -> String {
+        return if let Some(description) = data.description.as_ref() {
             format!("/// {description}\n")
         } else {
             "".to_string()
@@ -139,17 +147,19 @@ impl data_model::EnumType {
     ///
     /// # Parameters
     ///
+    /// data: The enum type to generate the constructor for
+    ///
     /// enum_name: The name of the parent enum
     ///
     /// indent: The number of spaces per indentation level
-    fn get_constructor(&self, enum_name: &str, indent: usize) -> String {
-        return if let Some(data_type) = self.data_type.as_ref() {
+    pub(super) fn get_constructor(data: &EnumType, enum_name: &str, indent: usize) -> String {
+        return if let Some(data_type) = data.data_type.as_ref() {
             formatdoc!(
                 "
                 /// Constructs a new [{enum_name}] of type {name} with a value of [value].
                 {0:indent$}factory {enum_name}.new{name}({data_type} value) = {enum_name}Type{name}._;",
                 "",
-                name = self.name,
+                name = data.name,
             )
         } else {
             formatdoc!(
@@ -157,7 +167,7 @@ impl data_model::EnumType {
                 /// Constructs a new [{enum_name}] of type {name}.
                 {0:indent$}factory {enum_name}.new{name}() = {enum_name}Type{name}._;",
                 "",
-                name = self.name,
+                name = data.name,
             )
         };
     }
@@ -166,11 +176,13 @@ impl data_model::EnumType {
     ///
     /// # Parameters
     ///
+    /// data: The enum type to generate the parser for
+    ///
     /// enum_name: The name of the parent enum
     ///
     /// indent: The number of spaces per indentation level
-    fn get_parser(&self, enum_name: &str, indent: usize) -> String {
-        return if let Some(data_type) = self.data_type.as_ref() {
+    pub(super) fn get_parser(data: &EnumType, enum_name: &str, indent: usize) -> String {
+        return if let Some(data_type) = data.data_type.as_ref() {
             formatdoc!(
                 "
                 case '{name}':
@@ -184,7 +196,7 @@ impl data_model::EnumType {
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}}}
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('{enum_name} type has data and cannot be constructed from a value', '.{name}');",
                 "",
-                name = self.name,
+                name = data.name,
             )
         } else {
             formatdoc!(
@@ -195,7 +207,7 @@ impl data_model::EnumType {
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}}}
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('{enum_name} type has no data and cannot be constructed from a mapping', '.{name}');",
                 "",
-                name = self.name,
+                name = data.name,
             )
         };
     }
