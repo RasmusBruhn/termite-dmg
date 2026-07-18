@@ -144,6 +144,8 @@ mod struct_field {
     /// Generates the Dart source code for a struct field definition
     ///
     /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
     ///
     /// indent: The number of spaces per indentation level
     pub(super) fn get_definition(data: &StructField, indent: usize) -> String {
@@ -168,6 +170,10 @@ mod struct_field {
     }
 
     /// Generates the Dart source code for the constructor parameter for a single field in a struct
+    /// 
+    /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
     pub(super) fn get_constructor_parameter(data: &StructField) -> String {
         return match &data.default {
             DefaultType::Required => {
@@ -187,6 +193,10 @@ mod struct_field {
     }
 
     /// Generates the Dart source code for the constructor assignment for a single field in a struct
+    /// 
+    /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
     pub(super) fn get_constructor(data: &StructField) -> Option<String> {
         return if let DefaultType::Default(_) = &data.default {
             Some(format!(
@@ -202,6 +212,8 @@ mod struct_field {
     /// Generates the Dart source code for the default constructor for a single field in a struct
     ///
     /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
     ///
     /// indent: The number of spaces per indentation level
     ///
@@ -235,6 +247,10 @@ mod struct_field {
     }
 
     /// Gets the name of the field with the first letter capitalized
+    /// 
+    /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
     pub(super) fn get_capitalized_name(data: &StructField) -> String {
         let mut name = data.name.clone();
         if let Some(first_char) = name.get_mut(0..1) {
@@ -244,6 +260,10 @@ mod struct_field {
     }
 
     /// Generates the Dart source code for the node export of a single field in a struct
+    /// 
+    /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
     pub(super) fn get_export(data: &StructField) -> String {
         return if let DefaultType::Optional = &data.default {
             format!("'{name}': {name}?.toNode(),", name = &data.name)
@@ -253,6 +273,10 @@ mod struct_field {
     }
 
     /// Generates the Dart source code for the printing code for a single field in a struct
+    /// 
+    /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
     pub(super) fn get_printer(data: &StructField) -> String {
         return format!("{name}: ${name}", name = &data.name);
     }
@@ -260,6 +284,8 @@ mod struct_field {
     /// Generates the Dart source code for the parser code for a single field in a struct
     ///
     /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
     ///
     /// struct_name: The name of the struct containing the field
     ///
@@ -319,6 +345,10 @@ mod struct_field {
     }
 
     /// Generates the Dart source code for the parser return of a single field in a struct
+    /// 
+    /// # Parameters
+    /// 
+    /// data: The struct field to generate code for
     pub(super) fn get_parser_return(data: &StructField) -> String {
         return format!("{name}: {name},", name = &data.name);
     }

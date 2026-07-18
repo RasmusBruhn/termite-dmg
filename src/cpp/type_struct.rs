@@ -1,312 +1,271 @@
-use std::collections::HashSet;
-
-use super::*;
-use crate::DefaultType;
+use super::ToSnakeCase;
+use crate::*;
 use indoc::formatdoc;
+use std::collections::{HashMap, HashSet};
 
-/// The type specific information for a struct
-#[derive(Clone, Debug, PartialEq)]
-pub(super) struct Struct {
-    /// A list of all the fields of the struct
-    pub(super) fields: Vec<StructField>,
+/// Converts the struct to a string for use in the header file
+///
+/// # Parameters
+///
+/// data: The struct to generate code for
+///
+/// name: The name of the struct
+///
+/// indent: The number of spaces to use for indentation
+pub(super) fn generate_definition_header(data: &Struct, name: &str, indent: usize) -> String {
+    // Get the description for the constructor
+    let constructor_description = data
+        .fields
+        .iter()
+        .map(|field| struct_field::get_constructor_description(field, indent))
+        .collect::<Vec<String>>()
+        .join("");
+
+    // Get the constructor parameters
+    let constructor_parameters = data
+        .fields
+        .iter()
+        .map(|field| struct_field::get_constructor_parameter(field))
+        .collect::<Vec<String>>()
+        .join("");
+
+    // Get the list of setters for the internal constructor
+    let constructor_setters = data
+        .fields
+        .iter()
+        .map(|field| struct_field::get_constructor_setter(field))
+        .collect::<Vec<String>>()
+        .join("");
+
+    // Get all constructors for the fields with default values
+    let default_constructors = data
+        .fields
+        .iter()
+        .map(|field| struct_field::get_default_constructor_header(field, indent))
+        .collect::<Vec<String>>()
+        .join("");
+    let default_constructors = format!("\n{default_constructors}");
+
+    // Get the definitions of all the fields but without any initialization
+    let field_definitions = data
+        .fields
+        .iter()
+        .map(|field| struct_field::get_definition(field, indent))
+        .collect::<Vec<String>>()
+        .join("");
+
+    // Generate the code
+    return formatdoc!("
+        struct {name} {{
+        public:
+        {0:indent$}/**
+        {0:indent$} * @brief Constructs a new {name} object
+        {0:indent$} * {constructor_description}
+        {0:indent$} * @param extra_fields Any extra fields to attach to this struct
+        {0:indent$} */
+        {0:indent$}explicit {name}({constructor_parameters}::termite::Node::Map extra_fields = ::termite::Node::Map()) : {constructor_setters}extra_fields(std::move(extra_fields)) {{}}
+        {default_constructors}
+        {0:indent$}/**
+        {0:indent$} * @brief Checks if this object and the other object are identical
+        {0:indent$} * 
+        {0:indent$} * @param x The other object to compare with
+        {0:indent$} * @return true if they are identical, false if not
+        {0:indent$} */
+        {0:indent$}[[nodiscard]] bool operator==(const {name} &x) const;
+        {0:indent$}/**
+        {0:indent$} * @brief Checks if this object and the other object are different
+        {0:indent$} * 
+        {0:indent$} * @param x The other object to compare with
+        {0:indent$} * @return true if they are different, false if not
+        {0:indent$} */
+        {0:indent$}[[nodiscard]] bool operator!=(const {name} &x) const {{
+        {0:indent$}{0:indent$}return !(*this == x);
+        {0:indent$}}}
+        {0:indent$}/**
+        {0:indent$} * @brief Prints the object onto the output stream
+        {0:indent$} * 
+        {0:indent$} * @param os The output stream to print to
+        {0:indent$} * @param x The object to print
+        {0:indent$} * @return The output stream
+        {0:indent$} */
+        {0:indent$}friend std::ostream &operator<<(std::ostream &os, const {name} &x);
+        {field_definitions}
+        {0:indent$}/**
+        {0:indent$} * @brief All extra fields from when reading which could not be captured
+        {0:indent$} * 
+        {0:indent$} */
+        {0:indent$}::termite::Node::Map extra_fields;
+        }};", "",
+    );
 }
 
-impl Struct {
-    /// Constructs a new c++ struct from a generic struct
-    ///
-    /// # Parameters
-    ///
-    /// data: The generic struct to convert
-    pub(super) fn new(data: crate::Struct) -> Result<Self, Error> {
-        // Convert the fields
-        let fields = data
-            .fields
-            .into_iter()
-            .map(|data| StructField::new(data))
-            .collect::<Result<Vec<StructField>, Error>>()?;
+/// Converts the struct to a string for use in the source file
+///
+/// # Parameters
+///
+/// data: The struct to generate code for
+///
+/// name: The name of the struct
+///
+/// macros: A map of all macros to expand default values
+///
+/// indent: The number of spaces to use for indentation
+pub(super) fn generate_definition_source(
+    data: &Struct,
+    name: &str,
+    macros: &HashMap<String, SerializationModel>,
+    indent: usize,
+) -> Result<String, Error> {
+    // Get the equality test
+    let equality_test = data
+        .fields
+        .iter()
+        .map(|field| struct_field::get_equality_check(field))
+        .collect::<Vec<_>>()
+        .join("");
 
-        // Move data
-        return Ok(Self { fields });
-    }
+    // Get the printout for the operator<< function
+    let printout = data
+        .fields
+        .iter()
+        .map(|field| struct_field::get_printout(field))
+        .collect::<Vec<_>>()
+        .join("");
 
-    /// Converts the struct to a string for use in the header file
-    ///
-    /// # Parameters
-    ///
-    /// name: The name of the struct
-    ///
-    /// indent: The number of spaces to use for indentation
-    pub(super) fn get_definition_header(&self, name: &str, indent: usize) -> String {
-        // Get the description for the constructor
-        let constructor_description = self
-            .fields
-            .iter()
-            .map(|field| field.get_constructor_description(indent))
-            .collect::<Vec<String>>()
-            .join("");
+    // Get all constructors for the fields with default values
+    let default_constructors = data
+        .fields
+        .iter()
+        .map(|field| struct_field::get_default_constructor_source(field, name, macros, indent))
+        .collect::<Result<Vec<_>, _>>()?
+        .join("");
 
-        // Get the constructor parameters
-        let constructor_parameters = self
-            .fields
-            .iter()
-            .map(|field| field.get_constructor_parameter())
-            .collect::<Vec<String>>()
-            .join("");
-
-        // Get the list of setters for the internal constructor
-        let constructor_setters = self
-            .fields
-            .iter()
-            .map(|field| field.get_constructor_setter())
-            .collect::<Vec<String>>()
-            .join("");
-
-        // Get all constructors for the fields with default values
-        let default_constructors = self
-            .fields
-            .iter()
-            .map(|field| field.get_default_constructor_header(indent))
-            .collect::<Vec<String>>()
-            .join("");
-        let default_constructors = format!("\n{default_constructors}");
-
-        // Get the definitions of all the fields but without any initialization
-        let field_definitions = self
-            .fields
-            .iter()
-            .map(|field| field.get_definition(indent))
-            .collect::<Vec<String>>()
-            .join("");
-
-        // Generate the code
-        return formatdoc!("
-            struct {name} {{
-            public:
-            {0:indent$}/**
-            {0:indent$} * @brief Constructs a new {name} object
-            {0:indent$} * {constructor_description}
-            {0:indent$} * @param extra_fields Any extra fields to attach to this struct
-            {0:indent$} */
-            {0:indent$}explicit {name}({constructor_parameters}::termite::Node::Map extra_fields = ::termite::Node::Map()) : {constructor_setters}extra_fields(std::move(extra_fields)) {{}}
-            {default_constructors}
-            {0:indent$}/**
-            {0:indent$} * @brief Checks if this object and the other object are identical
-            {0:indent$} * 
-            {0:indent$} * @param x The other object to compare with
-            {0:indent$} * @return true if they are identical, false if not
-            {0:indent$} */
-            {0:indent$}[[nodiscard]] bool operator==(const {name} &x) const;
-            {0:indent$}/**
-            {0:indent$} * @brief Checks if this object and the other object are different
-            {0:indent$} * 
-            {0:indent$} * @param x The other object to compare with
-            {0:indent$} * @return true if they are different, false if not
-            {0:indent$} */
-            {0:indent$}[[nodiscard]] bool operator!=(const {name} &x) const {{
-            {0:indent$}{0:indent$}return !(*this == x);
-            {0:indent$}}}
-            {0:indent$}/**
-            {0:indent$} * @brief Prints the object onto the output stream
-            {0:indent$} * 
-            {0:indent$} * @param os The output stream to print to
-            {0:indent$} * @param x The object to print
-            {0:indent$} * @return The output stream
-            {0:indent$} */
-            {0:indent$}friend std::ostream &operator<<(std::ostream &os, const {name} &x);
-            {field_definitions}
-            {0:indent$}/**
-            {0:indent$} * @brief All extra fields from when reading which could not be captured
-            {0:indent$} * 
-            {0:indent$} */
-            {0:indent$}::termite::Node::Map extra_fields;
-            }};", "",
-        );
-    }
-
-    /// Converts the struct to a string for use in the source file
-    ///
-    /// # Parameters
-    ///
-    /// name: The name of the struct
-    ///
-    /// macros: A map of all macros to expand default values
-    ///
-    /// indent: The number of spaces to use for indentation
-    pub(super) fn get_definition_source(
-        &self,
-        name: &str,
-        macros: &HashMap<String, data_model::SerializationModel>,
-        indent: usize,
-    ) -> Result<String, Error> {
-        // Get the equality test
-        let equality_test = self
-            .fields
-            .iter()
-            .map(|field| field.get_equality_check())
-            .collect::<Vec<_>>()
-            .join("");
-
-        // Get the printout for the operator<< function
-        let printout = self
-            .fields
-            .iter()
-            .map(|field| field.get_printout())
-            .collect::<Vec<_>>()
-            .join("");
-
-        // Get all constructors for the fields with default values
-        let default_constructors = self
-            .fields
-            .iter()
-            .map(|field| field.get_default_constructor_source(name, macros, indent))
-            .collect::<Result<Vec<_>, _>>()?
-            .join("");
-
-        // Generate the code
-        return Ok(formatdoc!("
-            [[nodiscard]] bool {name}::operator==(const {name} &x) const {{
-            {0:indent$}return {equality_test}extra_fields == x.extra_fields;
-            }}
-            {default_constructors}
-            std::ostream &operator<<(std::ostream &os, const {name} &x) {{
-            {0:indent$}return os << \"{{ \" << {printout}\"extra_fields: \" << x.extra_fields << \" }}\";
-            }}", "",
-        ));
-    }
-
-    /// Gets the header code for the parser for this struct allowing it to be read from a file
-    ///
-    /// # Parameters
-    ///
-    /// name: The name of the struct
-    ///
-    /// namespace: The namespace of the struct
-    pub(super) fn get_parser_header(&self, name: &str, namespace: &[String]) -> String {
-        // Get the namespace name
-        let namespace = namespace
-            .iter()
-            .map(|single_name| format!("{single_name}::"))
-            .collect::<Vec<String>>()
-            .join("");
-        let typename = format!("{namespace}{name}");
-
-        return formatdoc!(
-            "
-            template<>
-            [[nodiscard]] Result<{typename}> Node::Map::to_value<{typename}>() const;
-
-            template<>
-            [[nodiscard]] Node Node::from_value<{typename}>(const {typename} &value);",
-        );
-    }
-
-    /// Gets the source code for the parser for this struct allowing it to be read from a file
-    ///
-    /// # Parameters
-    ///
-    /// name: The name of the struct
-    ///
-    /// indent: The number of spaces to use for indentation
-    ///
-    /// namespace: The namespace of the struct
-    ///
-    /// data_types: List of all the data types defined in the data model
-    pub(super) fn get_parser_source(
-        &self,
-        name: &str,
-        indent: usize,
-        namespace: &[String],
-        data_types: &[DataType],
-    ) -> String {
-        // Get the namespace name
-        let namespace = namespace
-            .iter()
-            .map(|single_name| format!("{single_name}::"))
-            .collect::<Vec<String>>()
-            .join("");
-        let typename = format!("{namespace}{name}");
-
-        // Get the parameter parsing
-        let parsing = self
-            .fields
-            .iter()
-            .map(|field| field.get_parsing(&typename, &namespace, data_types, indent))
-            .collect::<Vec<String>>()
-            .join("");
-
-        let parsing_export = self
-            .fields
-            .iter()
-            .map(|field| field.get_parsing_export(indent))
-            .collect::<Vec<String>>()
-            .join("");
-
-        // Get the parameter list for when retrieving them to return at the end
-        let parameter_retrievals = self
-            .fields
-            .iter()
-            .map(|field| field.get_parameter_retrieval())
-            .collect::<Vec<String>>()
-            .join("");
-
-        return formatdoc!("
-            template<>
-            [[nodiscard]] Result<{typename}> Node::Map::to_value<{typename}>() const {{
-            {0:indent$}std::map<std::string, Node> map = map_;
-            {parsing}
-            {0:indent$}return Result<{typename}>::ok({typename}({parameter_retrievals}Map(std::move(map))));
-            }}
- 
-            template<>
-            [[nodiscard]] Node Node::from_value<{typename}>(const {typename} &value) {{
-            {0:indent$}std::map<std::string, Node> map = value.extra_fields.get();
-            {parsing_export}
-            {0:indent$}return Node(Node::Map(std::move(map)));
-            }}",
-            "",
-        );
-    }
+    // Generate the code
+    return Ok(formatdoc!("
+        [[nodiscard]] bool {name}::operator==(const {name} &x) const {{
+        {0:indent$}return {equality_test}extra_fields == x.extra_fields;
+        }}
+        {default_constructors}
+        std::ostream &operator<<(std::ostream &os, const {name} &x) {{
+        {0:indent$}return os << \"{{ \" << {printout}\"extra_fields: \" << x.extra_fields << \" }}\";
+        }}", "",
+    ));
 }
 
-/// A single field for a struct
-#[derive(Clone, Debug, PartialEq)]
-pub(super) struct StructField {
-    /// The name of the field
-    pub(super) name: String,
-    /// A description of the field
-    pub(super) description: Option<String>,
-    /// The data type of the field
-    pub(super) data_type: String,
-    /// Describes if the field is required or not, if optional it gives the
-    /// default value
-    pub(super) default: crate::DefaultType,
+/// Gets the header code for the parser for this struct allowing it to be read from a file
+///
+/// # Parameters
+///
+/// data: The struct to generate code for
+///
+/// name: The name of the struct
+///
+/// namespace: The namespace of the struct
+pub(super) fn generate_parser_header(_data: &Struct, name: &str, namespace: &[String]) -> String {
+    // Get the namespace name
+    let namespace = namespace
+        .iter()
+        .map(|single_name| format!("{single_name}::"))
+        .collect::<Vec<String>>()
+        .join("");
+    let typename = format!("{namespace}{name}");
+
+    return formatdoc!(
+        "
+        template<>
+        [[nodiscard]] Result<{typename}> Node::Map::to_value<{typename}>() const;
+
+        template<>
+        [[nodiscard]] Node Node::from_value<{typename}>(const {typename} &value);",
+    );
 }
 
-impl StructField {
-    /// Constructs a new c++ struct field from a generic struct field
-    ///
-    /// # Parameters
-    ///
-    /// data: The generic struct field to convert
-    fn new(data: crate::StructField) -> Result<Self, Error> {
-        return Ok(Self {
-            name: data.name,
-            description: data.description,
-            data_type: data.data_type,
-            default: data.default,
-        });
-    }
+/// Gets the source code for the parser for this struct allowing it to be read from a file
+///
+/// # Parameters
+///
+/// data: The struct to generate code for
+///
+/// name: The name of the struct
+///
+/// indent: The number of spaces to use for indentation
+///
+/// namespace: The namespace of the struct
+///
+/// data_types: List of all the data types defined in the data model
+pub(super) fn generate_parser_source(
+    data: &Struct,
+    name: &str,
+    indent: usize,
+    namespace: &[String],
+    data_types: &[DataType],
+) -> String {
+    // Get the namespace name
+    let namespace = namespace
+        .iter()
+        .map(|single_name| format!("{single_name}::"))
+        .collect::<Vec<String>>()
+        .join("");
+    let typename = format!("{namespace}{name}");
+
+    // Get the parameter parsing
+    let parsing = data
+        .fields
+        .iter()
+        .map(|field| struct_field::get_parsing(field, &typename, &namespace, data_types, indent))
+        .collect::<Vec<String>>()
+        .join("");
+
+    let parsing_export = data
+        .fields
+        .iter()
+        .map(|field| struct_field::get_parsing_export(field, indent))
+        .collect::<Vec<String>>()
+        .join("");
+
+    // Get the parameter list for when retrieving them to return at the end
+    let parameter_retrievals = data
+        .fields
+        .iter()
+        .map(|field| struct_field::get_parameter_retrieval(field))
+        .collect::<Vec<String>>()
+        .join("");
+
+    return formatdoc!("
+        template<>
+        [[nodiscard]] Result<{typename}> Node::Map::to_value<{typename}>() const {{
+        {0:indent$}std::map<std::string, Node> map = map_;
+        {parsing}
+        {0:indent$}return Result<{typename}>::ok({typename}({parameter_retrievals}Map(std::move(map))));
+        }}
+
+        template<>
+        [[nodiscard]] Node Node::from_value<{typename}>(const {typename} &value) {{
+        {0:indent$}std::map<std::string, Node> map = value.extra_fields.get();
+        {parsing_export}
+        {0:indent$}return Node(Node::Map(std::move(map)));
+        }}",
+        "",
+    );
+}
+
+mod struct_field {
+    use super::*;
 
     /// Constructs the c++ typename of this field
-    fn get_typename(&self) -> String {
+    ///
+    /// # Parameters
+    ///
+    /// data: The struct field to generate code for
+    pub(super) fn get_typename(data: &StructField) -> String {
         let data_type =
-            if ["string", "number", "integer", "boolean"].contains(&self.data_type.as_str()) {
-                format!("termite::{data_type}", data_type = self.data_type)
+            if ["string", "number", "integer", "boolean"].contains(&data.data_type.as_str()) {
+                format!("termite::{data_type}", data_type = data.data_type)
             } else {
-                self.data_type.clone()
+                data.data_type.clone()
             };
 
-        return match &self.default {
+        return match &data.default {
             DefaultType::Optional => {
                 format!("std::optional<{data_type}>")
             }
@@ -315,8 +274,12 @@ impl StructField {
     }
 
     /// Gets the description of this field
-    fn get_description(&self) -> String {
-        return match &self.description {
+    ///
+    /// # Parameters
+    ///
+    /// data: The struct field to generate code for
+    pub(super) fn get_description(data: &StructField) -> String {
+        return match &data.description {
             Some(description) => description.clone(),
             None => "".to_string(),
         };
@@ -326,22 +289,15 @@ impl StructField {
     ///
     /// # Parameters
     ///
+    /// data: The struct field to generate code for
+    ///
     /// indent: The number of spaces to use for indentation
-    fn get_constructor_description(&self, indent: usize) -> String {
+    pub(super) fn get_constructor_description(data: &StructField, indent: usize) -> String {
         return format!(
             "\n{0:indent$} * @param {name} {description}",
             "",
-            name = self.name,
-            description = self.get_description(),
-        );
-    }
-
-    /// Get the parameter definition for the constructor including default value
-    fn get_constructor_parameter(&self) -> String {
-        return format!(
-            "{typename} {name}, ",
-            typename = self.get_typename(),
-            name = self.name,
+            name = data.name,
+            description = get_description(data),
         );
     }
 
@@ -349,9 +305,24 @@ impl StructField {
     ///
     /// # Parameters
     ///
+    /// data: The struct field to generate code for
+    pub(super) fn get_constructor_parameter(data: &StructField) -> String {
+        return format!(
+            "{typename} {name}, ",
+            typename = get_typename(data),
+            name = data.name,
+        );
+    }
+
+    /// Get the parameter definition for the constructor including default value
+    ///
+    /// # Parameters
+    ///
+    /// data: The struct field to generate code for
+    ///
     /// indent: The number of spaces to use for indentation
-    fn get_default_constructor_header(&self, indent: usize) -> String {
-        return match &self.default {
+    pub(super) fn get_default_constructor_header(data: &StructField, indent: usize) -> String {
+        return match &data.default {
             DefaultType::Required => format!(""),
             _ => formatdoc!(
                 "
@@ -362,8 +333,8 @@ impl StructField {
                 {0:indent$} */
                 {0:indent$}[[nodiscard]] static {typename} default_{name}();\n",
                 "",
-                typename = self.get_typename(),
-                name = self.name,
+                typename = get_typename(data),
+                name = data.name,
             ),
         };
     }
@@ -372,18 +343,20 @@ impl StructField {
     ///
     /// # Parameters
     ///
+    /// data: The struct field to generate code for
+    ///
     /// main_name: The name of the type which holds this field
     ///
     /// macros: A map of all macros to expand default values
     ///
     /// indent: The number of spaces to use for indentation
-    fn get_default_constructor_source(
-        &self,
+    pub(super) fn get_default_constructor_source(
+        data: &StructField,
         main_name: &str,
-        macros: &HashMap<String, data_model::SerializationModel>,
+        macros: &HashMap<String, SerializationModel>,
         indent: usize,
     ) -> Result<String, Error> {
-        return Ok(match &self.default {
+        return Ok(match &data.default {
             DefaultType::Required => format!(""),
             DefaultType::Optional => formatdoc!(
                 "
@@ -391,8 +364,8 @@ impl StructField {
                 {0:indent$}return std::nullopt;
                 }}\n",
                 "",
-                typename = self.get_typename(),
-                snake_case = ToSnakeCase::new(&mut self.name.chars()).collect::<String>(),
+                typename = get_typename(data),
+                snake_case = ToSnakeCase::new(&mut data.name.chars()).collect::<String>(),
             ),
             DefaultType::Default(default_value) => formatdoc!(
                 "
@@ -402,10 +375,10 @@ impl StructField {
                 {0:indent$}return default_value.to_value<{typename}>().get_ok();
                 }}\n",
                 "",
-                typename = self.get_typename(),
-                snake_case = ToSnakeCase::new(&mut self.name.chars()).collect::<String>(),
-                default_value = serialization_to_termite_node(
-                    &data_model::expand_macros(default_value, macros, &mut HashSet::new())?,
+                typename = get_typename(data),
+                snake_case = ToSnakeCase::new(&mut data.name.chars()).collect::<String>(),
+                default_value = serialization::generate(
+                    &expand_macros(default_value, macros, &mut HashSet::new())?,
                     "default_value",
                     indent,
                     indent
@@ -415,26 +388,40 @@ impl StructField {
     }
 
     /// Gets the equality check for this field
-    fn get_equality_check(&self) -> String {
-        return format!("this->{name} == x.{name} && ", name = self.name);
+    ///
+    /// # Parameters
+    ///
+    /// data: The struct field to generate code for
+    pub(super) fn get_equality_check(data: &StructField) -> String {
+        return format!("this->{name} == x.{name} && ", name = data.name);
     }
 
     /// Gets the printout of this field for the operator>> ostream function
-    fn get_printout(&self) -> String {
-        return format!("\"{name}: \" << x.{name} << \", \" << ", name = self.name);
+    ///
+    /// # Parameters
+    ///
+    /// data: The struct field to generate code for
+    pub(super) fn get_printout(data: &StructField) -> String {
+        return format!("\"{name}: \" << x.{name} << \", \" << ", name = data.name);
     }
 
     /// Get the setter for this field for the internal constructor
-    fn get_constructor_setter(&self) -> String {
-        return format!("{name}(std::move({name})), ", name = self.name);
+    ///
+    /// # Parameters
+    ///
+    /// data: The struct field to generate code for
+    pub(super) fn get_constructor_setter(data: &StructField) -> String {
+        return format!("{name}(std::move({name})), ", name = data.name);
     }
 
     /// Gets the description if it is supplied
     ///
     /// # Parameters
     ///
+    /// data: The struct field to generate code for
+    ///
     /// indent: The number of spaces to use for indentation
-    fn get_definition(&self, indent: usize) -> String {
+    pub(super) fn get_definition(data: &StructField, indent: usize) -> String {
         return formatdoc!(
             "
             \n{0:indent$}/**
@@ -443,15 +430,17 @@ impl StructField {
             {0:indent$} */
             {0:indent$}{typename} {name};",
             "",
-            typename = self.get_typename(),
-            name = self.name,
-            description = self.get_description(),
+            typename = get_typename(data),
+            name = data.name,
+            description = get_description(data),
         );
     }
 
     /// Gets the parsing for this field if it is required
     ///
     /// # Parameters
+    ///
+    /// data: The struct field to generate code for
     ///
     /// main_name: The name of the type which holds this field including namespace
     ///
@@ -460,8 +449,8 @@ impl StructField {
     /// data_types: List of all the data types defined in the data model
     ///
     /// indent: The indentation to use
-    fn get_parsing_required(
-        &self,
+    pub(super) fn get_parsing_required(
+        data: &StructField,
         main_name: &str,
         namespace: &str,
         data_types: &[DataType],
@@ -470,11 +459,11 @@ impl StructField {
         // Add possible namespace to the typename
         let typename = if let Some(_) = data_types
             .iter()
-            .find(|data_type| data_type.name == self.data_type)
+            .find(|data_type| data_type.name == data.data_type)
         {
-            format!("{namespace}{data_type}", data_type = self.data_type)
+            format!("{namespace}{data_type}", data_type = data.data_type)
         } else {
-            format!("{data_type}", data_type = self.data_type)
+            format!("{data_type}", data_type = data.data_type)
         };
 
         return formatdoc!("
@@ -491,13 +480,15 @@ impl StructField {
             {0:indent$}{typename} value_{name} = raw_value_{name}.get_ok();
             {0:indent$}map.erase(location_{name});\n",
             "",
-            name = self.name,
+            name = data.name,
         );
     }
 
     /// Gets the parsing for this field if it is optional
     ///
     /// # Parameters
+    ///
+    /// data: The struct field to generate code for
     ///
     /// main_name: The name of the type which holds this field including namespace
     ///
@@ -506,8 +497,8 @@ impl StructField {
     /// data_types: List of all the data types defined in the data model
     ///
     /// indent: The indentation to use
-    fn get_parsing_optional(
-        &self,
+    pub(super) fn get_parsing_optional(
+        data: &StructField,
         main_name: &str,
         namespace: &str,
         data_types: &[DataType],
@@ -516,24 +507,24 @@ impl StructField {
         // Add possible namespace to the typename
         let base_typename = if let Some(_) = data_types
             .iter()
-            .find(|data_type| data_type.name == self.data_type)
+            .find(|data_type| data_type.name == data.data_type)
         {
-            format!("{namespace}{data_type}", data_type = self.data_type)
+            format!("{namespace}{data_type}", data_type = data.data_type)
         } else {
-            format!("{data_type}", data_type = self.data_type)
+            format!("{data_type}", data_type = data.data_type)
         };
 
-        let typename = match &self.default {
+        let typename = match &data.default {
             DefaultType::Optional => format!("std::optional<{base_typename}>"),
             _ => base_typename.clone(),
         };
 
         // Get default value
-        let default = match &self.default {
+        let default = match &data.default {
             DefaultType::Required => format!(""),
             _ => format!(
                 " = {main_name}::default_{snake_case}()",
-                snake_case = ToSnakeCase::new(&mut self.name.chars()).collect::<String>(),
+                snake_case = ToSnakeCase::new(&mut data.name.chars()).collect::<String>(),
             ),
         };
 
@@ -551,13 +542,15 @@ impl StructField {
             {0:indent$}{0:indent$}map.erase(location_{name});
             {0:indent$}}}\n",
             "",
-            name = self.name,
+            name = data.name,
         );
     }
 
     /// Gets the parsing for this field
     ///
     /// # Parameters
+    ///
+    /// data: The struct field to generate code for
     ///
     /// main_name: The name of the type which holds this field including namespace
     ///
@@ -566,18 +559,18 @@ impl StructField {
     /// data_types: List of all the data types defined in the data model
     ///
     /// indent: The indentation to use
-    fn get_parsing(
-        &self,
+    pub(super) fn get_parsing(
+        data: &StructField,
         main_name: &str,
         namespace: &str,
         data_types: &[DataType],
         indent: usize,
     ) -> String {
-        return match self.default {
+        return match data.default {
             DefaultType::Required => {
-                self.get_parsing_required(main_name, namespace, data_types, indent)
+                get_parsing_required(data, main_name, namespace, data_types, indent)
             }
-            _ => self.get_parsing_optional(main_name, namespace, data_types, indent),
+            _ => get_parsing_optional(data, main_name, namespace, data_types, indent),
         };
     }
 
@@ -585,29 +578,128 @@ impl StructField {
     ///
     /// # Parameters
     ///
+    /// data: The struct field to generate code for
+    ///
     /// indent: The indentation to use
-    fn get_parsing_export(&self, indent: usize) -> String {
-        return match self.default {
+    pub(super) fn get_parsing_export(data: &StructField, indent: usize) -> String {
+        return match data.default {
             DefaultType::Optional => formatdoc!(
                 "
                 \n{0:indent$}if (value.{name}) {{
                 {0:indent$}{0:indent$}map.insert({{\"{name}\", Node::from_value(*value.{name})}});
                 {0:indent$}}}\n",
                 "",
-                name = self.name,
+                name = data.name,
             ),
             _ => formatdoc!(
                 "
                 \n{0:indent$}map.insert({{\"{name}\", Node::from_value(value.{name})}});\n",
                 "",
-                name = self.name,
+                name = data.name,
             ),
         };
     }
 
     /// Gets the value of this field when parsing after it is read
-    fn get_parameter_retrieval(&self) -> String {
-        return format!("std::move(value_{name}), ", name = self.name);
+    ///
+    /// # Parameters
+    ///
+    /// data: The struct field to generate code for
+    pub(super) fn get_parameter_retrieval(data: &StructField) -> String {
+        return format!("std::move(value_{name}), ", name = data.name);
+    }
+}
+
+mod serialization {
+    use super::*;
+
+    /// Converts a serialization model to c++ code which constructs a termite::Node
+    ///
+    /// # Parameters
+    ///
+    /// data: The serialization model to convert
+    ///
+    /// name: The base name of the temporary variables to construct
+    ///
+    /// indent: The indentation to use for each level
+    ///
+    /// total_indent: The total indentation to use for this level
+    pub(super) fn generate(
+        data: &SerializationModel,
+        name: &str,
+        indent: usize,
+        total_indent: usize,
+    ) -> String {
+        let next_indent = total_indent + indent;
+
+        return match data {
+            SerializationModel::Map(value) => {
+                let (temp_values, entries) = value
+                    .iter()
+                    .enumerate()
+                    .map(|(index, (key, value))| {
+                        // Construct temporary value for the value
+                        let temp_name = format!("{name}_{index}");
+                        let temp_value = generate(value, &temp_name, indent, total_indent);
+
+                        // Construct the entry
+                        let entry = format!(
+                            "{0:next_indent$}{{\"{key}\", {temp_name}}},",
+                            "",
+                            key = string_sanitize(key),
+                        );
+
+                        return (temp_value, entry);
+                    })
+                    .collect::<(Vec<_>, Vec<_>)>();
+
+                let entries = entries.join("\n");
+                let temp_values = temp_values.join("\n");
+
+                formatdoc!("
+                    {temp_values}
+                    {0:total_indent$}auto {name} = termite::Node(termite::Node::Map(std::map<std::string, termite::Node>({{
+                    {entries}
+                    {0:total_indent$}}})));",
+                    ""
+                )
+            }
+            SerializationModel::Array(ref value) => {
+                let (temp_values, entries) = value
+                    .iter()
+                    .enumerate()
+                    .map(|(index, element)| {
+                        // Construct temporary value for the value
+                        let temp_name = format!("{name}_{index}");
+                        let temp_value = generate(element, &temp_name, indent, total_indent);
+
+                        // Construct the entry
+                        let entry = format!("{0:next_indent$}{temp_name},", "");
+
+                        return (temp_value, entry);
+                    })
+                    .collect::<(Vec<_>, Vec<_>)>();
+
+                let entries = entries.join("\n");
+                let temp_values = temp_values.join("\n");
+
+                formatdoc!("
+                    {temp_values}
+                    {0:total_indent$}auto {name} = termite::Node(termite::Node::List(std::vector<termite::Node>({{
+                    {entries}
+                    {0:total_indent$}}})));",
+                    ""
+                )
+            }
+            SerializationModel::Value(ref value) => {
+                formatdoc!(
+                    "
+                    {0:total_indent$}auto {name} = termite::Node(termite::Node::Value(\"{value}\"));",
+                    "",
+                    value = string_sanitize(value),
+                )
+            }
+        };
     }
 }
 
@@ -625,97 +717,6 @@ fn string_sanitize(value: &str) -> String {
         .replace("\'", "\\\'")
         .replace("\"", "\\\"")
         .replace("\0", "\\0");
-}
-
-/// Converts a serialization model to c++ code which constructs a termite::Node
-///
-/// # Parameters
-///
-/// value: The serialization model to convert
-///
-/// name: The base name of the temporary variables to construct
-///
-/// indent: The indentation to use for each level
-///
-/// total_indent: The total indentation to use for this level
-fn serialization_to_termite_node(
-    value: &data_model::SerializationModel,
-    name: &str,
-    indent: usize,
-    total_indent: usize,
-) -> String {
-    let next_indent = total_indent + indent;
-
-    return match value {
-        data_model::SerializationModel::Map(value) => {
-            let (temp_values, entries) = value
-                .iter()
-                .enumerate()
-                .map(|(index, (key, value))| {
-                    // Construct temporary value for the value
-                    let temp_name = format!("{name}_{index}");
-                    let temp_value =
-                        serialization_to_termite_node(value, &temp_name, indent, total_indent);
-
-                    // Construct the entry
-                    let entry = format!(
-                        "{0:next_indent$}{{\"{key}\", {temp_name}}},",
-                        "",
-                        key = string_sanitize(key),
-                    );
-
-                    return (temp_value, entry);
-                })
-                .collect::<(Vec<_>, Vec<_>)>();
-
-            let entries = entries.join("\n");
-            let temp_values = temp_values.join("\n");
-
-            formatdoc!("
-                {temp_values}
-                {0:total_indent$}auto {name} = termite::Node(termite::Node::Map(std::map<std::string, termite::Node>({{
-                {entries}
-                {0:total_indent$}}})));",
-                ""
-            )
-        }
-        data_model::SerializationModel::Array(ref value) => {
-            let (temp_values, entries) = value
-                .iter()
-                .enumerate()
-                .map(|(index, element)| {
-                    // Construct temporary value for the value
-                    let temp_name = format!("{name}_{index}");
-                    let temp_value =
-                        serialization_to_termite_node(element, &temp_name, indent, total_indent);
-
-                    // Construct the entry
-                    let entry = format!("{0:next_indent$}{temp_name},", "");
-
-                    return (temp_value, entry);
-                })
-                .collect::<(Vec<_>, Vec<_>)>();
-
-            let entries = entries.join("\n");
-            let temp_values = temp_values.join("\n");
-
-            formatdoc!("
-                {temp_values}
-                {0:total_indent$}auto {name} = termite::Node(termite::Node::List(std::vector<termite::Node>({{
-                {entries}
-                {0:total_indent$}}})));",
-                ""
-            )
-        }
-        data_model::SerializationModel::Value(ref value) => {
-            formatdoc!(
-                "
-                {0:total_indent$}auto {name} = termite::Node(termite::Node::Value(\"{value}\"));",
-                "",
-                value = string_sanitize(value),
-            )
-        }
-    };
 }
 
 #[cfg(test)]

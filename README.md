@@ -219,12 +219,11 @@ let yaml_model = formatdoc!("
 ");
 
 let model = termite::DataModel::import_yaml(&yaml_model).unwrap();
-let cpp_model = termite::cpp::DataModel::new(model.clone()).unwrap();
 
 let termite_hpp = termite::cpp::get_termite_dependency();
 let termite_yaml_hpp = termite::cpp::get_yaml_interface();
-let model_h = cpp_model.get_header("HEADER_GUARD", 2);
-let model_cpp = cpp_model.get_source("model", 2);
+let model_h = termite::cpp::generate_header(&model, "HEADER_GUARD", 2);
+let model_cpp = termite::cpp::generate_source(&model, "model", 2);
 let model_schema = model.export_schema("Geometry", "my_schema");
 ```
 
@@ -314,6 +313,17 @@ name: Another name
 ```
 
 ## Changelog
+
+### 0.8.0
+
+#### Major changes
+
+#### Minor changes
+
+- Removed cpp::DataModel and changed it to use the data_model::DataModel instead
+- Refactored the code generation to use functions in cpp and dart libraries for
+  generating code instead of methods on DataModel, this means all code must be
+  updated
 
 ### 0.7.0
 
