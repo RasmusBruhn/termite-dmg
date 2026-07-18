@@ -8,13 +8,15 @@ use crate::*;
 ///
 /// # Parameters
 ///
+/// data: The struct to generate code for
+///
 /// name: The name of the struct type
 ///
 /// indent: The number of spaces per indentation level
 ///
 /// macros: The macros defined in the data model used for expanding default values
-pub(super) fn get_dart<'a>(
-    &data,
+pub(super) fn generate<'a>(
+    data: &Struct,
     name: &str,
     indent: usize,
     macros: &'a HashMap<String, SerializationModel>,
@@ -22,14 +24,14 @@ pub(super) fn get_dart<'a>(
     let definitions = data
         .fields
         .iter()
-        .map(|field| field.get_definition(indent))
+        .map(|field| struct_field::get_definition(field, indent))
         .collect::<Vec<_>>()
         .join(&format!("\n\n{0:indent$}", ""));
 
     let mut constructor_parameters = data
         .fields
         .iter()
-        .map(|field| field.get_constructor_parameter())
+        .map(|field| struct_field::get_constructor_parameter(field))
         .collect::<Vec<_>>()
         .join(&format!("\n{0:indent$}{0:indent$}", ""));
     if !constructor_parameters.is_empty() {
@@ -42,42 +44,42 @@ pub(super) fn get_dart<'a>(
     let constructor = data
         .fields
         .iter()
-        .filter_map(|field| field.get_constructor())
+        .filter_map(|field| struct_field::get_constructor(field))
         .collect::<Vec<_>>()
         .join(&format!("\n{0:indent$}{0:indent$}", ""));
 
     let default_constructors = data
         .fields
         .iter()
-        .filter_map(|field| field.get_default_constructor(indent, macros))
+        .filter_map(|field| struct_field::get_default_constructor(field, indent, macros))
         .collect::<Result<Vec<_>, _>>()?
         .join(&format!("\n\n{0:indent$}", ""));
 
     let exports = data
         .fields
         .iter()
-        .map(|field| field.get_export())
+        .map(|field| struct_field::get_export(field))
         .collect::<Vec<_>>()
         .join(&format!("\n{0:indent$}{0:indent$}{0:indent$}", ""));
 
     let printers = data
         .fields
         .iter()
-        .map(|field| field.get_printer())
+        .map(|field| struct_field::get_printer(field))
         .collect::<Vec<_>>()
         .join(", ");
 
     let parsers = data
         .fields
         .iter()
-        .map(|field| field.get_parser(name, indent))
+        .map(|field| struct_field::get_parser(field, name, indent))
         .collect::<Vec<_>>()
         .join(&format!("\n\n{0:indent$}{0:indent$}", ""));
 
     let parser_returns = data
         .fields
         .iter()
-        .map(|field| field.get_parser_return())
+        .map(|field| struct_field::get_parser_return(field))
         .collect::<Vec<_>>()
         .join(&format!(
             "\n{0:indent$}{0:indent$}{0:indent$}{0:indent$}",
@@ -190,7 +192,7 @@ mod struct_field {
             Some(format!(
                 "this.{name} = {name} ?? getDefault{capital_name}();",
                 name = &data.name,
-                capital_name = data.get_capitalized_name(),
+                capital_name = get_capitalized_name(data),
             ))
         } else {
             None
@@ -210,11 +212,10 @@ mod struct_field {
         macros: &'a HashMap<String, SerializationModel>,
     ) -> Option<Result<String, Error>> {
         return if let DefaultType::Default(default_value) = &data.default {
-            let expanded_default =
-                match expand_macros(default_value, macros, &mut HashSet::new()) {
-                    Ok(value) => value,
-                    Err(e) => return Some(Err(e)),
-                };
+            let expanded_default = match expand_macros(default_value, macros, &mut HashSet::new()) {
+                Ok(value) => value,
+                Err(e) => return Some(Err(e)),
+            };
 
             Some(Ok(formatdoc!("
                 /// Gets the default value for [{name}]
@@ -226,7 +227,7 @@ mod struct_field {
                 name = &data.name,
                 capital_name = &get_capitalized_name(data),
                 data_type = &data.data_type,
-                node = &expanded_default.get_dart(indent, 2 * indent),
+                node = &serialization_model::generate(&expanded_default, indent, 2 * indent),
             )))
         } else {
             None
@@ -329,7 +330,7 @@ mod serialization_model {
     /// Generates the Dart source code for a serialization model in a default value
     ///
     /// # Parameters
-    /// 
+    ///
     /// data: The serialization model to generate Dart source code for
     ///
     /// indent: The number of spaces per indentation level
@@ -344,7 +345,8 @@ mod serialization_model {
                         format!(
                             "{0:base_indent$}{0:indent$}'{key}': {value},",
                             "",
-                            value = serialization_model::generate(item, indent, base_indent + indent),
+                            value =
+                                serialization_model::generate(item, indent, base_indent + indent),
                         )
                     })
                     .collect::<Vec<_>>()
@@ -359,7 +361,8 @@ mod serialization_model {
                         format!(
                             "{0:base_indent$}{0:indent$}{value},",
                             "",
-                            value = serialization_model::generate(item, indent, base_indent + indent)
+                            value =
+                                serialization_model::generate(item, indent, base_indent + indent)
                         )
                     })
                     .collect::<Vec<_>>()

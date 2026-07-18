@@ -11,7 +11,7 @@ use crate::*;
 /// name: The name of the array type
 ///
 /// indent: The number of spaces per indentation level
-pub(super) fn generate_array(data: &Array, name: &str, indent: usize) -> String {
+pub(super) fn generate(data: &Array, name: &str, indent: usize) -> String {
     return formatdoc!("
         class {name} {{
         {0:indent$}List<{data_type}> values;

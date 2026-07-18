@@ -154,11 +154,13 @@ mod data_type_data {
         macros: &'a HashMap<String, SerializationModel>,
     ) -> Result<String, Error> {
         return match &data {
-            DataTypeData::Enum(data) => Ok(data.get_dart(name, indent)),
-            DataTypeData::Struct(data) => data.get_dart(name, indent, macros),
-            DataTypeData::Variant(data) => Ok(data.get_dart(name, indent)),
-            DataTypeData::Array(data) => Ok(data.get_dart(name, indent)),
-            DataTypeData::ConstrainedType(data) => Ok(data.get_dart(name, indent)),
+            DataTypeData::Enum(data) => Ok(type_enum::generate(data, name, indent)),
+            DataTypeData::Struct(data) => type_struct::generate(data, name, indent, macros),
+            DataTypeData::Variant(data) => Ok(type_variant::generate(data, name, indent)),
+            DataTypeData::Array(data) => Ok(type_array::generate(data, name, indent)),
+            DataTypeData::ConstrainedType(data) => {
+                Ok(type_constrained::generate(data, name, indent))
+            }
         };
     }
 }
