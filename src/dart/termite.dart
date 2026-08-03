@@ -28,7 +28,7 @@ sealed class Result<T> {
   }
 
   /// Returns true if this is an [Ok].
-  bool get isOk => this is Ok<T>;
+  bool isOk() => this is Ok<T>;
 }
 
 /// A successful [Result] with a returned value [value].
