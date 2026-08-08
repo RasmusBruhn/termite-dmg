@@ -26,6 +26,9 @@ sealed class Result<T> {
   Error<T> asError() {
     return this as Error<T>;
   }
+
+  /// Returns true if this is an [Ok].
+  bool isOk() => this is Ok<T>;
 }
 
 /// A successful [Result] with a returned value [value].
