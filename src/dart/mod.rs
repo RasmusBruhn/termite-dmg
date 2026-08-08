@@ -20,6 +20,9 @@ mod type_constrained;
 mod type_enum;
 mod type_struct;
 mod type_variant;
+mod error;
+
+pub use error::{Error, ErrorCore};
 
 /// Obtains the base termite Dart dependencies required for all generated data
 /// models, must be saved as "termite.dart" and "termite-types.dart"
@@ -155,7 +158,7 @@ mod data_type_data {
     ) -> Result<String, Error> {
         return match &data {
             DataTypeData::Enum(data) => Ok(type_enum::generate(data, name, indent)),
-            DataTypeData::Struct(data) => type_struct::generate(data, name, indent, macros),
+            DataTypeData::Struct(data) => Ok(type_struct::generate(data, name, indent, macros)?),
             DataTypeData::Variant(data) => Ok(type_variant::generate(data, name, indent)),
             DataTypeData::Array(data) => Ok(type_array::generate(data, name, indent)),
             DataTypeData::ConstrainedType(data) => {

@@ -2,14 +2,18 @@
 
 pub mod cpp;
 pub mod dart;
-mod data_model;
-pub mod schema;
 
+mod data_model;
 pub use data_model::{
-    expand_macros, Array, ConstrainedType, Constraint, DataModel, DataType,
-    DataTypeData, DefaultType, Enum, EnumType, Error, ErrorCore, SerializationModel, Struct,
-    StructField, Variant,
+    Array, ConstrainedType, Constraint, DataModel, DataType, DataTypeData, DefaultType, Enum,
+    EnumType, Struct, StructField, Variant,
 };
+
+mod error;
+pub use error::{Error, ErrorCore};
+
+mod serialization_model;
+pub use serialization_model::{expand_macros, SerializationModel};
 
 #[cfg(test)]
 mod tests {
@@ -181,9 +185,6 @@ mod tests {
                 },
             ],
         };
-
-        //let yaml_model = model.export_yaml().unwrap();
-        //fs::write("target/yaml_example.yaml", yaml_model).unwrap();
 
         let import = fs::read_to_string("tests/yaml_import.yaml").unwrap();
         let import_model = DataModel::import_yaml(&import).unwrap();
