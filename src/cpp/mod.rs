@@ -8,26 +8,20 @@
 //! it can be included as "#include <termite.hpp>"
 //!
 
+use crate::*;
 use indoc::formatdoc;
 use std::{
     char::ToLowercase,
     collections::{HashMap, HashSet},
-    fmt,
 };
 
+mod error;
 mod type_array;
 mod type_constrained;
 mod type_enum;
 mod type_struct;
 mod type_variant;
-
-use type_array::Array;
-use type_constrained::ConstrainedType;
-use type_enum::Enum;
-use type_struct::Struct;
-use type_variant::Variant;
-
-use crate::data_model;
+pub use error::{Error, ErrorCore};
 
 /// Iterator to convert an iterator of chars to snake case converting all
 /// uppercase characters to an underscore and the lowercase character
@@ -108,382 +102,250 @@ pub fn get_json_interface() -> (&'static str, &'static str) {
     );
 }
 
-/// An entire data model
-#[derive(Clone, Debug, PartialEq)]
-pub struct DataModel {
-    /// List of the the data types to implement
-    data_types: Vec<DataType>,
-    /// List of all header data used to include external packages
-    headers: Headers,
-    /// List of all footer data
-    footers: Footers,
-    /// The nested namespace to put the data model into
-    namespace: Vec<String>,
-    /// A map of all macros to expand default values
-    macros: HashMap<String, data_model::SerializationModel>,
-}
+/// Generates the header file
+///
+/// # Parameters
+///
+/// data: The data model to generate code for
+///
+/// name: The name of the header file (used for header guard so should be capslocked)
+///
+/// indent: The number of spaces to use for indentation
+pub fn generate_header(data: &DataModel, name: &str, indent: usize) -> Result<String, Error> {
+    // Get the namespace
+    let namespace = data.namespace.join("::");
+    let namespace_begin = if namespace.is_empty() {
+        format!("")
+    } else {
+        format!("namespace {namespace} {{")
+    };
+    let namespace_end = if namespace.is_empty() {
+        format!("")
+    } else {
+        format!("}} // namespace {namespace}")
+    };
 
-impl DataModel {
-    /// Constructs a new c++ data model from a generic data model
-    ///
-    /// # Parameters
-    ///
-    /// data: The generic data type to convert
-    pub fn new(data: crate::DataModel) -> Result<Self, Error> {
-        let data_types = data
-            .data_types
-            .into_iter()
-            .enumerate()
-            .map(|(i, data_type)| {
-                return match DataType::new(data_type) {
-                    Ok(result) => Ok(result),
-                    Err(error) => Err(error.add_element("data_types", i)),
-                };
+    // Get all structs
+    let data_types = data
+        .data_types
+        .iter()
+        .map(|data_type| data_type::generate_definition_header(data_type, indent))
+        .collect::<Vec<String>>()
+        .join("\n\n");
+
+    // Get all parsers
+    let parsers = data
+        .data_types
+        .iter()
+        .map(|data_type| data_type::generate_parser_header(data_type, &data.namespace))
+        .collect::<Vec<String>>()
+        .join("\n\n");
+
+    // Expand macros in the header and footer
+    let empty_string = String::new();
+    let header_str = data.headers.get("cpp-header").unwrap_or(&empty_string);
+    let header = match expand_macros(
+        &SerializationModel::Value(header_str.clone()),
+        &data.macros,
+        &mut HashSet::new(),
+    )? {
+        SerializationModel::Value(value) => value,
+        _ => {
+            return Err(Error {
+                location: "".to_string(),
+                error: ErrorCore::HeaderMacro(header_str.clone()),
             })
-            .collect::<Result<Vec<DataType>, Error>>()?;
-        let headers = match Headers::new(data.headers) {
-            Ok(result) => result,
-            Err(error) => return Err(error.add_field("headers")),
-        };
-        let footers = match Footers::new(data.footers) {
-            Ok(result) => result,
-            Err(error) => return Err(error.add_field("footers")),
-        };
+        }
+    };
+    let footer_str = data.footers.get("cpp-header").unwrap_or(&empty_string);
+    let footer = match expand_macros(
+        &SerializationModel::Value(footer_str.clone()),
+        &data.macros,
+        &mut HashSet::new(),
+    )? {
+        SerializationModel::Value(value) => value,
+        _ => {
+            return Err(Error {
+                location: "".to_string(),
+                error: ErrorCore::FooterMacro(footer_str.clone()),
+            })
+        }
+    };
 
-        return Ok(Self {
-            data_types,
-            headers,
-            footers,
-            namespace: data.namespace,
-            macros: data.macros,
-        });
-    }
+    return Ok(formatdoc!(
+        "
+        // Generated with the Termite Data Model Generator
+        #ifndef {name}_TERMITE_H_INCLUDED
+        #define {name}_TERMITE_H_INCLUDED
 
-    /// Generates the header file
-    ///
-    /// # Parameters
-    ///
-    /// name: The name of the header file (used for header guard so should be capslocked)
-    ///
-    /// indent: The number of spaces to use for indentation
-    pub fn get_header(&self, name: &str, indent: usize) -> Result<String, Error> {
-        // Get the namespace
-        let namespace = self.namespace.join("::");
-        let namespace_begin = if namespace.is_empty() {
-            format!("")
-        } else {
-            format!("namespace {namespace} {{")
-        };
-        let namespace_end = if namespace.is_empty() {
-            format!("")
-        } else {
-            format!("}} // namespace {namespace}")
-        };
+        #include <iostream>
+        #include <sstream>
+        #include <optional>
+        #include <variant>
+        #include <algorithm>
+        #include <termite.hpp>
 
-        // Get all structs
-        let data_types = self
-            .data_types
-            .iter()
-            .map(|data_type| data_type.get_definition_header(indent))
-            .collect::<Vec<String>>()
-            .join("\n\n");
+        {header}
 
-        // Get all parsers
-        let parsers = self
-            .data_types
-            .iter()
-            .map(|data_type| data_type.get_parser_header(&self.namespace))
-            .collect::<Vec<String>>()
-            .join("\n\n");
+        {namespace_begin}
 
-        // Expand macros in the header and footer
-        let header = match data_model::expand_macros(
-            &data_model::SerializationModel::Value(self.headers.header.clone()),
-            &self.macros,
-            &mut HashSet::new(),
-        )? {
-            data_model::SerializationModel::Value(value) => value,
-            _ => {
-                return Err(Error {
-                    location: "".to_string(),
-                    error: ErrorCore::HeaderMacro(self.headers.header.clone()),
-                })
-            }
-        };
-        let footer = match data_model::expand_macros(
-            &data_model::SerializationModel::Value(self.footers.header.clone()),
-            &self.macros,
-            &mut HashSet::new(),
-        )? {
-            data_model::SerializationModel::Value(value) => value,
-            _ => {
-                return Err(Error {
-                    location: "".to_string(),
-                    error: ErrorCore::FooterMacro(self.footers.header.clone()),
-                })
-            }
-        };
+        {data_types}
 
-        return Ok(formatdoc!(
-            "
-            // Generated with the Termite Data Model Generator
-            #ifndef {name}_TERMITE_H_INCLUDED
-            #define {name}_TERMITE_H_INCLUDED
+        {namespace_end}
 
-            #include <iostream>
-            #include <sstream>
-            #include <optional>
-            #include <variant>
-            #include <algorithm>
-            #include <termite.hpp>
+        namespace termite {{
 
-            {header}
+        {parsers}
 
-            {namespace_begin}
-
-            {data_types}
-
-            {namespace_end}
-
-            namespace termite {{
-
-            {parsers}
-
-            }} // namespace termite
-            
-            {footer}
-            
-            #endif
-            ",
-        ));
-    }
-
-    /// Generates the source file
-    ///
-    /// # Parameters
-    ///
-    /// name: The file location for the associated header file (is used for #include "name")
-    ///
-    /// indent: The number of spaces to use for indentation
-    pub fn get_source(&self, name: &str, indent: usize) -> Result<String, Error> {
-        // Get the namespace
-        let namespace = self.namespace.join("::");
-        let namespace_begin = if namespace.is_empty() {
-            format!("")
-        } else {
-            format!("namespace {namespace} {{")
-        };
-        let namespace_end = if namespace.is_empty() {
-            format!("")
-        } else {
-            format!("}} // namespace {namespace}")
-        };
-
-        // Get all structs
-        let data_types = self
-            .data_types
-            .iter()
-            .map(|data_type| data_type.get_definition_source(&self.macros, indent))
-            .collect::<Result<Vec<_>, _>>()?
-            .join("\n\n");
-
-        // Get all parsers
-        let parsers = self
-            .data_types
-            .iter()
-            .map(|data_type| data_type.get_parser_source(indent, &self.namespace, &self.data_types))
-            .collect::<Vec<String>>()
-            .join("\n\n");
-
-        // Expand macros in the header and footer
-        let header = match data_model::expand_macros(
-            &data_model::SerializationModel::Value(self.headers.source.clone()),
-            &self.macros,
-            &mut HashSet::new(),
-        )? {
-            data_model::SerializationModel::Value(value) => value,
-            _ => {
-                return Err(Error {
-                    location: "".to_string(),
-                    error: ErrorCore::HeaderMacro(self.headers.source.clone()),
-                })
-            }
-        };
-        let footer = match data_model::expand_macros(
-            &data_model::SerializationModel::Value(self.footers.source.clone()),
-            &self.macros,
-            &mut HashSet::new(),
-        )? {
-            data_model::SerializationModel::Value(value) => value,
-            _ => {
-                return Err(Error {
-                    location: "".to_string(),
-                    error: ErrorCore::FooterMacro(self.footers.source.clone()),
-                })
-            }
-        };
-
-        return Ok(formatdoc!("
-            // Generated with the Termite Data Model Generator
-            #include \"{name}.h\"
-
-            {header}
-
-            {namespace_begin}
-
-            namespace {{
-
-            // Code to make printing easier
-            template <typename T, typename = void>
-            struct has_insertion_operator : std::false_type {{}};
-            template <typename T>
-            struct has_insertion_operator<T, std::void_t<decltype(std::declval<std::ostream &>() << std::declval<T>())>> : std::true_type {{}};
-
-            template <typename T>
-            typename std::enable_if<has_insertion_operator<T>::value, std::ostream &>::type
-            operator<<(std::ostream &os, const std::optional<T> &value) {{
-            {0:indent$}if (value) {{
-            {0:indent$}{0:indent$}return os << *value;
-            {0:indent$}}} else {{
-            {0:indent$}{0:indent$}return os << \"nullopt\";
-            {0:indent$}}}
-            }}
-
-            template <typename T>
-            typename std::enable_if<has_insertion_operator<T>::value, std::ostream &>::type
-            operator<<(std::ostream &os, const std::vector<T> &value) {{
-            {0:indent$}os << \"[ \";
-            {0:indent$}for (auto value_it = value.cbegin(); value_it != value.cend(); ++value_it) {{
-            {0:indent$}{0:indent$}if (value_it != value.cbegin()) {{
-            {0:indent$}{0:indent$}{0:indent$}os << \", \";
-            {0:indent$}{0:indent$}}}
-            {0:indent$}{0:indent$}os << *value_it;
-            {0:indent$}}}
-            {0:indent$}return os << \" ]\";
-            }}
-
-            }} // namespace
-
-            {data_types}
-
-            {namespace_end}
-
-            namespace termite {{
-            
-            {parsers}
-
-            }} // namespace termite
-            
-            {footer}
-            ",
-            "",
-        ));
-    }
+        }} // namespace termite
+        
+        {footer}
+        
+        #endif
+        ",
+    ));
 }
 
-/// All of the headers for the different files
-#[derive(Clone, Debug, PartialEq)]
-struct Headers {
-    /// For the header file
-    header: String,
-    /// For the source file
-    source: String,
+/// Generates the source file
+///
+/// # Parameters
+///
+/// data: The data model to generate code for
+///
+/// name: The file location for the associated header file (is used for #include "name")
+///
+/// indent: The number of spaces to use for indentation
+pub fn generate_source(data: &DataModel, name: &str, indent: usize) -> Result<String, Error> {
+    // Get the namespace
+    let namespace = data.namespace.join("::");
+    let namespace_begin = if namespace.is_empty() {
+        format!("")
+    } else {
+        format!("namespace {namespace} {{")
+    };
+    let namespace_end = if namespace.is_empty() {
+        format!("")
+    } else {
+        format!("}} // namespace {namespace}")
+    };
+
+    // Get all structs
+    let data_types = data
+        .data_types
+        .iter()
+        .map(|data_type| data_type::generate_definition_source(data_type, &data.macros, indent))
+        .collect::<Result<Vec<_>, _>>()?
+        .join("\n\n");
+
+    // Get all parsers
+    let parsers = data
+        .data_types
+        .iter()
+        .map(|data_type| {
+            data_type::generate_parser_source(data_type, indent, &data.namespace, &data.data_types)
+        })
+        .collect::<Vec<String>>()
+        .join("\n\n");
+
+    // Expand macros in the header and footer
+    let empty_string = String::new();
+    let header_str = data.headers.get("cpp-source").unwrap_or(&empty_string);
+    let header = match expand_macros(
+        &SerializationModel::Value(header_str.clone()),
+        &data.macros,
+        &mut HashSet::new(),
+    )? {
+        SerializationModel::Value(value) => value,
+        _ => {
+            return Err(Error {
+                location: "".to_string(),
+                error: ErrorCore::HeaderMacro(header_str.clone()),
+            })
+        }
+    };
+    let footer_str = data.footers.get("cpp-source").unwrap_or(&empty_string);
+    let footer = match expand_macros(
+        &SerializationModel::Value(footer_str.clone()),
+        &data.macros,
+        &mut HashSet::new(),
+    )? {
+        SerializationModel::Value(value) => value,
+        _ => {
+            return Err(Error {
+                location: "".to_string(),
+                error: ErrorCore::FooterMacro(footer_str.clone()),
+            })
+        }
+    };
+
+    return Ok(formatdoc!("
+        // Generated with the Termite Data Model Generator
+        #include \"{name}.h\"
+
+        {header}
+
+        {namespace_begin}
+
+        namespace {{
+
+        // Code to make printing easier
+        template <typename T, typename = void>
+        struct has_insertion_operator : std::false_type {{}};
+        template <typename T>
+        struct has_insertion_operator<T, std::void_t<decltype(std::declval<std::ostream &>() << std::declval<T>())>> : std::true_type {{}};
+
+        template <typename T>
+        typename std::enable_if<has_insertion_operator<T>::value, std::ostream &>::type
+        operator<<(std::ostream &os, const std::optional<T> &value) {{
+        {0:indent$}if (value) {{
+        {0:indent$}{0:indent$}return os << *value;
+        {0:indent$}}} else {{
+        {0:indent$}{0:indent$}return os << \"nullopt\";
+        {0:indent$}}}
+        }}
+
+        template <typename T>
+        typename std::enable_if<has_insertion_operator<T>::value, std::ostream &>::type
+        operator<<(std::ostream &os, const std::vector<T> &value) {{
+        {0:indent$}os << \"[ \";
+        {0:indent$}for (auto value_it = value.cbegin(); value_it != value.cend(); ++value_it) {{
+        {0:indent$}{0:indent$}if (value_it != value.cbegin()) {{
+        {0:indent$}{0:indent$}{0:indent$}os << \", \";
+        {0:indent$}{0:indent$}}}
+        {0:indent$}{0:indent$}os << *value_it;
+        {0:indent$}}}
+        {0:indent$}return os << \" ]\";
+        }}
+
+        }} // namespace
+
+        {data_types}
+
+        {namespace_end}
+
+        namespace termite {{
+        
+        {parsers}
+
+        }} // namespace termite
+        
+        {footer}
+        ",
+        "",
+    ));
 }
 
-impl Headers {
-    /// Constructs a new c++ header from a generic header
-    ///
-    /// # Parameters
-    ///
-    /// data: The generic data type to convert
-    fn new(mut data: HashMap<String, String>) -> Result<Self, Error> {
-        let source = match data.remove("cpp-source") {
-            Some(value) => value,
-            None => String::new(),
-        };
-        let header = match data.remove("cpp-header") {
-            Some(value) => value,
-            None => String::new(),
-        };
-
-        return Ok(Self { header, source });
-    }
-}
-
-/// All of the footers for the different files
-#[derive(Clone, Debug, PartialEq)]
-struct Footers {
-    /// For the header file
-    header: String,
-    /// For the source file
-    source: String,
-}
-
-impl Footers {
-    /// Constructs a new c++ footer from a generic footer
-    ///
-    /// # Parameters
-    ///
-    /// data: The generic data type to convert
-    fn new(mut data: HashMap<String, String>) -> Result<Self, Error> {
-        let source = match data.remove("cpp-source") {
-            Some(value) => value,
-            None => String::new(),
-        };
-        let header = match data.remove("cpp-header") {
-            Some(value) => value,
-            None => String::new(),
-        };
-
-        return Ok(Self { header, source });
-    }
-}
-
-/// Any data type (struct, variant, ect.)
-#[derive(Clone, Debug, PartialEq)]
-struct DataType {
-    /// The name of the type
-    name: String,
-    /// The description of the type
-    description: Option<String>,
-    /// The type specific data
-    data: DataTypeData,
-}
-
-impl DataType {
-    /// Constructs a new c++ data type from a generic data type
-    ///
-    /// # Parameters
-    ///
-    /// data: The generic data type to convert
-    fn new(data: crate::DataType) -> Result<Self, Error> {
-        // Convert the data
-        let processed_data = match DataTypeData::new(data.data) {
-            Ok(data) => data,
-            Err(error) => return Err(error.add_field(&data.name)),
-        };
-
-        return Ok(Self {
-            name: data.name,
-            description: data.description,
-            data: processed_data,
-        });
-    }
-
-    /// Generates the description if it is supplied
-    fn get_description(&self) -> String {
-        return match &self.description {
-            Some(description) => description.clone(),
-            None => "".to_string(),
-        };
-    }
+mod data_type {
+    use super::*;
 
     /// Converts the data type to a string for use in the header file
     ///
     /// # Parameters
     ///
+    /// data: The data type to generate code for
+    ///
     /// indent: The number of spaces to use for indentation
-    fn get_definition_header(&self, indent: usize) -> String {
+    pub(super) fn generate_definition_header(data: &DataType, indent: usize) -> String {
         return formatdoc!(
             "
             /**
@@ -491,8 +353,8 @@ impl DataType {
              * 
              */
             {definition}",
-            description = self.get_description(),
-            definition = self.data.get_definition_header(&self.name, indent),
+            description = get_description(data),
+            definition = data_type_data::generate_definition_header(&data.data, &data.name, indent),
         );
     }
 
@@ -500,20 +362,21 @@ impl DataType {
     ///
     /// # Parameters
     ///
+    /// data: The data type to generate code for
+    ///
     /// macros: A map of all macros to expand default values
     ///
     /// indent: The number of spaces to use for indentation
-    fn get_definition_source(
-        &self,
-        macros: &HashMap<String, data_model::SerializationModel>,
+    pub(super) fn generate_definition_source(
+        data: &DataType,
+        macros: &HashMap<String, SerializationModel>,
         indent: usize,
     ) -> Result<String, Error> {
         return Ok(formatdoc!(
             "
             {definition}",
-            definition = self
-                .data
-                .get_definition_source(&self.name, macros, indent)?,
+            definition =
+                data_type_data::generate_definition_source(&data.data, &data.name, macros, indent)?,
         ));
     }
 
@@ -521,81 +384,77 @@ impl DataType {
     ///
     /// # Parameters
     ///
+    /// data: The data type to generate code for
+    ///
     /// namespace: The namespace of the type
-    pub(super) fn get_parser_header(&self, namespace: &[String]) -> String {
-        return self.data.get_parser_header(&self.name, namespace);
+    pub(super) fn generate_parser_header(data: &DataType, namespace: &[String]) -> String {
+        return data_type_data::generate_parser_header(&data.data, &data.name, namespace);
     }
 
     /// Gets the source code for the parser for this type allowing it to be read from a file
     ///
     /// # Parameters
     ///
+    /// data: The data type to generate code for
+    ///
     /// indent: The number of spaces to use for indentation
     ///
     /// namespace: The namespace of the type
     ///
     /// data_types: List of all the data types defined in the data model
-    pub(super) fn get_parser_source(
-        &self,
+    pub(super) fn generate_parser_source(
+        data: &DataType,
         indent: usize,
         namespace: &[String],
         data_types: &[DataType],
     ) -> String {
-        return self
-            .data
-            .get_parser_source(&self.name, indent, namespace, data_types);
+        return data_type_data::generate_parser_source(
+            &data.data, &data.name, indent, namespace, data_types,
+        );
     }
-}
 
-/// Supplies the type specific information for a data type
-#[derive(Clone, Debug, PartialEq)]
-enum DataTypeData {
-    /// Describes a struct
-    Struct(Struct),
-    /// Describes an array
-    Array(Array),
-    /// Describes a variant
-    Variant(Variant),
-    /// Describes an enum
-    Enum(Enum),
-    /// Describes a constrained type
-    ConstrainedType(ConstrainedType),
-}
-
-impl DataTypeData {
-    /// Constructs a new c++ data type data from a generic data type data
+    /// Generates the description if it is supplied
     ///
     /// # Parameters
     ///
-    /// data: The generic data type data to convert
-    fn new(data: crate::DataTypeData) -> Result<Self, Error> {
-        let result = match data {
-            crate::DataTypeData::Struct(data) => DataTypeData::Struct(Struct::new(data)?),
-            crate::DataTypeData::Array(data) => DataTypeData::Array(Array::new(data)?),
-            crate::DataTypeData::Variant(data) => DataTypeData::Variant(Variant::new(data)?),
-            crate::DataTypeData::Enum(data) => DataTypeData::Enum(Enum::new(data)?),
-            crate::DataTypeData::ConstrainedType(data) => {
-                DataTypeData::ConstrainedType(ConstrainedType::new(data)?)
-            }
+    /// data: The data type to generate code for
+    fn get_description(data: &DataType) -> String {
+        return match &data.description {
+            Some(description) => description.clone(),
+            None => "".to_string(),
         };
-
-        return Ok(result);
     }
+}
+
+mod data_type_data {
+    use super::*;
 
     /// Converts the data type data to a string for use in the header file
     ///
     /// # Parameters
     ///
+    /// data: The data type data to generate code for
+    ///
     /// name: The name of the data type
     ///
     /// indent: The number of spaces to use for indentation
-    fn get_definition_header(&self, name: &str, indent: usize) -> String {
-        return match self {
-            DataTypeData::Struct(data) => data.get_definition_header(name, indent),
-            DataTypeData::Array(data) => data.get_definition_header(name, indent),
-            DataTypeData::Variant(data) => data.get_definition_header(name, indent),
-            DataTypeData::Enum(data) => data.get_definition_header(name, indent),
-            DataTypeData::ConstrainedType(data) => data.get_definition_header(name, indent),
+    pub(super) fn generate_definition_header(
+        data: &DataTypeData,
+        name: &str,
+        indent: usize,
+    ) -> String {
+        return match data {
+            DataTypeData::Struct(data) => {
+                type_struct::generate_definition_header(data, name, indent)
+            }
+            DataTypeData::Array(data) => type_array::generate_definition_header(data, name, indent),
+            DataTypeData::Variant(data) => {
+                type_variant::generate_definition_header(data, name, indent)
+            }
+            DataTypeData::Enum(data) => type_enum::generate_definition_header(data, name, indent),
+            DataTypeData::ConstrainedType(data) => {
+                type_constrained::generate_definition_header(data, name, indent)
+            }
         };
     }
 
@@ -603,23 +462,35 @@ impl DataTypeData {
     ///
     /// # Parameters
     ///
+    /// data: The data type data to generate code for
+    ///
     /// name: The name of the data type
     ///
     /// macros: A map of all macros to expand default values
     ///
     /// indent: The number of spaces to use for indentation
-    fn get_definition_source(
-        &self,
+    pub(super) fn generate_definition_source(
+        data: &DataTypeData,
         name: &str,
-        macros: &HashMap<String, data_model::SerializationModel>,
+        macros: &HashMap<String, SerializationModel>,
         indent: usize,
     ) -> Result<String, Error> {
-        return match self {
-            DataTypeData::Struct(data) => data.get_definition_source(name, macros, indent),
-            DataTypeData::Array(data) => Ok(data.get_definition_source(name, indent)),
-            DataTypeData::Variant(data) => Ok(data.get_definition_source(name, indent)),
-            DataTypeData::Enum(data) => Ok(data.get_definition_source(name, indent)),
-            DataTypeData::ConstrainedType(data) => Ok(data.get_definition_source(name, indent)),
+        return match data {
+            DataTypeData::Struct(data) => Ok(type_struct::generate_definition_source(
+                data, name, macros, indent,
+            )?),
+            DataTypeData::Array(data) => {
+                Ok(type_array::generate_definition_source(data, name, indent))
+            }
+            DataTypeData::Variant(data) => {
+                Ok(type_variant::generate_definition_source(data, name, indent))
+            }
+            DataTypeData::Enum(data) => {
+                Ok(type_enum::generate_definition_source(data, name, indent))
+            }
+            DataTypeData::ConstrainedType(data) => Ok(
+                type_constrained::generate_definition_source(data, name, indent),
+            ),
         };
     }
 
@@ -627,22 +498,36 @@ impl DataTypeData {
     ///
     /// # Parameters
     ///
+    /// data: The data type data to generate code for
+    ///
     /// name: The name of the type
     ///
     /// namespace: The namespace of the type
-    pub(super) fn get_parser_header(&self, name: &str, namespace: &[String]) -> String {
-        return match self {
-            DataTypeData::Struct(data) => data.get_parser_header(name, namespace),
-            DataTypeData::Array(data) => data.get_parser_header(name, namespace),
-            DataTypeData::Variant(data) => data.get_parser_header(name, namespace),
-            DataTypeData::Enum(data) => data.get_parser_header(name, namespace),
-            DataTypeData::ConstrainedType(data) => data.get_parser_header(name, namespace),
+    pub(super) fn generate_parser_header(
+        data: &DataTypeData,
+        name: &str,
+        namespace: &[String],
+    ) -> String {
+        return match data {
+            DataTypeData::Struct(data) => {
+                type_struct::generate_parser_header(data, name, namespace)
+            }
+            DataTypeData::Array(data) => type_array::generate_parser_header(data, name, namespace),
+            DataTypeData::Variant(data) => {
+                type_variant::generate_parser_header(data, name, namespace)
+            }
+            DataTypeData::Enum(data) => type_enum::generate_parser_header(data, name, namespace),
+            DataTypeData::ConstrainedType(data) => {
+                type_constrained::generate_parser_header(data, name, namespace)
+            }
         };
     }
 
     /// Gets the source code for the parser for this type allowing it to be read from a file
     ///
     /// # Parameters
+    ///
+    /// data: The data type data to generate code for
     ///
     /// name: The name of the type
     ///
@@ -651,573 +536,220 @@ impl DataTypeData {
     /// namespace: The namespace of the type
     ///
     /// data_types: List of all the data types defined in the data model
-    pub(super) fn get_parser_source(
-        &self,
+    pub(super) fn generate_parser_source(
+        data: &DataTypeData,
         name: &str,
         indent: usize,
         namespace: &[String],
         data_types: &[DataType],
     ) -> String {
-        return match self {
+        return match data {
             DataTypeData::Struct(data) => {
-                data.get_parser_source(name, indent, namespace, data_types)
+                type_struct::generate_parser_source(data, name, indent, namespace, data_types)
             }
             DataTypeData::Array(data) => {
-                data.get_parser_source(name, indent, namespace, data_types)
+                type_array::generate_parser_source(data, name, indent, namespace, data_types)
             }
             DataTypeData::Variant(data) => {
-                data.get_parser_source(name, indent, namespace, data_types)
+                type_variant::generate_parser_source(data, name, indent, namespace, data_types)
             }
-            DataTypeData::Enum(data) => data.get_parser_source(name, indent, namespace, data_types),
+            DataTypeData::Enum(data) => {
+                type_enum::generate_parser_source(data, name, indent, namespace, data_types)
+            }
             DataTypeData::ConstrainedType(data) => {
-                data.get_parser_source(name, indent, namespace, data_types)
+                type_constrained::generate_parser_source(data, name, indent, namespace, data_types)
             }
         };
     }
-}
-
-/// Errors for when converting generic data models into c++ data models
-/// including location
-#[derive(Debug, Clone)]
-pub struct Error {
-    /// The location where the error occured
-    pub location: String,
-    /// The actual error that occured
-    pub error: ErrorCore,
-}
-
-impl Error {
-    /// Sets the current location to be the field of the given base
-    ///
-    /// # Parameters
-    ///
-    /// base: The base to set in the location
-    fn add_field(self, base: &str) -> Error {
-        let location = if !self.location.is_empty() {
-            format!("{}.{}", base, self.location)
-        } else {
-            base.to_string()
-        };
-
-        return Error {
-            location,
-            error: self.error,
-        };
-    }
-
-    /// Sets the current location to be the element of a field of the given base
-    ///
-    /// # Parameters
-    ///
-    /// base: The base to set in the location
-    ///
-    /// index: The index of the field
-    fn add_element(self, base: &str, index: usize) -> Error {
-        let location = if !self.location.is_empty() {
-            format!("{}[{}].{}", base, index, self.location)
-        } else {
-            format!("{}[{}]", base, index)
-        };
-
-        return Error {
-            location,
-            error: self.error,
-        };
-    }
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        return write!(f, "{}: {}", self.location, self.error);
-    }
-}
-
-impl From<data_model::Error> for Error {
-    fn from(value: data_model::Error) -> Self {
-        return Error {
-            location: value.location.clone(),
-            error: ErrorCore::MacroError(value),
-        };
-    }
-}
-
-/// Errors for when converting generic data models into c++ data models
-#[derive(thiserror::Error, Debug, Clone)]
-pub enum ErrorCore {
-    /// Error expanding macros
-    #[error("An error occured when expanding macros: {:?}", .0)]
-    MacroError(data_model::Error),
-    /// The macro expansion in the header failed
-    #[error("The header \"{:?}\" must only expand to a string when using macros", .0)]
-    HeaderMacro(String),
-    /// The macro expansion in the footer failed
-    #[error("The footer \"{:?}\" must only expand to a string when using macros", .0)]
-    FooterMacro(String),
 }
 
 #[cfg(test)]
 pub(crate) mod test_utils {
-    use std::{fs, path, process};
+    use super::*;
+    use std::{path, process};
 
-    pub(crate) fn str_diff(lhs: &str, rhs: &str) -> Option<(usize, String, String)> {
-        if let Some(error) = lhs
-            .trim()
-            .lines()
-            .zip(rhs.trim().lines())
-            .enumerate()
-            .filter_map(|(index, (lhs, rhs))| {
-                return if lhs.trim() == rhs.trim() {
-                    None
-                } else {
-                    Some((index + 1, lhs.trim().to_string(), rhs.trim().to_string()))
-                };
-            })
-            .next()
-        {
-            return Some(error);
+    pub(crate) fn run_test(
+        name: &str,
+        generate_model: bool,
+        include_yaml: bool,
+        include_json: bool,
+    ) {
+        // Get the path to the test directory
+        let test_name = path::Path::new(name).file_name().unwrap().to_str().unwrap();
+        let test_path = path::Path::new("tests/cpp").join(name);
+        let include_yaml = if include_yaml { "true" } else { "false" };
+        let include_json = if include_json { "true" } else { "false" };
+        let termite_path = (0..(test_path.components().count() + 1))
+            .map(|_| "..".to_string())
+            .chain(vec!["src".to_string(), "cpp".to_string()].into_iter())
+            .collect::<Vec<String>>()
+            .join("/");
+
+        // Construct the folder for the generated files
+        let generated_path = test_path.join("generated");
+        if !std::fs::exists(&generated_path).unwrap() {
+            std::fs::create_dir(&generated_path).unwrap();
         }
 
-        if lhs.trim().lines().count() != rhs.trim().lines().count() {
-            return Some((
-                0,
-                format!("{}", lhs.trim().lines().count()),
-                format!("{}", rhs.trim().lines().count()),
-            ));
+        // Generate the code
+        if generate_model {
+            let model_path = test_path.join(format!("{}_datamodel.yaml", test_name));
+            let yaml_model = std::fs::read_to_string(model_path).unwrap();
+            let model = crate::DataModel::import_yaml(&yaml_model).unwrap();
+
+            // Create the header file
+            let header_path = generated_path.join(format!("{}.h", test_name));
+            let source_path = generated_path.join(format!("{}.cpp", test_name));
+            let header_file = generate_header(&model, &test_name.to_uppercase(), 2).unwrap();
+            let source_file = generate_source(&model, test_name, 2).unwrap();
+            std::fs::write(header_path, &header_file).unwrap();
+            std::fs::write(source_path, &source_file).unwrap();
         }
 
-        return None;
-    }
+        // Create the cmake file
+        let cmake_path = generated_path.join("CMakeLists.txt");
+        let cmake_raw = include_str!("../../tests/cpp/CMakeLists.txt");
+        let cmake_file = cmake_raw
+            .replace("%%TEST_NAME%%", test_name)
+            .replace("%%INCLUDE_YAML%%", include_yaml)
+            .replace("%%INCLUDE_JSON%%", include_json)
+            .replace("%%TERMITE_PATH%%", &termite_path);
+        std::fs::write(cmake_path, cmake_file).unwrap();
 
-    fn get_source_path(name: &str) -> path::PathBuf {
-        // Get the filename
-        let filename = path::Path::new(name).file_name().unwrap().to_str().unwrap();
+        // Compile c++ code
+        if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir(&test_path)
+                .arg("/C")
+                .arg("mkdir build")
+                .output()
+                .expect("failed to compile");
+        } else {
+            process::Command::new("sh")
+                .current_dir(&test_path)
+                .arg("-c")
+                .arg("mkdir build")
+                .output()
+                .expect("failed to compile");
+        };
 
-        return path::Path::new("tests/cpp")
-            .join(format!("{name}"))
-            .join(format!("{filename}.cpp"));
-    }
-
-    fn get_test_path(name: &str) -> path::PathBuf {
-        // Get the filename
-        let filename = path::Path::new(name).file_name().unwrap().to_str().unwrap();
-
-        return path::Path::new("tests/cpp")
-            .join(format!("{name}"))
-            .join(format!("{filename}_test.cpp"));
-    }
-
-    fn get_exe_path(name: &str) -> path::PathBuf {
-        // Get the filename
-        let filename = path::Path::new(name).file_name().unwrap().to_str().unwrap();
-
-        return path::Path::new("target/tests/cpp")
-            .join(format!("{name}"))
-            .join(filename);
-    }
-
-    pub(crate) fn compile_and_test(name: &str) {
-        // Get the paths
-        let source_path = get_source_path(name);
-        let test_path = get_test_path(name);
-        let exe_path = get_exe_path(name);
-
-        // Create the output directory
-        fs::create_dir_all(exe_path.parent().unwrap()).unwrap();
-
-        // Compile code
+        let build_path = test_path.join("build");
         let compile_output = if cfg!(target_os = "windows") {
             process::Command::new("cmd")
+                .current_dir(&build_path)
                 .arg("/C")
-                .arg(format!(
-                    "g++ {} {} -Isrc/cpp -Wall -std=c++17 -o {}.exe",
-                    source_path.to_str().unwrap(),
-                    test_path.to_str().unwrap(),
-                    exe_path.to_str().unwrap()
-                ))
+                .arg("cmake ../generated")
                 .output()
                 .expect("failed to compile")
         } else {
             process::Command::new("sh")
+                .current_dir(&build_path)
                 .arg("-c")
-                .arg(format!(
-                    "g++ {} {} -Isrc/cpp -Wall -std=c++17 -o {}",
-                    source_path.to_str().unwrap(),
-                    test_path.to_str().unwrap(),
-                    exe_path.to_str().unwrap()
-                ))
+                .arg("cmake ../generated")
                 .output()
                 .expect("failed to compile")
         };
 
-        // Make sure it comiled without any warnings
-        assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
-        assert_eq!(compile_output.stdout.len(), 0);
-        assert_eq!(compile_output.stderr.len(), 0);
+        if compile_output.status.code().unwrap_or(1) != 0 || !compile_output.stderr.is_empty() {
+            panic!(
+                "C++ test failed:\nstdout:\n{}\nstderr:\n{}",
+                String::from_utf8_lossy(&compile_output.stdout),
+                String::from_utf8_lossy(&compile_output.stderr),
+            );
+        }
 
-        // Run the test executable
+        let compile_output2 = if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir(&build_path)
+                .arg("/C")
+                .arg("cmake --build .")
+                .output()
+                .expect("failed to compile")
+        } else {
+            process::Command::new("sh")
+                .current_dir(&build_path)
+                .arg("-c")
+                .arg("cmake --build .")
+                .output()
+                .expect("failed to compile")
+        };
+
+        if compile_output2.status.code().unwrap_or(1) != 0 || !compile_output2.stderr.is_empty() {
+            panic!(
+                "C++ test failed:\nstdout:\n{}\nstderr:\n{}",
+                String::from_utf8_lossy(&compile_output2.stdout),
+                String::from_utf8_lossy(&compile_output2.stderr),
+            );
+        }
+
+        // Tet the c++ code
         let test_output = if cfg!(target_os = "windows") {
             process::Command::new("cmd")
+                .current_dir(&build_path)
                 .arg("/C")
-                .arg(format!(
-                    ".\\{}.exe",
-                    exe_path.to_str().unwrap().replace('/', "\\")
-                ))
+                .arg(format!(".\\Debug\\{}.exe", &test_name))
                 .output()
                 .expect("failed to test")
         } else {
             process::Command::new("sh")
+                .current_dir(&build_path)
                 .arg("-c")
-                .arg(format!("./{}", exe_path.to_str().unwrap()))
+                .arg(format!("./{}", &test_name))
                 .output()
                 .expect("failed to test")
         };
 
-        assert_eq!(test_output.status.code().expect("Unable to run test"), 0);
+        if test_output.status.code().unwrap_or(1) != 0 {
+            panic!(
+                "C++ test failed:\nstdout:\n{}\nstderr:\n{}",
+                String::from_utf8_lossy(&test_output.stdout),
+                String::from_utf8_lossy(&test_output.stderr),
+            );
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::cpp::test_utils::*;
-    use std::process;
 
     #[test]
-    fn termite_basis() {
-        if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/termite")
-                .arg("/C")
-                .arg("mkdir build")
-                .output()
-                .expect("failed to compile");
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/termite")
-                .arg("-c")
-                .arg("mkdir build")
-                .output()
-                .expect("failed to compile");
-        };
+    fn termite() {
+        run_test("termite", false, false, false);
+    }
 
-        let compile_output = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/termite/build")
-                .arg("/C")
-                .arg("cmake ..")
-                .output()
-                .expect("failed to compile")
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/termite/build")
-                .arg("-c")
-                .arg("cmake ..")
-                .output()
-                .expect("failed to compile")
-        };
+    #[test]
+    fn termite_yaml() {
+        run_test("termite_yaml", false, true, false);
+    }
 
-        assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
-        assert_eq!(compile_output.stderr.len(), 0);
-
-        let compile_output2 = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/termite/build")
-                .arg("/C")
-                .arg("cmake --build .")
-                .output()
-                .expect("failed to compile")
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/termite/build")
-                .arg("-c")
-                .arg("cmake --build .")
-                .output()
-                .expect("failed to compile")
-        };
-
-        assert_eq!(compile_output2.status.code().expect("Unable to compile"), 0);
-        assert_eq!(compile_output2.stderr.len(), 0);
-
-        let test_output = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/termite/build")
-                .arg("/C")
-                .arg(".\\Debug\\termite.exe")
-                .output()
-                .expect("failed to test")
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/termite/build")
-                .arg("-c")
-                .arg("./termite")
-                .output()
-                .expect("failed to test")
-        };
-
-        assert_eq!(test_output.status.code().expect("Unable to run"), 0);
-
-        let test_output_yaml = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/termite/build")
-                .arg("/C")
-                .arg(".\\Debug\\termite-yaml.exe")
-                .output()
-                .expect("failed to test")
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/termite/build")
-                .arg("-c")
-                .arg("./termite-yaml")
-                .output()
-                .expect("failed to test")
-        };
-
-        assert_eq!(test_output_yaml.status.code().expect("Unable to run"), 0);
-
-        let test_output_json = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/termite/build")
-                .arg("/C")
-                .arg(".\\Debug\\termite-json.exe")
-                .output()
-                .expect("failed to test")
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/termite/build")
-                .arg("-c")
-                .arg("./termite-json")
-                .output()
-                .expect("failed to test")
-        };
-
-        assert_eq!(test_output_json.status.code().expect("Unable to run"), 0);
+    #[test]
+    fn termite_json() {
+        run_test("termite_json", false, false, true);
     }
 
     #[test]
     fn header() {
-        // Check c++ code
-        compile_and_test("header");
-
-        // Make sure it generates the correct code
-        let data_model = DataModel {
-            headers: Headers {
-                header: "// header header".to_string(),
-                source: "// header source".to_string(),
-            },
-            footers: Footers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            data_types: vec![],
-            namespace: vec![],
-            macros: HashMap::new(),
-        };
-
-        // Create the header file
-        let header_file = data_model.get_header("HEADER", 2).unwrap();
-        let source_file = data_model.get_source("header", 2).unwrap();
-        let expected_header = include_str!("../../tests/cpp/header/header.h");
-        let expected_source = include_str!("../../tests/cpp/header/header.cpp");
-
-        // Check that they are the same
-        assert_eq!(str_diff(&header_file, &expected_header), None);
-        assert_eq!(str_diff(&source_file, &expected_source), None);
+        run_test("header", true, false, false);
     }
 
     #[test]
     fn footer() {
-        // Check c++ code
-        compile_and_test("footer");
-
-        // Make sure it generates the correct code
-        let data_model = DataModel {
-            headers: Headers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            footers: Footers {
-                header: "// footer header".to_string(),
-                source: "// footer source".to_string(),
-            },
-            data_types: vec![],
-            namespace: vec![],
-            macros: HashMap::new(),
-        };
-
-        // Create the header file
-        let header_file = data_model.get_header("HEADER", 2).unwrap();
-        let source_file = data_model.get_source("footer", 2).unwrap();
-        let expected_header = include_str!("../../tests/cpp/footer/footer.h");
-        let expected_source = include_str!("../../tests/cpp/footer/footer.cpp");
-
-        // Check that they are the same
-        assert_eq!(str_diff(&header_file, &expected_header), None);
-        assert_eq!(str_diff(&source_file, &expected_source), None);
+        run_test("footer", true, false, false);
     }
 
     #[test]
     fn namespace() {
-        // Check c++ code
-        compile_and_test("namespace");
-
-        // Make sure it generates the correct code
-        let data_model = DataModel {
-            headers: Headers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            footers: Footers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            data_types: vec![],
-            namespace: vec!["test1".to_string(), "test2".to_string()],
-            macros: HashMap::new(),
-        };
-
-        // Create the header file
-        let header_file = data_model.get_header("HEADER", 2).unwrap();
-        let source_file = data_model.get_source("namespace", 2).unwrap();
-        let expected_header = include_str!("../../tests/cpp/namespace/namespace.h");
-        let expected_source = include_str!("../../tests/cpp/namespace/namespace.cpp");
-
-        // Check that they are the same
-        assert_eq!(str_diff(&header_file, &expected_header), None);
-        assert_eq!(str_diff(&source_file, &expected_source), None);
+        run_test("namespace", true, false, false);
     }
 
     #[test]
     fn outline() {
-        // Check c++ code
-        compile_and_test("outline");
-
-        // Make sure it generates the correct code
-        let data_model = DataModel {
-            headers: Headers {
-                header: "// Header header".to_string(),
-                source: "// Header source".to_string(),
-            },
-            footers: Footers {
-                header: "// Footer header".to_string(),
-                source: "// Footer source".to_string(),
-            },
-            data_types: vec![
-                DataType {
-                    name: "DataType1".to_string(),
-                    description: Some("description1".to_string()),
-                    data: DataTypeData::Struct(Struct { fields: vec![] }),
-                },
-                DataType {
-                    name: "DataType2".to_string(),
-                    description: Some("description2".to_string()),
-                    data: DataTypeData::Struct(Struct { fields: vec![] }),
-                },
-            ],
-            namespace: vec!["test".to_string()],
-            macros: HashMap::new(),
-        };
-
-        // Create the header file
-        let header_file = data_model.get_header("HEADER", 2).unwrap();
-        let source_file = data_model.get_source("outline", 2).unwrap();
-        let expected_header = include_str!("../../tests/cpp/outline/outline.h");
-        let expected_source = include_str!("../../tests/cpp/outline/outline.cpp");
-
-        // Check that they are the same
-        assert_eq!(str_diff(&header_file, &expected_header), None);
-        assert_eq!(str_diff(&source_file, &expected_source), None);
+        run_test("outline", true, false, false);
     }
 
     #[test]
     fn full_example() {
-        // Check c++ code
-        if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/full_example")
-                .arg("/C")
-                .arg("mkdir build")
-                .output()
-                .expect("failed to compile");
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/full_example")
-                .arg("-c")
-                .arg("mkdir build")
-                .output()
-                .expect("failed to compile");
-        };
-
-        let compile_output = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/full_example/build")
-                .arg("/C")
-                .arg("cmake ..")
-                .output()
-                .expect("failed to compile")
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/full_example/build")
-                .arg("-c")
-                .arg("cmake ..")
-                .output()
-                .expect("failed to compile")
-        };
-
-        assert_eq!(compile_output.status.code().expect("Unable to compile"), 0);
-        assert_eq!(compile_output.stderr.len(), 0);
-
-        let compile_output2 = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/full_example/build")
-                .arg("/C")
-                .arg("cmake --build .")
-                .output()
-                .expect("failed to compile")
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/full_example/build")
-                .arg("-c")
-                .arg("cmake --build .")
-                .output()
-                .expect("failed to compile")
-        };
-
-        assert_eq!(compile_output2.status.code().expect("Unable to compile"), 0);
-        assert_eq!(compile_output2.stderr.len(), 0);
-
-        let test_output = if cfg!(target_os = "windows") {
-            process::Command::new("cmd")
-                .current_dir("tests/cpp/full_example/build")
-                .arg("/C")
-                .arg(".\\Debug\\full_example.exe")
-                .output()
-                .expect("failed to test")
-        } else {
-            process::Command::new("sh")
-                .current_dir("tests/cpp/full_example/build")
-                .arg("-c")
-                .arg("./full_example")
-                .output()
-                .expect("failed to test")
-        };
-
-        assert_eq!(test_output.status.code().expect("Unable to run"), 0);
-
-        // Make sure it generates the correct code
-        let yaml_model = include_str!("../../tests/cpp/full_example/full_example_datamodel.yaml");
-        let model = crate::DataModel::import_yaml(yaml_model).unwrap();
-        let data_model = DataModel::new(model).unwrap();
-
-        // Create the header file
-        let header_file = data_model.get_header("FULL_EXAMPLE", 2).unwrap();
-        let source_file = data_model.get_source("full_example", 2).unwrap();
-        let expected_header = include_str!("../../tests/cpp/full_example/full_example.h");
-        let expected_source = include_str!("../../tests/cpp/full_example/full_example.cpp");
-        //std::fs::write("tests/cpp/full_example/build/full_example.h", &header_file).unwrap();
-        //std::fs::write("tests/cpp/full_example/build/full_example.cpp", &source_file).unwrap();
-
-        // Check that they are the same
-        assert_eq!(str_diff(&header_file, &expected_header), None);
-        assert_eq!(str_diff(&source_file, &expected_source), None);
+        run_test("full_example", true, true, false);
     }
 }

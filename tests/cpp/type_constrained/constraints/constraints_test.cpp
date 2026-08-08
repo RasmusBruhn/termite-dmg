@@ -1,119 +1,148 @@
+#include "generated/constraints.h"
+
 #include <iostream>
-#include "constraints.h"
+#include <sstream>
+
+/**
+ * @brief Checks an element is equal to itself
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_error_eq_self() {
+  auto value = test::DataType(2);
+  if (value != value) {
+    return "A constrained type was not equal to itself";
+  }
+  return std::nullopt;
+}
+
+/**
+ * @brief Checks that two different constrained types are not equal
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_error_eq_diff() {
+  auto value = test::DataType(2);
+  auto compare = test::DataType(4);
+  if (value == compare) {
+    std::stringstream ss;
+    ss << "Two different constrained types were equal: " << value.get()
+       << " vs " << compare.get();
+    return ss.str();
+  }
+  return std::nullopt;
+}
+
+/**
+ * @brief Checks that a constrained type can be correctly loaded
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_load() {
+  auto value = test::DataType(2);
+  termite::Node node(termite::Node::Value("2"));
+  auto value_read = node.to_value<test::DataType>();
+  if (!value_read.is_ok()) {
+    std::stringstream ss;
+    ss << "Unable to convert node to constrained type: "
+       << value_read.get_err();
+    return ss.str();
+  }
+  auto inner_value = value_read.get_ok();
+  if (inner_value != value) {
+    std::stringstream ss;
+    ss << "Failed to convert node to constrained type: expected " << value.get()
+       << ", got " << inner_value.get();
+    return ss.str();
+  }
+  return std::nullopt;
+}
+
+/**
+ * @brief Checks that a constrained type cannot be constructed if constraint 1
+ * is invalidated
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_error_constraint_1() {
+  termite::Node node(termite::Node::Value("0"));
+  auto value_read = node.to_value<test::DataType>();
+  if (value_read.is_ok()) {
+    std::stringstream ss;
+    ss << "A constrained type was constructed from node with invalid "
+          "constraint 1 (value: 0)";
+    return ss.str();
+  }
+  return std::nullopt;
+}
+
+/**
+ * @brief Checks that a constrained type cannot be constructed if constraint 2
+ * is invalidated
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_error_constraint_2() {
+  termite::Node node(termite::Node::Value("1"));
+  auto value_read = node.to_value<test::DataType>();
+  if (value_read.is_ok()) {
+    std::stringstream ss;
+    ss << "A constrained type was constructed from node with invalid "
+          "constraint 2 (value: 1)";
+    return ss.str();
+  }
+  return std::nullopt;
+}
+
+/**
+ * @brief Checks that a constrained type can be saved to a node and reloaded
+ * again
+ *
+ * @return An error string on error
+ */
+std::optional<std::string> test_reload() {
+  auto value = test::DataType(2);
+  termite::Node converted_node = termite::Node::from_value(value);
+  auto converted_value = converted_node.to_value<test::DataType>();
+  if (!converted_value.is_ok()) {
+    std::stringstream ss;
+    ss << "Unable to reload constrained type: " << converted_value.get_err();
+    return ss.str();
+  }
+  auto inner_value = converted_value.get_ok();
+  if (inner_value != value) {
+    std::stringstream ss;
+    ss << "Failed to reload constrained type: expected " << value.get()
+       << ", got " << inner_value.get();
+    return ss.str();
+  }
+  return std::nullopt;
+}
 
 int main() {
-  auto value1 = test::DataType1::from_value(2).get_ok();
-  auto value2 = test::DataType2::from_value(1e-10).get_ok();
+  auto names = {
+      "test_error_eq_self",      "test_error_eq_diff",      "test_load",
+      "test_error_constraint_1", "test_error_constraint_2", "test_reload",
+  };
+  auto functions = {
+      test_error_eq_self,      test_error_eq_diff,      test_load,
+      test_error_constraint_1, test_error_constraint_2, test_reload,
+  };
 
-  if (value1 != value1) {
-    return 1;
-  }
-  if (value1 == test::DataType1::from_value(4).get_ok()) {
-    return 2;
-  }
-  if (value2 != value2) {
-    return 3;
-  }
-  if (value2 == test::DataType2::from_value(1e-11).get_ok()) {
-    return 4;
-  }
+  std::cout << "Running " << names.size() << " tests" << std::endl;
 
-  if (test::DataType1::from_value(0).is_ok()) {
-    return 5;
-  }
-  if (test::DataType1::from_value(1).is_ok()) {
-    return 6;
-  }
-  if (test::DataType2::from_value(1e-8).is_ok()) {
-    return 7;
+  int progress = 1;
+  auto name_it = names.begin();
+  for (auto function_it = functions.begin(); function_it < functions.end();
+       ++function_it, ++name_it, ++progress) {
+    if (auto error = (*function_it)()) {
+      std::cout << "Error occured at \"" << *name_it << "\": " << *error
+                << std::endl;
+      return progress;
+    }
   }
 
-  if (value1.get() != 2) {
-    return 8;
-  }
-  if (std::abs(value2.get() - 1e-10) > 1e-16) {
-    return 9;
-  }
-
-  if (!value1.set(4).is_ok()) {
-    return 10;
-  }
-  if (!value2.set(1e-11).is_ok()) {
-    return 11;
-  }
-
-  if (value1.get() != 4) {
-    return 12;
-  }
-  if (std::abs(value2.get() - 1e-11) > 1e-16) {
-    return 13;
-  }
-
-  if (value1.set(0).is_ok()) {
-    return 14;
-  }
-  if (value1.set(1).is_ok()) {
-    return 15;
-  }
-  if (value2.set(1e-8).is_ok()) {
-    return 16;
-  }
-
-  if (value1.get() != 4) {
-    return 17;
-  }
-  if (std::abs(value2.get() - 1e-11) > 1e-16) {
-    return 18;
-  }
-
-  auto node1 = termite::Node(termite::Node::Value("4"));
-  auto read_value1 = node1.to_value<test::DataType1>();
-  if (!read_value1.is_ok()) {
-    return 19;
-  }
-  if (read_value1.get_ok() != value1) {
-    return 20;
-  }
-  auto node2 = termite::Node(termite::Node::Value("1e-11"));
-  auto read_value2 = node2.to_value<test::DataType2>();
-  if (!read_value2.is_ok()) {
-    return 21;
-  }
-  if (std::abs(read_value2.get_ok().get() - value2.get()) > 1e-16) {
-    return 22;
-  }
-
-  auto wrong_node11 = termite::Node(termite::Node::Value("0"));
-  auto wrong_value11 = wrong_node11.to_value<test::DataType1>();
-  if (wrong_value11.is_ok()) {
-    return 23;
-  }
-  auto wrong_node12 = termite::Node(termite::Node::Value("1"));
-  auto wrong_value12 = wrong_node12.to_value<test::DataType1>();
-  if (wrong_value12.is_ok()) {
-    return 24;
-  }
-  auto wrong_node13 = termite::Node(termite::Node::Value("1.5"));
-  auto wrong_value13 = wrong_node13.to_value<test::DataType1>();
-  if (wrong_value13.is_ok()) {
-    return 25;
-  }
-  auto wrong_node2 = termite::Node(termite::Node::Value("1e-8"));
-  auto wrong_value2 = wrong_node2.to_value<test::DataType1>();
-  if (wrong_value2.is_ok()) {
-    return 26;
-  }
-
-  termite::Node converted_node = termite::Node::from_value(value1);
-  auto converted_value = converted_node.to_value<test::DataType1>();
-  if (!converted_value.is_ok()) {
-    return 27;
-  }
-  if (converted_value.get_ok() != value1) {
-    return 28;
-  }
-
-  std::cout << "Done" << std::endl;
+  std::cout << "No errors" << std::endl;
 
   return 0;
 }

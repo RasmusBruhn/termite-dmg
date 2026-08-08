@@ -4,6 +4,21 @@ macros:
   VersionMajor: 1
   VersionMinor: 0
   VersionPatch: 0
+namespace:
+- test
+- name
+- space
+headers:
+  cpp-header: |
+    // This is my .h file
+    #include "custom.h"
+    #include <string>
+
+    using String = std::string;
+  cpp-source: // This is my .cpp file
+footers:
+  cpp-header: // This is the end of my .h file
+  cpp-source: // This is the end of my .cpp file
 data_types:
 - name: VersionString
   description: A string that represents a version number
@@ -14,7 +29,7 @@ data_types:
 - name: SizeValue
   description: A single size value
   data: !ConstrainedType
-    data_type: int
+    data_type: integer
     constraints:
     - !Arithmetic x > 0
 - name: Size
@@ -35,11 +50,11 @@ data_types:
     fields:
     - name: x
       description: The x coordinate of the point
-      data_type: int
+      data_type: integer
       default: Required
     - name: y
       description: The y coordinate of the point
-      data_type: int
+      data_type: integer
       default: Required
 - name: State
   description: The state of a geometry
@@ -120,18 +135,3 @@ data_types:
       description: A list of geometries
       data_type: GeometryList
       default: Required
-headers:
-  cpp-header: |
-    // This is my .h file
-    #include "custom.h"
-    #include <string>
-
-    using String = std::string;
-  cpp-source: // This is my .cpp file
-footers:
-  cpp-header: // This is the end of my .h file
-  cpp-source: // This is the end of my .cpp file
-namespace:
-- test
-- name
-- space

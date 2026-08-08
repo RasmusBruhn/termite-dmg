@@ -1,63 +1,42 @@
-use super::*;
+use crate::*;
 use indoc::formatdoc;
 
-/// The type specific information for a constrained type
-#[derive(Clone, Debug, PartialEq)]
-pub(super) struct ConstrainedType {
-    /// The type that is constrained
-    pub(super) data_type: String,
-    /// All extra constraints for the type
-    pub(super) constraints: Vec<String>,
-}
+/// Converts the variant to a string for use in the header file
+///
+/// # Parameters
+///
+/// data: The constrained type to generate code for
+///
+/// name: The name of the variant
+///
+/// indent: The number of spaces to use for indentation
+pub(super) fn generate_definition_header(
+    data: &ConstrainedType,
+    name: &str,
+    indent: usize,
+) -> String {
+    let data_type = if ["string", "number", "integer", "boolean"].contains(&data.data_type.as_str())
+    {
+        format!("termite::{data_type}", data_type = data.data_type)
+    } else {
+        data.data_type.clone()
+    };
 
-impl ConstrainedType {
-    /// Constructs a new c++ variant from a generic variant
-    ///
-    /// # Parameters
-    ///
-    /// data: The generic variant to convert
-    pub(super) fn new(data: crate::ConstrainedType) -> Result<Self, Error> {
-        let constraints = data
-            .constraints
-            .iter()
-            .map(|constraint| match constraint {
-                crate::Constraint::Arithmetic(value) => value.clone(),
-                crate::Constraint::Function(value) => format!("{value}(x)"),
-            })
-            .collect::<Vec<String>>();
+    // Create the constraints description
+    let constraints = data
+        .constraints
+        .iter()
+        .map(|constraint| {
+            return format!(
+                "\n{0:indent$} * - {constraint}",
+                "",
+                constraint = constraint::generate(constraint)
+            );
+        })
+        .collect::<Vec<String>>()
+        .join("");
 
-        return Ok(Self {
-            data_type: data.data_type,
-            constraints,
-        });
-    }
-
-    /// Converts the variant to a string for use in the header file
-    ///
-    /// # Parameters
-    ///
-    /// name: The name of the variant
-    ///
-    /// indent: The number of spaces to use for indentation
-    pub(super) fn get_definition_header(&self, name: &str, indent: usize) -> String {
-        let data_type =
-            if ["string", "number", "integer", "boolean"].contains(&self.data_type.as_str()) {
-                format!("termite::{data_type}", data_type = self.data_type)
-            } else {
-                self.data_type.clone()
-            };
-
-        // Create the constraints description
-        let constraints = self
-            .constraints
-            .iter()
-            .map(|constraint| {
-                return format!("\n{0:indent$} * - {constraint}", "");
-            })
-            .collect::<Vec<String>>()
-            .join("");
-
-        return formatdoc!("
+    return formatdoc!("
             class {name} {{
             public:
             {0:indent$}/**
@@ -140,42 +119,49 @@ impl ConstrainedType {
             }};",
             "",
         );
-    }
+}
 
-    /// Converts the variant to a string for use in the source file
-    ///
-    /// # Parameters
-    ///
-    /// name: The name of the variant
-    ///
-    /// indent: The number of spaces to use for indentation
-    pub(super) fn get_definition_source(&self, name: &str, indent: usize) -> String {
-        let data_type =
-            if ["string", "number", "integer", "boolean"].contains(&self.data_type.as_str()) {
-                format!("termite::{data_type}", data_type = self.data_type)
-            } else {
-                self.data_type.clone()
-            };
+/// Converts the variant to a string for use in the source file
+///
+/// # Parameters
+///
+/// data: The constrained type to generate code for
+///
+/// name: The name of the variant
+///
+/// indent: The number of spaces to use for indentation
+pub(super) fn generate_definition_source(
+    data: &ConstrainedType,
+    name: &str,
+    indent: usize,
+) -> String {
+    let data_type = if ["string", "number", "integer", "boolean"].contains(&data.data_type.as_str())
+    {
+        format!("termite::{data_type}", data_type = data.data_type)
+    } else {
+        data.data_type.clone()
+    };
 
-        // Create the tests
-        let tests = self.constraints.iter()
+    // Create the tests
+    let tests = data.constraints.iter()
             .map(|constraint| formatdoc!("
                 {0:indent$}if (!({constraint})) {{
                 {0:indent$}{0:indent$}return termite::Result<termite::Empty>::err(termite::Error(\"Did not pass constraint: {constraint}\"));
                 {0:indent$}}}\n\n",
                 "",
+                constraint = constraint::generate(constraint),
             ))
             .collect::<Vec<String>>()
             .join("");
 
-        // The name of the validation parameter, should not exist if there are no constraints
-        let param_name = if self.constraints.is_empty() {
-            "".to_string()
-        } else {
-            "x".to_string()
-        };
+    // The name of the validation parameter, should not exist if there are no constraints
+    let param_name = if data.constraints.is_empty() {
+        "".to_string()
+    } else {
+        "x".to_string()
+    };
 
-        return formatdoc!("
+    return formatdoc!("
             [[nodiscard]] termite::Result<{name}> {name}::from_value({data_type} value) {{
             {0:indent$}termite::Result<termite::Empty> validate_result = validate(value);
             {0:indent$}if (!validate_result.is_ok()) {{
@@ -208,72 +194,80 @@ impl ConstrainedType {
             }}",
             "",
         );
-    }
+}
 
-    /// Gets the header code for the parser for this variant allowing it to be read from a file
-    ///
-    /// # Parameters
-    ///
-    /// name: The name of the variant
-    ///
-    /// namespace: The namespace of the variant
-    pub(super) fn get_parser_header(&self, name: &str, namespace: &[String]) -> String {
-        // Get the namespace name
-        let namespace = namespace
-            .iter()
-            .map(|single_name| format!("{single_name}::"))
-            .collect::<Vec<String>>()
-            .join("");
-        let typename = format!("{namespace}{name}");
+/// Gets the header code for the parser for this variant allowing it to be read from a file
+///
+/// # Parameters
+///
+/// data: The constrained type to generate code for
+///
+/// name: The name of the variant
+///
+/// namespace: The namespace of the variant
+pub(super) fn generate_parser_header(
+    _data: &ConstrainedType,
+    name: &str,
+    namespace: &[String],
+) -> String {
+    // Get the namespace name
+    let namespace = namespace
+        .iter()
+        .map(|single_name| format!("{single_name}::"))
+        .collect::<Vec<String>>()
+        .join("");
+    let typename = format!("{namespace}{name}");
 
-        return formatdoc!(
-            "
+    return formatdoc!(
+        "
             template<>
             [[nodiscard]] Result<{typename}> Node::to_value<{typename}>() const;
 
             template<>
             [[nodiscard]] Node Node::from_value<{typename}>(const {typename} &value);",
-        );
-    }
+    );
+}
 
-    /// Gets the source code for the parser for this variant allowing it to be read from a file
-    ///
-    /// # Parameters
-    ///
-    /// name: The name of the variant
-    ///
-    /// indent: The number of spaces to use for indentation
-    ///
-    /// namespace: The namespace of the variant
-    ///
-    /// data_types: List of all the data types defined in the data model
-    pub(super) fn get_parser_source(
-        &self,
-        name: &str,
-        indent: usize,
-        namespace: &[String],
-        data_types: &[DataType],
-    ) -> String {
-        // Get the namespace name
-        let namespace = namespace
-            .iter()
-            .map(|single_name| format!("{single_name}::"))
-            .collect::<Vec<String>>()
-            .join("");
-        let typename = format!("{namespace}{name}");
+/// Gets the source code for the parser for this variant allowing it to be read from a file
+///
+/// # Parameters
+///
+/// data: The constrained type to generate code for
+///
+/// name: The name of the variant
+///
+/// indent: The number of spaces to use for indentation
+///
+/// namespace: The namespace of the variant
+///
+/// data_types: List of all the data types defined in the data model
+pub(super) fn generate_parser_source(
+    data: &ConstrainedType,
+    name: &str,
+    indent: usize,
+    namespace: &[String],
+    data_types: &[DataType],
+) -> String {
+    // Get the namespace name
+    let namespace = namespace
+        .iter()
+        .map(|single_name| format!("{single_name}::"))
+        .collect::<Vec<String>>()
+        .join("");
+    let typename = format!("{namespace}{name}");
 
-        // Add possible namespace to the typename
-        let data_type = if let Some(_) = data_types
-            .iter()
-            .find(|data_type| data_type.name == self.data_type)
-        {
-            format!("{namespace}{data_type}", data_type = self.data_type)
-        } else {
-            format!("{data_type}", data_type = self.data_type)
-        };
+    // Add possible namespace to the typename
+    let data_type = if let Some(_) = data_types
+        .iter()
+        .find(|data_type| data_type.name == data.data_type)
+    {
+        format!("{namespace}{data_type}", data_type = data.data_type)
+    } else {
+        format!("{data_type}", data_type = data.data_type)
+    };
 
-        return formatdoc!(
-            "
+    return formatdoc!(
+        "
             template<>
             [[nodiscard]] Result<{typename}> Node::to_value<{typename}>() const {{
             {0:indent$}Result<{data_type}> value = to_value<{data_type}>();
@@ -288,115 +282,37 @@ impl ConstrainedType {
             [[nodiscard]] Node Node::from_value<{typename}>(const {typename} &value) {{
             {0:indent$}return Node::from_value(value.get());
             }}",
-            "",
-        );
+        "",
+    );
+}
+
+mod constraint {
+    use super::*;
+
+    /// Converts the constraint to a C++ expression
+    ///
+    /// # Parameters
+    ///
+    /// data: The constraint to convert to a C++ expression
+    pub(super) fn generate(data: &Constraint) -> String {
+        match data {
+            Constraint::Arithmetic(value) => value.clone(),
+            Constraint::Function(value) => format!("{value}(x)"),
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::cpp::test_utils::*;
 
     #[test]
     fn basic() {
-        // Check c++ code
-        compile_and_test("type_constrained/basic");
-
-        // Make sure it generates the correct code
-        let data_model = DataModel {
-            headers: Headers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            footers: Footers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            data_types: vec![
-                DataType {
-                    name: "DataType1".to_string(),
-                    description: None,
-                    data: DataTypeData::ConstrainedType(ConstrainedType {
-                        data_type: "int".to_string(),
-                        constraints: vec![],
-                    }),
-                },
-                DataType {
-                    name: "DataType2".to_string(),
-                    description: None,
-                    data: DataTypeData::ConstrainedType(ConstrainedType {
-                        data_type: "float".to_string(),
-                        constraints: vec![],
-                    }),
-                },
-            ],
-            namespace: vec!["test".to_string()],
-            macros: HashMap::new(),
-        };
-
-        // Create the header file
-        let header_file = data_model.get_header("HEADER", 2).unwrap();
-        let source_file = data_model.get_source("basic", 2).unwrap();
-        let expected_header = include_str!("../../tests/cpp/type_constrained/basic/basic.h");
-        let expected_source = include_str!("../../tests/cpp/type_constrained/basic/basic.cpp");
-        //println!("header:\n{header_file}\n---\n");
-        //println!("source:\n{source_file}\n---\n");
-
-        // Check that they are the same
-        assert_eq!(str_diff(&header_file, &expected_header), None);
-        assert_eq!(str_diff(&source_file, &expected_source), None);
+        run_test("type_constrained/basic", true, false, false);
     }
 
     #[test]
     fn constraints() {
-        // Check c++ code
-        compile_and_test("type_constrained/constraints");
-
-        // Make sure it generates the correct code
-        let data_model = DataModel {
-            headers: Headers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            footers: Footers {
-                header: "".to_string(),
-                source: "".to_string(),
-            },
-            data_types: vec![
-                DataType {
-                    name: "DataType1".to_string(),
-                    description: None,
-                    data: DataTypeData::ConstrainedType(ConstrainedType {
-                        data_type: "int".to_string(),
-                        constraints: vec!["x > 0".to_string(), "x % 2 == 0".to_string()],
-                    }),
-                },
-                DataType {
-                    name: "DataType2".to_string(),
-                    description: None,
-                    data: DataTypeData::ConstrainedType(ConstrainedType {
-                        data_type: "float".to_string(),
-                        constraints: vec!["std::abs(x) < 1e-9".to_string()],
-                    }),
-                },
-            ],
-            namespace: vec!["test".to_string()],
-            macros: HashMap::new(),
-        };
-
-        // Create the header file
-        let header_file = data_model.get_header("HEADER", 2).unwrap();
-        let source_file = data_model.get_source("constraints", 2).unwrap();
-        let expected_header =
-            include_str!("../../tests/cpp/type_constrained/constraints/constraints.h");
-        let expected_source =
-            include_str!("../../tests/cpp/type_constrained/constraints/constraints.cpp");
-        //println!("header:\n{header_file}\n---\n");
-        //println!("source:\n{source_file}\n---\n");
-
-        // Check that they are the same
-        assert_eq!(str_diff(&header_file, &expected_header), None);
-        assert_eq!(str_diff(&source_file, &expected_source), None);
+        run_test("type_constrained/constraints", true, false, false);
     }
 }

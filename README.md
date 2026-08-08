@@ -112,120 +112,143 @@ and then check its constraints afterwards.
 ## Code Generation
 
 The second part of the Termite crate is generating the code. For now it only
-supports c++ with the cpp module and JSON schema with the schema module.
+supports C++ with the cpp module and Dart with the dart module.
 
-To generate the c++ code for the data model, use the .get_header and .get_source
-methods on the model to generate the strings of the .h and the corresponding
-.cpp files.
+### C++
 
-To generate the termite.hpp file use the get_termite_dependency function and
+To generate the c++ code for the data model, use the 'generate_header' and
+'generate_source' functions from the cpp module to generate the strings of the .h
+and the corresponding .cpp files.
+
+To generate the "termite.hpp" file use the 'get_termite_dependency' function and
 save it as "termite.hpp" on the compiler path.
 
-To enable YAML support use the get_yaml_interface function to get the strings of
-the YAML interface .h and .cpp files. These must be saved on the compiler path
-as "termite-yaml.h" and "termite-yaml.cpp" respectively.
+To enable YAML support use the 'get_yaml_interface' function to get the strings
+of the YAML interface .h and .cpp files. These must be saved on the compiler
+path as "termite-yaml.h" and "termite-yaml.cpp" respectively.
 
-To enable JSON support use the get_json_interface function to get the strings of
-the JSON interface .h and .cpp files. These must be saved on the compiler path
-as "termite-json.h" and "termite-json.cpp" respectively.
+To enable JSON support use the 'get_json_interface' function to get the strings
+of the JSON interface .h and .cpp files. These must be saved on the compiler
+path as "termite-json.h" and "termite-json.cpp" respectively.
 
-To generate the schema generation run the run the .export_schema method to
-receive the JSON object with the schema.
+### Dart
+
+To generate the Dart code for the data model run the 'generate' function to
+generate the string for the dart file with the code for the data model.
+
+To generate the "termite.dart" file run the 'get_termite_dependency' function
+and save to two resulting strings as "termite.dart" and "termite-types.dart" in
+a location the dart build system can find them.
+
+To enable YAML support use the 'get_yaml_interface' function to get the string
+of the YAML interface .dart file. It must be saved as "termite-yaml.dart" in a
+location the dart build system can find it.
+
+To enable JSON support use the 'get_json_interface' function to get the string
+of the JSON interface .dart file. It must be saved as "termite-json.dart" in a
+location the dart build system can find it.
 
 ## Examples
 
 ```rust
 use termite_dmg as termite;
-use termite::schema;
 use indoc::formatdoc;
 
-let yaml_model = formatdoc!("
-  data_types:
-  - name: PositiveDouble
-    data: !ConstrainedType
-      data_type: number
-      constraints:
-      - !Arithmetic x > 0.0
-  - name: Point
-    description: A point in 2D space
-    data: !Struct
-      fields:
-      - name: x
+fn main() {
+  let yaml_model = formatdoc!("
+    data_types:
+    - name: PositiveDouble
+      data: !ConstrainedType
         data_type: number
-        default: !Default 0.0
-      - name: y
-        data_type: number
-        default: !Default $DEFAULT_COORDINATE$
-      - name: id
-        data_type: integer
-        default: Optional
-  - name: Size
-    description: The size of a box
-    data: !Struct
-      fields:
-      - name: w
-        description: The width
-        data_type: PositiveDouble
-        default: Required
-      - name: h
-        description: The height
-        data_type: PositiveDouble
-        default: Required
-  - name: SizeVariant
-    description: Is either a Size or just a PositiveDouble if it is a square
-    data: !Variant
-      data_types:
-      - PositiveDouble
-      - Size
-  - name: SizeArray
-    data: !Array
-      data_type: SizeVariant
-  - name: Geometry
-    data: !Enum
-      types:
-      - name: Nothing
-        description: No geometry
-      - name: Sizes
-        description: A number of sizes
-        data_type: SizeArray
-      - name: Point
-        description: A point
-        data_type: Point
-  - name: NamedGeometry
-    data: !Struct
-      fields:
-      - name: geometry
-        description: The geometry data
-        data_type: Geometry
-        default: !Default
-          Point:
-            x: 1.0
-            id: 0
-      - name: name
-        description: The name of the geometry
-        data_type: string
-        default: Required
-  headers:
-    cpp-header: \"// My .h Header with message: $MESSAGE$\"
-    cpp-source: \"// My .cpp Header and this is a dollar sign: $$\"
-  footers:
-    cpp-header: // My .h Footer
-    cpp-source: // My .cpp Footer
-  macros:
-    DEFAULT_COORDINATE: 0.0
-    MESSAGE: This is a macro message
-  namespace:
-  - my_namespace
-");
+        constraints:
+        - !Arithmetic x > 0.0
+    - name: Point
+      description: A point in 2D space
+      data: !Struct
+        fields:
+        - name: x
+          data_type: number
+          default: !Default 0.0
+        - name: y
+          data_type: number
+          default: !Default $DEFAULT_COORDINATE$
+        - name: id
+          data_type: integer
+          default: Optional
+    - name: Size
+      description: The size of a box
+      data: !Struct
+        fields:
+        - name: w
+          description: The width
+          data_type: PositiveDouble
+          default: Required
+        - name: h
+          description: The height
+          data_type: PositiveDouble
+          default: Required
+    - name: SizeVariant
+      description: Is either a Size or just a PositiveDouble if it is a square
+      data: !Variant
+        data_types:
+        - PositiveDouble
+        - Size
+    - name: SizeArray
+      data: !Array
+        data_type: SizeVariant
+    - name: Geometry
+      data: !Enum
+        types:
+        - name: Nothing
+          description: No geometry
+        - name: Sizes
+          description: A number of sizes
+          data_type: SizeArray
+        - name: Point
+          description: A point
+          data_type: Point
+    - name: NamedGeometry
+      data: !Struct
+        fields:
+        - name: geometry
+          description: The geometry data
+          data_type: Geometry
+          default: !Default
+            Point:
+              x: 1.0
+              id: 0
+        - name: name
+          description: The name of the geometry
+          data_type: string
+          default: Required
+    headers:
+      cpp-header: \"// My .h Header with message: $MESSAGE$\"
+      cpp-source: \"// My .cpp Header and this is a dollar sign: $$\"
+    footers:
+      cpp-header: // My .h Footer
+      cpp-source: // My .cpp Footer
+    macros:
+      DEFAULT_COORDINATE: 0.0
+      MESSAGE: This is a macro message
+    namespace:
+    - my_namespace
+  ");
 
-let model = termite::DataModel::import_yaml(&yaml_model).unwrap();
-let cpp_model = termite::cpp::DataModel::new(model.clone()).unwrap();
+  let model = termite::DataModel::import_yaml(&yaml_model).unwrap();
 
-let termite_hpp = termite::cpp::get_termite_dependency();
-let termite_yaml_hpp = termite::cpp::get_yaml_interface();
-let model_h = cpp_model.get_header("HEADER_GUARD", 2);
-let model_cpp = cpp_model.get_source("model", 2);
-let model_schema = model.export_schema("Geometry", "my_schema");
+  let termite_hpp = termite::cpp::get_termite_dependency();
+  let termite_yaml_hpp = termite::cpp::get_yaml_interface();
+  let termite_json_hpp = termite::cpp::get_json_interface();
+  let model_h = termite::cpp::generate_header(&model, "HEADER_GUARD", 2);
+  let model_cpp = termite::cpp::generate_source(&model, "model", 2);
+  // Save C++ model
+
+  let (termite_dart, termite_types_dart) = termite::dart::get_termite_dependency();
+  //let termite_yaml_dart = termite::cpp::get_yaml_interface();
+  let termite_json_dart = termite::dart::get_json_interface();
+  let model_dart = termite::dart::generate(&model, 2);
+  // Save Dart model
+}
 ```
 
 YAML file for loading a my_namespace::PositiveDouble
@@ -314,6 +337,18 @@ name: Another name
 ```
 
 ## Changelog
+
+### 0.8.0
+
+#### Major changes
+
+#### Minor changes
+
+- Removed cpp::DataModel and changed it to use the data_model::DataModel instead
+- Refactored the code generation to use functions in cpp and dart libraries for
+  generating code instead of methods on DataModel, this means all code must be
+  updated
+- Added error types specific for both c++ and one for dart
 
 ### 0.7.0
 

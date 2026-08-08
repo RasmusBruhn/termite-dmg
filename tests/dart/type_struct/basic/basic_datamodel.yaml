@@ -1,0 +1,9 @@
+namespace:
+- test
+data_types:
+- name: DataType1
+  data: !Struct
+    fields: []
+- name: DataType2
+  data: !Struct
+    fields: []
