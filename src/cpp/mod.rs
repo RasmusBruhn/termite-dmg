@@ -15,11 +15,13 @@ use std::{
     collections::{HashMap, HashSet},
 };
 
+mod error;
 mod type_array;
 mod type_constrained;
 mod type_enum;
 mod type_struct;
 mod type_variant;
+pub use error::{Error, ErrorCore};
 
 /// Iterator to convert an iterator of chars to snake case converting all
 /// uppercase characters to an underscore and the lowercase character
@@ -474,9 +476,9 @@ mod data_type_data {
         indent: usize,
     ) -> Result<String, Error> {
         return match data {
-            DataTypeData::Struct(data) => {
-                type_struct::generate_definition_source(data, name, macros, indent)
-            }
+            DataTypeData::Struct(data) => Ok(type_struct::generate_definition_source(
+                data, name, macros, indent,
+            )?),
             DataTypeData::Array(data) => {
                 Ok(type_array::generate_definition_source(data, name, indent))
             }
