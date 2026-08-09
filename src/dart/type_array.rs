@@ -31,6 +31,14 @@ pub(super) fn generate(data: &Array, name: &str, indent: usize) -> String {
 
         {0:indent$}@override
         {0:indent$}String toString() => '$values';
+
+        {0:indent$}@override
+        {0:indent$}bool operator ==(Object other) {{
+        {0:indent$}{0:indent$}return other is {name} && ListEquality().equals(other.values, values);
+        {0:indent$}}}
+
+        {0:indent$}@override
+        {0:indent$}int get hashCode => ListEquality().hash(values);
         }}
 
         extension TermiteNodeParser{name} on {name} {{

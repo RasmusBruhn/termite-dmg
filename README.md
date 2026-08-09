@@ -342,6 +342,8 @@ name: Another name
 
 #### Major changes
 
+- Added YAML support for the Dart code generation
+
 #### Minor changes
 
 - Removed cpp::DataModel and changed it to use the data_model::DataModel instead
@@ -349,6 +351,8 @@ name: Another name
   generating code instead of methods on DataModel, this means all code must be
   updated
 - Added error types specific for both c++ and one for dart
+- Added equality checks for Dart classes
+- Modified the Variant printer in Dart to also print the variant type
 
 ### 0.7.0
 

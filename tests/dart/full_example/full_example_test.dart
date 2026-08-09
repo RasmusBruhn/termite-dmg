@@ -1,5 +1,4 @@
 import 'generated/full_example.dart' as model;
-import 'generated/termite.dart' as termite;
 import 'generated/termite-json.dart' as termite_json;
 import 'generated/termite-yaml.dart' as termite_yaml;
 
@@ -21,31 +20,24 @@ int runTests(Map<String, TestFunction> tests) {
 }
 
 String? testReloadThroughJson() {
-  final version =
-      (model.VersionString.fromValue('1.0.1')
-              as termite.Ok<model.VersionString>)
-          .value;
-  final defaultState = model.State.newEdge(
-    (model.SizeValue.fromValue(1) as termite.Ok<model.SizeValue>).value,
-  );
+  final version = model.VersionString.fromValue('1.0.1').asOk();
+  final defaultState = model.State.newEdge(model.SizeValue.fromValue(1).asOk());
   final defaults = model.DefaultValues(
     state: defaultState,
     size: model.Size(
-      w: (model.SizeValue.fromValue(10) as termite.Ok<model.SizeValue>).value,
-      h: (model.SizeValue.fromValue(20) as termite.Ok<model.SizeValue>).value,
+      w: model.SizeValue.fromValue(10).asOk(),
+      h: model.SizeValue.fromValue(20).asOk(),
     ),
   );
 
   final rectangle = model.Rectangle(
     center: model.Point(x: 15, y: -30),
     size: null,
-    state: model.State.newEdge(
-      (model.SizeValue.fromValue(5) as termite.Ok<model.SizeValue>).value,
-    ),
+    state: model.State.newEdge(model.SizeValue.fromValue(5).asOk()),
   );
   final circle = model.Circle(
     center: model.Point(x: 0, y: 0),
-    radius: (model.SizeValue.fromValue(7) as termite.Ok<model.SizeValue>).value,
+    radius: model.SizeValue.fromValue(7).asOk(),
     state: null,
   );
 
@@ -59,56 +51,46 @@ String? testReloadThroughJson() {
   );
 
   final json = termite_json.toString(dataModel.toNode());
-  if (json is! termite.Ok<String>) {
+  if (!json.isOk()) {
     return 'Failed to serialize full example to JSON';
   }
 
-  final parsedNode = termite_json.fromString(json.value);
-  if (parsedNode is! termite.Ok<termite.Node>) {
+  final parsedNode = termite_json.fromString(json.asOk());
+  if (!parsedNode.isOk()) {
     return 'Failed to parse JSON string back into node';
   }
 
-  final loaded = model.DataModel.fromNode(parsedNode.value);
-  if (loaded is! termite.Ok<model.DataModel>) {
+  final loaded = model.DataModel.fromNode(parsedNode.asOk());
+  if (!loaded.isOk()) {
     return 'Failed to parse DataModel from node';
   }
 
-  final loadedModel = loaded.value;
-  if (loadedModel.version.value != '1.0.1') {
-    return 'Version mismatch after reload';
-  }
-  if (loadedModel.geometries.values.length != 2) {
-    return 'Geometry list size mismatch';
+  final loadedModel = loaded.asOk();
+  if (loadedModel != dataModel) {
+    return 'Model mismatch after reload: $loadedModel != $dataModel';
   }
   return null;
 }
 
 String? testReloadThroughYaml() {
-  final version =
-      (model.VersionString.fromValue('1.0.1')
-              as termite.Ok<model.VersionString>)
-          .value;
-  final defaultState = model.State.newEdge(
-    (model.SizeValue.fromValue(1) as termite.Ok<model.SizeValue>).value,
-  );
+  final version = model.VersionString.fromValue('1.0.1').asOk();
+  final defaultState = model.State.newEdge(model.SizeValue.fromValue(1).asOk());
   final defaults = model.DefaultValues(
     state: defaultState,
     size: model.Size(
-      w: (model.SizeValue.fromValue(10) as termite.Ok<model.SizeValue>).value,
-      h: (model.SizeValue.fromValue(20) as termite.Ok<model.SizeValue>).value,
+      w: model.SizeValue.fromValue(10).asOk(),
+      h: model.SizeValue.fromValue(20).asOk(),
     ),
   );
 
   final rectangle = model.Rectangle(
     center: model.Point(x: 15, y: -30),
     size: null,
-    state: model.State.newEdge(
-      (model.SizeValue.fromValue(5) as termite.Ok<model.SizeValue>).value,
-    ),
+    state: model.State.newEdge(model.SizeValue.fromValue(5).asOk()),
   );
   final circle = model.Circle(
     center: model.Point(x: 0, y: 0),
-    radius: (model.SizeValue.fromValue(7) as termite.Ok<model.SizeValue>).value,
+    radius: model.SizeValue.fromValue(7).asOk(),
     state: null,
   );
 
@@ -122,26 +104,23 @@ String? testReloadThroughYaml() {
   );
 
   final yaml = termite_yaml.toString(dataModel.toNode());
-  if (yaml is! termite.Ok<String>) {
+  if (!yaml.isOk()) {
     return 'Failed to serialize full example to YAML';
   }
 
-  final parsedNode = termite_yaml.fromString(yaml.value);
-  if (parsedNode is! termite.Ok<termite.Node>) {
+  final parsedNode = termite_yaml.fromString(yaml.asOk());
+  if (!parsedNode.isOk()) {
     return 'Failed to parse YAML string back into node';
   }
 
-  final loaded = model.DataModel.fromNode(parsedNode.value);
-  if (loaded is! termite.Ok<model.DataModel>) {
+  final loaded = model.DataModel.fromNode(parsedNode.asOk());
+  if (!loaded.isOk()) {
     return 'Failed to parse DataModel from node';
   }
 
-  final loadedModel = loaded.value;
-  if (loadedModel.version.value != '1.0.1') {
-    return 'Version mismatch after reload';
-  }
-  if (loadedModel.geometries.values.length != 2) {
-    return 'Geometry list size mismatch';
+  final loadedModel = loaded.asOk();
+  if (loadedModel != dataModel) {
+    return 'Model mismatch after reload: $loadedModel != $dataModel';
   }
   return null;
 }

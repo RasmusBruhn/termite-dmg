@@ -32,12 +32,12 @@ String? testErrorFormatting() {
 }
 
 String? testResultAccessors() {
-  const ok = termite.Result.ok(123);
+  final ok = termite.Result.ok(123);
   if (ok.asOk() != 123) {
     return 'Result.asOk() returned wrong value';
   }
 
-  const err = termite.Result<int>.error('failure', '.x');
+  final err = termite.Result<int>.error('failure', '.x');
   if (err.asError().error != 'failure' || err.asError().location != '.x') {
     return 'Result.asError() returned wrong value';
   }
@@ -46,35 +46,47 @@ String? testResultAccessors() {
 
 String? testNodeParse() {
   final scalar = termite.Node.parse(12);
-  if (scalar is! termite.Value || scalar.value != '12') {
+  if (scalar != termite.Node.value('12')) {
     return 'Failed to parse scalar';
   }
 
   final sequence = termite.Node.parse([1, 2]);
-  if (sequence is! termite.Sequence || sequence.values.length != 2) {
+  if (sequence !=
+      termite.Node.sequence([
+        termite.Node.value('1'),
+        termite.Node.value('2'),
+      ])) {
     return 'Failed to parse list';
   }
 
   final mapping = termite.Node.parse({'a': 1, 'b': '2'});
-  if (mapping is! termite.Mapping || mapping.map.length != 2) {
+  if (mapping !=
+      termite.Node.mapping({
+        'a': termite.Node.value('1'),
+        'b': termite.Node.value('2'),
+      })) {
     return 'Failed to parse map';
   }
   return null;
 }
 
 String? testPrimitiveParsing() {
-  final parsedInteger = TermiteNodeParserinteger.fromNode(termite.Node.value('123'));
-  if (parsedInteger is! termite.Ok<integer> || parsedInteger.value != 123) {
+  final parsedInteger = TermiteNodeParserinteger.fromNode(
+    termite.Node.value('123'),
+  );
+  if (!parsedInteger.isOk() || parsedInteger.asOk() != 123) {
     return 'Failed to parse integer';
   }
 
-  final invalidInteger = TermiteNodeParserinteger.fromNode(termite.Node.value('12.5'));
-  if (invalidInteger is! termite.Error<integer>) {
+  final invalidInteger = TermiteNodeParserinteger.fromNode(
+    termite.Node.value('12.5'),
+  );
+  if (invalidInteger.isOk()) {
     return 'Expected invalid integer to fail';
   }
 
   final wrongType = TermiteNodeParserinteger.fromNode(termite.Node.mapping({}));
-  if (wrongType is! termite.Error<integer>) {
+  if (wrongType.isOk()) {
     return 'Expected mapping to fail integer parsing';
   }
   return null;

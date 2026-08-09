@@ -20,10 +20,10 @@ int runTests(Map<String, TestFunction> tests) {
 
 String? testLoad() {
   final loaded = DataType.fromNode(termite.Node.value('1'));
-  if (loaded is! termite.Ok<DataType>) {
+  if (!loaded.isOk()) {
     return 'Failed to parse constrained type';
   }
-  if (loaded.value.value != 1) {
+  if (loaded.asOk() != DataType.fromValue(1).asOk()) {
     return 'Wrong constrained value';
   }
   return null;
@@ -31,28 +31,34 @@ String? testLoad() {
 
 String? testInvalid() {
   final invalidValue = DataType.fromNode(termite.Node.value('1.0'));
-  if (invalidValue is! termite.Error<DataType>) {
+  if (invalidValue.isOk()) {
     return 'Expected value parse error';
   }
 
-  final invalidType = DataType.fromNode(termite.Node.sequence([termite.Node.value('1')]));
-  if (invalidType is! termite.Error<DataType>) {
+  final invalidType = DataType.fromNode(
+    termite.Node.sequence([termite.Node.value('1')]),
+  );
+  if (invalidType.isOk()) {
     return 'Expected node type parse error';
   }
   return null;
 }
 
 String? testRoundtrip() {
-  final value = (DataType.fromValue(1) as termite.Ok<DataType>).value;
+  final value = DataType.fromValue(1).asOk();
   final loaded = DataType.fromNode(value.toNode());
-  if (loaded is! termite.Ok<DataType> || loaded.value.value != 1) {
+  if (!loaded.isOk() || loaded.asOk() != value) {
     return 'Failed constrained roundtrip';
   }
   return null;
 }
 
 void main() {
-  final code = runTests({'testLoad': testLoad, 'testInvalid': testInvalid, 'testRoundtrip': testRoundtrip});
+  final code = runTests({
+    'testLoad': testLoad,
+    'testInvalid': testInvalid,
+    'testRoundtrip': testRoundtrip,
+  });
   if (code != 0) {
     throw Exception('test failure code: $code');
   }

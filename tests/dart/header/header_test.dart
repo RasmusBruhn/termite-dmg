@@ -30,7 +30,7 @@ String? testHeaderInjected() {
 
 String? testFromMap() {
   final result = DataType.fromNode(termite.Node.mapping({}));
-  if (result is! termite.Ok<DataType>) {
+  if (!result.isOk()) {
     return 'Failed to parse empty mapping as DataType';
   }
   return null;

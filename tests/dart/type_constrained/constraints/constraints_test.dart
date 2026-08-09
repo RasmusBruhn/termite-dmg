@@ -20,29 +20,32 @@ int runTests(Map<String, TestFunction> tests) {
 
 String? testConstraintChecks() {
   final ok = DataType.fromNode(termite.Node.value('2'));
-  if (ok is! termite.Ok<DataType> || ok.value.value != 2) {
+  if (!ok.isOk() || ok.asOk() != DataType.fromValue(2).asOk()) {
     return 'Failed to parse valid constrained value';
   }
 
   final invalid1 = DataType.fromNode(termite.Node.value('0'));
   final invalid2 = DataType.fromNode(termite.Node.value('1'));
-  if (invalid1 is! termite.Error<DataType> || invalid2 is! termite.Error<DataType>) {
+  if (invalid1.isOk() || invalid2.isOk()) {
     return 'Expected constraint errors';
   }
   return null;
 }
 
 String? testRoundtrip() {
-  final value = (DataType.fromValue(2) as termite.Ok<DataType>).value;
+  final value = DataType.fromValue(2).asOk();
   final loaded = DataType.fromNode(value.toNode());
-  if (loaded is! termite.Ok<DataType> || loaded.value.value != 2) {
+  if (!loaded.isOk() || loaded.asOk() != value) {
     return 'Failed constrained roundtrip';
   }
   return null;
 }
 
 void main() {
-  final code = runTests({'testConstraintChecks': testConstraintChecks, 'testRoundtrip': testRoundtrip});
+  final code = runTests({
+    'testConstraintChecks': testConstraintChecks,
+    'testRoundtrip': testRoundtrip,
+  });
   if (code != 0) {
     throw Exception('test failure code: $code');
   }

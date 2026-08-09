@@ -21,13 +21,13 @@ int runTests(Map<String, TestFunction> tests) {
 String? testEmptyStructs() {
   final one = DataType1.fromNode(termite.Node.mapping({}));
   final two = DataType2.fromNode(termite.Node.mapping({}));
-  if (one is! termite.Ok<DataType1> || two is! termite.Ok<DataType2>) {
+  if (!one.isOk() || !two.isOk()) {
     return 'Failed to load empty structs';
   }
 
   final wrongOne = DataType1.fromNode(termite.Node.value('1.0'));
   final wrongTwo = DataType2.fromNode(termite.Node.value('1.0'));
-  if (wrongOne is! termite.Error<DataType1> || wrongTwo is! termite.Error<DataType2>) {
+  if (wrongOne.isOk() || wrongTwo.isOk()) {
     return 'Expected type errors for non-mapping nodes';
   }
   return null;

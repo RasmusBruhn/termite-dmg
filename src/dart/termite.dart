@@ -1,9 +1,11 @@
 /// @file termite.dart
 /// @brief The Dart Termite Data Model Generator code which implements errors and
 /// input output to yaml and json
-/// @version 0.7.0
-/// @date 2025-10-20
+/// @version 0.8.0
+/// @date 2026-08-09
 library;
+
+import 'package:collection/collection.dart';
 
 /// A result of an operation that can either be successful ([Ok]) or result in an error ([Error]).
 ///
@@ -40,12 +42,22 @@ final class Ok<T> extends Result<T> {
 
   @override
   String toString() => 'Result<$T>.ok($value)';
+
+  @override
+  bool operator ==(Object other) {
+    return other is Ok<T> && other.value == value;
+  }
+
+  @override
+  int get hashCode => value.hashCode;
 }
 
 /// An error [Result] with a resulting error [error] at a location [location].
 final class Error<T> extends Result<T> {
   /// The resulting error of this result.
   final String error;
+
+  /// The location where the error occurred.
   final String location;
 
   const Error._(this.error, this.location);
@@ -69,6 +81,16 @@ final class Error<T> extends Result<T> {
   String toString() {
     return 'Result<$T>.error(${getMessage()})';
   }
+
+  @override
+  bool operator ==(Object other) {
+    return other is Error<T> &&
+        other.error == error &&
+        other.location == location;
+  }
+
+  @override
+  int get hashCode => Object.hash(error, location);
 }
 
 /// A node object which can either be a [Value], a [Sequence] or a [Mapping].
@@ -128,6 +150,14 @@ class Value extends Node {
   String toString() {
     return 'Value($value)';
   }
+
+  @override
+  bool operator ==(Object other) {
+    return other is Value && other.value == value;
+  }
+
+  @override
+  int get hashCode => value.hashCode;
 }
 
 /// A [Node] storing a [List] of other [Node] objects.
@@ -155,6 +185,14 @@ class Sequence extends Node {
   String toString() {
     return 'Sequence($values)';
   }
+
+  @override
+  bool operator ==(Object other) {
+    return other is Sequence && ListEquality().equals(other.values, values);
+  }
+
+  @override
+  int get hashCode => ListEquality().hash(values);
 }
 
 /// A [Node] storing a [Map] of [String] keys to other [Node] objects.
@@ -184,4 +222,12 @@ class Mapping extends Node {
   String toString() {
     return 'Mapping($map)';
   }
+
+  @override
+  bool operator ==(Object other) {
+    return other is Mapping && MapEquality().equals(other.map, map);
+  }
+
+  @override
+  int get hashCode => MapEquality().hash(map);
 }

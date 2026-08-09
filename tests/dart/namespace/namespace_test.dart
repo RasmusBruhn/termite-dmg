@@ -21,10 +21,10 @@ int runTests(Map<String, TestFunction> tests) {
 String? testDefaultAndLoad() {
   final empty = DataType();
   final loaded = DataType.fromNode(termite.Node.mapping({}));
-  if (loaded is! termite.Ok<DataType>) {
+  if (!loaded.isOk()) {
     return 'Failed to parse empty mapping as DataType';
   }
-  if (empty.toString() != loaded.value.toString()) {
+  if (empty.toString() != loaded.asOk().toString()) {
     return 'Mismatch between default and loaded DataType';
   }
   return null;

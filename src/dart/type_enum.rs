@@ -106,6 +106,14 @@ mod enum_type {
 
                 {0:indent$}@override
                 {0:indent$}String toString() => '{name}($value)';
+
+                {0:indent$}@override
+                {0:indent$}bool operator ==(Object other) {{
+                {0:indent$}{0:indent$}return other is {enum_name}Type{name} && other.value == value;
+                {0:indent$}}}
+
+                {0:indent$}@override
+                {0:indent$}int get hashCode => value.hashCode;
                 }}",
                 "",
                 name = data.name,
@@ -123,6 +131,14 @@ mod enum_type {
 
                 {0:indent$}@override
                 {0:indent$}String toString() => '{name}';
+
+                {0:indent$}@override
+                {0:indent$}bool operator ==(Object other) {{
+                {0:indent$}{0:indent$}return other is {enum_name}Type{name};
+                {0:indent$}}}
+
+                {0:indent$}@override
+                {0:indent$}int get hashCode => 0;
                 }}",
                 "",
                 name = data.name,

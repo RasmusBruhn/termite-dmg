@@ -20,12 +20,12 @@ int runTests(Map<String, TestFunction> tests) {
 
 String? testLoad() {
   final intValue = DataType.fromNode(termite.Node.value('1'));
-  if (intValue is! termite.Ok<DataType> || intValue.value is! DataTypeTypeinteger) {
+  if (!intValue.isOk() || intValue.asOk() is! DataTypeTypeinteger) {
     return 'Failed to parse integer variant';
   }
 
   final floatValue = DataType.fromNode(termite.Node.value('1.5'));
-  if (floatValue is! termite.Ok<DataType> || floatValue.value is! DataTypeTypenumber) {
+  if (!floatValue.isOk() || floatValue.asOk() is! DataTypeTypenumber) {
     return 'Failed to parse number variant';
   }
   return null;
@@ -35,10 +35,10 @@ String? testRoundtrip() {
   final values = <DataType>[DataType.newinteger(1), DataType.newnumber(1.5)];
   for (final value in values) {
     final loaded = DataType.fromNode(value.toNode());
-    if (loaded is! termite.Ok<DataType>) {
+    if (!loaded.isOk()) {
       return 'Failed to reload variant value: $value';
     }
-    if (loaded.value.toString() != value.toString()) {
+    if (loaded.asOk() != value) {
       return 'Reloaded variant mismatch';
     }
   }

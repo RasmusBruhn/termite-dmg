@@ -20,14 +20,19 @@ int runTests(Map<String, TestFunction> tests) {
 
 String? testLoadAndErrors() {
   final ok = DataType.fromNode(
-    termite.Node.mapping({'field1': termite.Node.value('1'), 'field2': termite.Node.value('5.0')}),
+    termite.Node.mapping({
+      'field1': termite.Node.value('1'),
+      'field2': termite.Node.value('5.0'),
+    }),
   );
-  if (ok is! termite.Ok<DataType>) {
+  if (!ok.isOk()) {
     return 'Failed to load valid struct';
   }
 
-  final missing = DataType.fromNode(termite.Node.mapping({'field1': termite.Node.value('1')}));
-  if (missing is! termite.Error<DataType>) {
+  final missing = DataType.fromNode(
+    termite.Node.mapping({'field1': termite.Node.value('1')}),
+  );
+  if (missing.isOk()) {
     return 'Expected error when required field is missing';
   }
   return null;
