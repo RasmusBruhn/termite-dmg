@@ -413,12 +413,12 @@ mod tests {
 
     #[test]
     fn basic() {
-        run_test("type_struct/basic", true, false);
+        run_test("type_struct/basic", true, false, false);
     }
 
     #[test]
     fn description() {
-        run_test("type_struct/description", true, false);
+        run_test("type_struct/description", true, false, false);
     }
 
     mod field {
@@ -426,22 +426,22 @@ mod tests {
 
         #[test]
         fn basic() {
-            run_test("type_struct/field/basic", true, false);
+            run_test("type_struct/field/basic", true, false, false);
         }
 
         #[test]
         fn description() {
-            run_test("type_struct/field/description", true, false);
+            run_test("type_struct/field/description", true, false, false);
         }
 
         #[test]
         fn optional() {
-            run_test("type_struct/field/optional", true, false);
+            run_test("type_struct/field/optional", true, false, false);
         }
 
         #[test]
         fn macros() {
-            run_test("type_struct/field/macros", true, false);
+            run_test("type_struct/field/macros", true, false, false);
         }
     }
 }

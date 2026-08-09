@@ -1,5 +1,5 @@
 import 'generated/termite.dart' as termite;
-import 'generated/termite-json.dart' as termite_json;
+import 'generated/termite-yaml.dart' as termite_yaml;
 
 typedef TestFunction = String? Function();
 
@@ -19,11 +19,11 @@ int runTests(Map<String, TestFunction> tests) {
 }
 
 String? testFromString() {
-  final result = termite_json.fromString(
-    '{"field1":"Test1","field2":["Test2","Test3"]}',
+  final result = termite_yaml.fromString(
+    'field1: "Test1"\nfield2:\n  - "Test2"\n  - "Test3"',
   );
   if (!result.isOk()) {
-    return 'Failed to decode JSON string';
+    return 'Failed to decode YAML string';
   }
 
   final node = result.asOk();
@@ -38,9 +38,9 @@ String? testFromString() {
 }
 
 String? testFromFile() {
-  final result = termite_json.fromFile('test_json.json');
+  final result = termite_yaml.fromFile('test_yaml.yaml');
   if (!result.isOk()) {
-    return 'Failed to decode JSON string';
+    return 'Failed to decode YAML string';
   }
 
   final node = result.asOk();
@@ -63,14 +63,14 @@ String? testToStringAndBack() {
     ]),
   });
 
-  final encoded = termite_json.toString(node);
+  final encoded = termite_yaml.toString(node);
   if (!encoded.isOk()) {
-    return 'Failed to encode JSON';
+    return 'Failed to encode YAML';
   }
 
-  final decoded = termite_json.fromString(encoded.asOk());
+  final decoded = termite_yaml.fromString(encoded.asOk());
   if (!decoded.isOk()) {
-    return 'Failed to decode encoded JSON';
+    return 'Failed to decode encoded YAML';
   }
 
   final decodedNode = decoded.asOk();
@@ -89,14 +89,14 @@ String? testToFileAndBack() {
     ]),
   });
 
-  final result = termite_json.toFile(node, 'generated/json_test.json');
+  final result = termite_yaml.toFile(node, 'generated/yaml_test.yaml');
   if (!result.isOk()) {
-    return 'Failed to encode JSON';
+    return 'Failed to encode YAML';
   }
 
-  final decoded = termite_json.fromFile('generated/json_test.json');
+  final decoded = termite_yaml.fromFile('generated/yaml_test.yaml');
   if (!decoded.isOk()) {
-    return 'Failed to decode encoded JSON';
+    return 'Failed to decode encoded YAML';
   }
 
   final decodedNode = decoded.asOk();

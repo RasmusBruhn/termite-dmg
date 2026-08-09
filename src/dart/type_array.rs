@@ -71,6 +71,6 @@ mod tests {
 
     #[test]
     fn basic() {
-        run_test("type_array/basic", true, false);
+        run_test("type_array/basic", true, false, false);
     }
 }
