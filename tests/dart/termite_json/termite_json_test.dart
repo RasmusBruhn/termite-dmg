@@ -1,5 +1,3 @@
-import 'dart:io';
-
 import 'generated/termite.dart' as termite;
 import 'generated/termite-json.dart' as termite_json;
 
@@ -24,11 +22,28 @@ String? testFromString() {
   final result = termite_json.fromString(
     '{"field1":"Test1","field2":["Test2","Test3"]}',
   );
-  if (result is! termite.Ok<termite.Node>) {
+  if (!result.isOk()) {
     return 'Failed to decode JSON string';
   }
 
-  final node = result.value;
+  final node = result.asOk();
+  if (node is! termite.Mapping) {
+    return 'Expected mapping';
+  }
+  if (node.map['field1'] is! termite.Value ||
+      (node.map['field1'] as termite.Value).value != 'Test1') {
+    return 'Wrong field1 value';
+  }
+  return null;
+}
+
+String? testFromFile() {
+  final result = termite_json.fromFile('test_json.json');
+  if (!result.isOk()) {
+    return 'Failed to decode JSON string';
+  }
+
+  final node = result.asOk();
   if (node is! termite.Mapping) {
     return 'Expected mapping';
   }
@@ -49,61 +64,54 @@ String? testToStringAndBack() {
   });
 
   final encoded = termite_json.toString(node);
-  if (encoded is! termite.Ok<String>) {
+  if (!encoded.isOk()) {
     return 'Failed to encode JSON';
   }
 
-  final decoded = termite_json.fromString(encoded.value);
-  if (decoded is! termite.Ok<termite.Node>) {
+  final decoded = termite_json.fromString(encoded.asOk());
+  if (!decoded.isOk()) {
     return 'Failed to decode encoded JSON';
   }
 
-  final decodedNode = decoded.value;
+  final decodedNode = decoded.asOk();
   if (decodedNode.toObject().toString() != node.toObject().toString()) {
     return 'Roundtrip mismatch';
   }
   return null;
 }
 
-String? testFileRoundtrip() {
-  final file = File('generated/json_test.json');
-  file.writeAsStringSync('{"field1":"Test1","field2":["Test2","Test3"]}');
+String? testToFileAndBack() {
+  final node = termite.Node.mapping({
+    'field1': termite.Node.value('Test1'),
+    'field2': termite.Node.sequence([
+      termite.Node.value('Test2'),
+      termite.Node.value('Test3'),
+    ]),
+  });
 
-  final fileData = File('generated/json_test.json').readAsStringSync();
-  final parsed = termite_json.fromString(fileData);
-  if (parsed is! termite.Ok<termite.Node>) {
-    file.deleteSync();
-    return 'Failed to parse fixture file';
+  final result = termite_json.toFile(node, 'generated/json_test.json');
+  if (!result.isOk()) {
+    return 'Failed to encode JSON';
   }
 
-  final serialized = termite_json.toString(parsed.value);
-  if (serialized is! termite.Ok<String>) {
-    file.deleteSync();
-    return 'Failed to serialize parsed fixture';
+  final decoded = termite_json.fromFile('generated/json_test.json');
+  if (!decoded.isOk()) {
+    return 'Failed to decode encoded JSON';
   }
 
-  file.writeAsStringSync(serialized.value);
-  final reparsed = termite_json.fromString(file.readAsStringSync());
-  if (reparsed is! termite.Ok<termite.Node>) {
-    file.deleteSync();
-    return 'Failed to reparse runtime file';
+  final decodedNode = decoded.asOk();
+  if (decodedNode.toObject().toString() != node.toObject().toString()) {
+    return 'Roundtrip mismatch';
   }
-
-  if (reparsed.value.toObject().toString() !=
-      parsed.value.toObject().toString()) {
-    file.deleteSync();
-    return 'File roundtrip mismatch';
-  }
-
-  file.deleteSync();
   return null;
 }
 
 void main() {
   final code = runTests({
     'testFromString': testFromString,
+    'testFromFile': testFromFile,
     'testToStringAndBack': testToStringAndBack,
-    'testFileRoundtrip': testFileRoundtrip,
+    'testToFileAndBack': testToFileAndBack,
   });
   if (code != 0) {
     throw Exception('test failure code: $code');
