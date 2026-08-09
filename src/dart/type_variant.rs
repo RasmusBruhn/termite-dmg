@@ -30,7 +30,15 @@ pub(super) fn generate(data: &Variant, name: &str, indent: usize) -> String {
                 {0:indent$}}}
 
                 {0:indent$}@override
-                {0:indent$}String toString() => '$value';
+                {0:indent$}String toString() => '{variant_type}($value)';
+
+                {0:indent$}@override
+                {0:indent$}bool operator ==(Object other) {{
+                {0:indent$}{0:indent$}return other is {name}Type{variant_type} && other.value == value;
+                {0:indent$}}}
+
+                {0:indent$}@override
+                {0:indent$}int get hashCode => value.hashCode;
                 }}",
                 ""
             )

@@ -20,29 +20,37 @@ int runTests(Map<String, TestFunction> tests) {
 
 String? testLoadAndErrors() {
   final ok = DataType.fromNode(
-    termite.Node.mapping({'field1': termite.Node.value('1'), 'field2': termite.Node.value('5.0')}),
+    termite.Node.mapping({
+      'field1': termite.Node.value('1'),
+      'field2': termite.Node.value('5.0'),
+    }),
   );
-  if (ok is! termite.Ok<DataType>) {
+  if (!ok.isOk()) {
     return 'Failed to load valid struct';
   }
-  if (ok.value.field1 != 1 || ok.value.field2 != 5.0) {
+  if (ok.asOk() != DataType(field1: 1, field2: 5.0)) {
     return 'Loaded values are incorrect';
   }
 
-  final missing = DataType.fromNode(termite.Node.mapping({'field1': termite.Node.value('1')}));
-  if (missing is! termite.Error<DataType>) {
+  final missing = DataType.fromNode(
+    termite.Node.mapping({'field1': termite.Node.value('1')}),
+  );
+  if (missing.isOk()) {
     return 'Expected error when required field is missing';
   }
 
   final invalidType = DataType.fromNode(
-    termite.Node.mapping({'field1': termite.Node.value('1.0'), 'field2': termite.Node.value('5.0')}),
+    termite.Node.mapping({
+      'field1': termite.Node.value('1.0'),
+      'field2': termite.Node.value('5.0'),
+    }),
   );
-  if (invalidType is! termite.Error<DataType>) {
+  if (invalidType.isOk()) {
     return 'Expected error when field type is invalid';
   }
 
   final wrongNode = DataType.fromNode(termite.Node.value('1.0'));
-  if (wrongNode is! termite.Error<DataType>) {
+  if (wrongNode.isOk()) {
     return 'Expected error when node type is invalid';
   }
   return null;
@@ -51,17 +59,20 @@ String? testLoadAndErrors() {
 String? testRoundtrip() {
   final value = DataType(field1: 1, field2: 5.0);
   final reloaded = DataType.fromNode(value.toNode());
-  if (reloaded is! termite.Ok<DataType>) {
+  if (!reloaded.isOk()) {
     return 'Failed to reload struct';
   }
-  if (reloaded.value.field1 != value.field1 || reloaded.value.field2 != value.field2) {
+  if (reloaded.asOk() != value) {
     return 'Reloaded value mismatch';
   }
   return null;
 }
 
 void main() {
-  final code = runTests({'testLoadAndErrors': testLoadAndErrors, 'testRoundtrip': testRoundtrip});
+  final code = runTests({
+    'testLoadAndErrors': testLoadAndErrors,
+    'testRoundtrip': testRoundtrip,
+  });
   if (code != 0) {
     throw Exception('test failure code: $code');
   }

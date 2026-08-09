@@ -34,13 +34,13 @@ String? testHeaderAndFooterInjected() {
 String? testLoadAndTypeError() {
   final ok1 = DataType1.fromNode(termite.Node.mapping({}));
   final ok2 = DataType2.fromNode(termite.Node.mapping({}));
-  if (ok1 is! termite.Ok<DataType1> || ok2 is! termite.Ok<DataType2>) {
+  if (!ok1.isOk() || !ok2.isOk()) {
     return 'Failed to parse empty mappings';
   }
 
   final wrong1 = DataType1.fromNode(termite.Node.value('1.0'));
   final wrong2 = DataType2.fromNode(termite.Node.value('1.0'));
-  if (wrong1 is! termite.Error<DataType1> || wrong2 is! termite.Error<DataType2>) {
+  if (wrong1.isOk() || wrong2.isOk()) {
     return 'Expected type parsing errors';
   }
   return null;

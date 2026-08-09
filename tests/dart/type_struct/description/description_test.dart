@@ -21,7 +21,7 @@ int runTests(Map<String, TestFunction> tests) {
 String? testEmptyStructs() {
   final one = DataType1.fromNode(termite.Node.mapping({}));
   final two = DataType2.fromNode(termite.Node.mapping({}));
-  if (one is! termite.Ok<DataType1> || two is! termite.Ok<DataType2>) {
+  if (!one.isOk() || !two.isOk()) {
     return 'Failed to load empty structs';
   }
   return null;

@@ -89,6 +89,14 @@ pub(super) fn generate(data: &ConstrainedType, name: &str, indent: usize) -> Str
 
         {0:indent$}@override
         {0:indent$}String toString() => '$_value';
+
+        {0:indent$}@override
+        {0:indent$}bool operator ==(Object other) {{
+        {0:indent$}{0:indent$}return other is {name} && other._value == _value;
+        {0:indent$}}}
+
+        {0:indent$}@override
+        {0:indent$}int get hashCode => _value.hashCode;
         }}
 
         extension TermiteNodeParser{name} on {name} {{

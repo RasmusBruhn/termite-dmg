@@ -86,6 +86,26 @@ pub(super) fn generate<'a>(
             ""
         ));
 
+    let equality = data
+        .fields
+        .iter()
+        .map(|field| format!("other.{name} == {name}", name = &field.name))
+        .collect::<Vec<_>>()
+        .join(" && ");
+    let equality = if equality.is_empty() {
+        format!("true")
+    } else {
+        equality
+    };
+
+    let hash_list = construct_hash(
+        &data
+            .fields
+            .iter()
+            .map(|field| format!("{name}", name = &field.name))
+            .collect::<Vec<_>>(),
+    );
+
     return Ok(formatdoc!("
         class {name} {{
         {0:indent$}{definitions}
@@ -116,6 +136,14 @@ pub(super) fn generate<'a>(
 
         {0:indent$}@override
         {0:indent$}String toString() => '{{{printers}}}';
+
+        {0:indent$}@override
+        {0:indent$}bool operator ==(Object other) {{
+        {0:indent$}{0:indent$}return other is {name} && {equality};
+        {0:indent$}}}
+
+        {0:indent$}@override
+        {0:indent$}int get hashCode => {hash_list};
         }}
 
         extension TermiteNodeParser{name} on {name} {{
@@ -138,13 +166,34 @@ pub(super) fn generate<'a>(
     ));
 }
 
+fn construct_hash(input_list: &[String]) -> String {
+    let hash_list = input_list
+        .chunks(20)
+        .map(|chunk| {
+            if chunk.len() == 1 {
+                format!("{}.hashCode", chunk[0])
+            } else {
+                format!("Object.hash({})", chunk.join(", "))
+            }
+        })
+        .collect::<Vec<_>>();
+
+    return if hash_list.is_empty() {
+        format!("0")
+    } else if hash_list.len() == 1 {
+        hash_list.first().unwrap().clone()
+    } else {
+        construct_hash(&hash_list)
+    };
+}
+
 mod struct_field {
     use super::*;
 
     /// Generates the Dart source code for a struct field definition
     ///
     /// # Parameters
-    /// 
+    ///
     /// data: The struct field to generate code for
     ///
     /// indent: The number of spaces per indentation level
@@ -170,9 +219,9 @@ mod struct_field {
     }
 
     /// Generates the Dart source code for the constructor parameter for a single field in a struct
-    /// 
+    ///
     /// # Parameters
-    /// 
+    ///
     /// data: The struct field to generate code for
     pub(super) fn get_constructor_parameter(data: &StructField) -> String {
         return match &data.default {
@@ -193,9 +242,9 @@ mod struct_field {
     }
 
     /// Generates the Dart source code for the constructor assignment for a single field in a struct
-    /// 
+    ///
     /// # Parameters
-    /// 
+    ///
     /// data: The struct field to generate code for
     pub(super) fn get_constructor(data: &StructField) -> Option<String> {
         return if let DefaultType::Default(_) = &data.default {
@@ -212,7 +261,7 @@ mod struct_field {
     /// Generates the Dart source code for the default constructor for a single field in a struct
     ///
     /// # Parameters
-    /// 
+    ///
     /// data: The struct field to generate code for
     ///
     /// indent: The number of spaces per indentation level
@@ -247,9 +296,9 @@ mod struct_field {
     }
 
     /// Gets the name of the field with the first letter capitalized
-    /// 
+    ///
     /// # Parameters
-    /// 
+    ///
     /// data: The struct field to generate code for
     pub(super) fn get_capitalized_name(data: &StructField) -> String {
         let mut name = data.name.clone();
@@ -260,9 +309,9 @@ mod struct_field {
     }
 
     /// Generates the Dart source code for the node export of a single field in a struct
-    /// 
+    ///
     /// # Parameters
-    /// 
+    ///
     /// data: The struct field to generate code for
     pub(super) fn get_export(data: &StructField) -> String {
         return if let DefaultType::Optional = &data.default {
@@ -273,9 +322,9 @@ mod struct_field {
     }
 
     /// Generates the Dart source code for the printing code for a single field in a struct
-    /// 
+    ///
     /// # Parameters
-    /// 
+    ///
     /// data: The struct field to generate code for
     pub(super) fn get_printer(data: &StructField) -> String {
         return format!("{name}: ${name}", name = &data.name);
@@ -284,7 +333,7 @@ mod struct_field {
     /// Generates the Dart source code for the parser code for a single field in a struct
     ///
     /// # Parameters
-    /// 
+    ///
     /// data: The struct field to generate code for
     ///
     /// struct_name: The name of the struct containing the field
@@ -345,9 +394,9 @@ mod struct_field {
     }
 
     /// Generates the Dart source code for the parser return of a single field in a struct
-    /// 
+    ///
     /// # Parameters
-    /// 
+    ///
     /// data: The struct field to generate code for
     pub(super) fn get_parser_return(data: &StructField) -> String {
         return format!("{name}: {name},", name = &data.name);

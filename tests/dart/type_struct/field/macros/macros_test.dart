@@ -20,10 +20,10 @@ int runTests(Map<String, TestFunction> tests) {
 
 String? testMacroDefault() {
   final defaults = DataType.fromNode(termite.Node.mapping({}));
-  if (defaults is! termite.Ok<DataType>) {
+  if (!defaults.isOk()) {
     return 'Failed to load defaults';
   }
-  if (defaults.value.field1 != 1 || defaults.value.field2 != null) {
+  if (defaults.asOk() != DataType(field1: 1)) {
     return 'Macro default values are incorrect';
   }
   return null;
@@ -32,17 +32,20 @@ String? testMacroDefault() {
 String? testRoundtrip() {
   final value = DataType(field1: -2, field2: 3.5);
   final reloaded = DataType.fromNode(value.toNode());
-  if (reloaded is! termite.Ok<DataType>) {
+  if (!reloaded.isOk()) {
     return 'Failed to reload struct';
   }
-  if (reloaded.value.field1 != -2 || reloaded.value.field2 != 3.5) {
+  if (reloaded.asOk() != value) {
     return 'Reloaded values mismatch';
   }
   return null;
 }
 
 void main() {
-  final code = runTests({'testMacroDefault': testMacroDefault, 'testRoundtrip': testRoundtrip});
+  final code = runTests({
+    'testMacroDefault': testMacroDefault,
+    'testRoundtrip': testRoundtrip,
+  });
   if (code != 0) {
     throw Exception('test failure code: $code');
   }

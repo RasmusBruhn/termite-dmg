@@ -27,12 +27,15 @@ String? testFromString() {
   }
 
   final node = result.asOk();
-  if (node is! termite.Mapping) {
-    return 'Expected mapping';
-  }
-  if (node.map['field1'] is! termite.Value ||
-      (node.map['field1'] as termite.Value).value != 'Test1') {
-    return 'Wrong field1 value';
+  if (node !=
+      termite.Node.mapping({
+        'field1': termite.Node.value('Test1'),
+        'field2': termite.Node.sequence([
+          termite.Node.value('Test2'),
+          termite.Node.value('Test3'),
+        ]),
+      })) {
+    return 'Decoded node does not match expected structure';
   }
   return null;
 }
@@ -44,12 +47,15 @@ String? testFromFile() {
   }
 
   final node = result.asOk();
-  if (node is! termite.Mapping) {
-    return 'Expected mapping';
-  }
-  if (node.map['field1'] is! termite.Value ||
-      (node.map['field1'] as termite.Value).value != 'Test1') {
-    return 'Wrong field1 value';
+  if (node !=
+      termite.Node.mapping({
+        'field1': termite.Node.value('Test1'),
+        'field2': termite.Node.sequence([
+          termite.Node.value('Test2'),
+          termite.Node.value('Test3'),
+        ]),
+      })) {
+    return 'Decoded node does not match expected structure';
   }
   return null;
 }
@@ -74,7 +80,7 @@ String? testToStringAndBack() {
   }
 
   final decodedNode = decoded.asOk();
-  if (decodedNode.toObject().toString() != node.toObject().toString()) {
+  if (decodedNode != node) {
     return 'Roundtrip mismatch';
   }
   return null;
@@ -100,7 +106,7 @@ String? testToFileAndBack() {
   }
 
   final decodedNode = decoded.asOk();
-  if (decodedNode.toObject().toString() != node.toObject().toString()) {
+  if (decodedNode != node) {
     return 'Roundtrip mismatch';
   }
   return null;
