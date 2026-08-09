@@ -1,0 +1,8 @@
+name: termite_dart_tests
+
+environment:
+  sdk: ^3.9.2
+  
+dependencies:
+  yaml_writer: ^2.1.0
+  yaml: ^3.1.1

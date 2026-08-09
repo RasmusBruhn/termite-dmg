@@ -2,3 +2,5 @@
 tests/**/build/*
 tests/**/generated/*
 json_include
+tests/dart/pubspec.lock
+tests/dart/.dart_tool

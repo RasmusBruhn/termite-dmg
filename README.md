@@ -244,7 +244,7 @@ fn main() {
   // Save C++ model
 
   let (termite_dart, termite_types_dart) = termite::dart::get_termite_dependency();
-  //let termite_yaml_dart = termite::cpp::get_yaml_interface();
+  let termite_yaml_dart = termite::cpp::get_yaml_interface();
   let termite_json_dart = termite::dart::get_json_interface();
   let model_dart = termite::dart::generate(&model, 2);
   // Save Dart model

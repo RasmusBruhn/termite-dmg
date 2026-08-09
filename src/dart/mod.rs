@@ -15,12 +15,12 @@ use indoc::formatdoc;
 
 use crate::*;
 
+mod error;
 mod type_array;
 mod type_constrained;
 mod type_enum;
 mod type_struct;
 mod type_variant;
-mod error;
 
 pub use error::{Error, ErrorCore};
 
@@ -31,6 +31,11 @@ pub fn get_termite_dependency() -> (&'static str, &'static str) {
         include_str!("termite.dart"),
         include_str!("termite-types.dart"),
     );
+}
+
+/// Obtains the YAML interface source for reading and writing YAML objects
+pub fn get_yaml_interface() -> &'static str {
+    return include_str!("termite-yaml.dart");
 }
 
 /// Obtains the JSON interface source for reading and writing json objects
@@ -173,7 +178,12 @@ pub(crate) mod test_utils {
     use super::*;
     use std::{path, process};
 
-    pub(crate) fn run_test(name: &str, generate_model: bool, include_json: bool) {
+    pub(crate) fn run_test(
+        name: &str,
+        generate_model: bool,
+        include_yaml: bool,
+        include_json: bool,
+    ) {
         let test_name = path::Path::new(name).file_name().unwrap().to_str().unwrap();
         let test_path = path::Path::new("tests/dart").join(name);
         let generated_path = test_path.join("generated");
@@ -185,6 +195,14 @@ pub(crate) mod test_utils {
         let (termite, termite_types) = super::get_termite_dependency();
         std::fs::write(generated_path.join("termite.dart"), termite).unwrap();
         std::fs::write(generated_path.join("termite-types.dart"), termite_types).unwrap();
+
+        if include_yaml {
+            std::fs::write(
+                generated_path.join("termite-yaml.dart"),
+                super::get_yaml_interface(),
+            )
+            .unwrap();
+        }
 
         if include_json {
             std::fs::write(
@@ -200,6 +218,30 @@ pub(crate) mod test_utils {
             let model = crate::DataModel::import_yaml(&yaml_model).unwrap();
             let dart = generate(&model, 2).unwrap();
             std::fs::write(generated_path.join(format!("{}.dart", test_name)), dart).unwrap();
+        }
+
+        let output = if cfg!(target_os = "windows") {
+            process::Command::new("cmd")
+                .current_dir(&test_path)
+                .arg("/C")
+                .arg("dart pub get")
+                .output()
+                .expect("failed to run dart pub get")
+        } else {
+            process::Command::new("sh")
+                .current_dir(&test_path)
+                .arg("-c")
+                .arg("dart pub get")
+                .output()
+                .expect("failed to run dart pub get")
+        };
+
+        if output.status.code().unwrap_or(1) != 0 || !output.stderr.is_empty() {
+            panic!(
+                "Dart setup failed:\nstdout:\n{}\nstderr:\n{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr),
+            );
         }
 
         let output = if cfg!(target_os = "windows") {
@@ -234,36 +276,41 @@ mod tests {
 
     #[test]
     fn termite() {
-        run_test("termite", false, false);
+        run_test("termite", false, false, false);
     }
 
     #[test]
     fn termite_json() {
-        run_test("termite_json", false, true);
+        run_test("termite_json", false, false, true);
+    }
+
+    #[test]
+    fn termite_yaml() {
+        run_test("termite_yaml", false, true, false);
     }
 
     #[test]
     fn header() {
-        run_test("header", true, false);
+        run_test("header", true, false, false);
     }
 
     #[test]
     fn footer() {
-        run_test("footer", true, false);
+        run_test("footer", true, false, false);
     }
 
     #[test]
     fn namespace() {
-        run_test("namespace", true, false);
+        run_test("namespace", true, false, false);
     }
 
     #[test]
     fn outline() {
-        run_test("outline", true, false);
+        run_test("outline", true, false, false);
     }
 
     #[test]
     fn full_example() {
-        run_test("full_example", true, true);
+        run_test("full_example", true, true, true);
     }
 }

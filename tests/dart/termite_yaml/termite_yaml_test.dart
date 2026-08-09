@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'generated/termite.dart' as termite;
-import 'generated/termite-json.dart' as termite_json;
+import 'generated/termite-yaml.dart' as termite_yaml;
 
 typedef TestFunction = String? Function();
 
@@ -21,8 +21,8 @@ int runTests(Map<String, TestFunction> tests) {
 }
 
 String? testFromString() {
-  final result = termite_json.fromString(
-    '{"field1":"Test1","field2":["Test2","Test3"]}',
+  final result = termite_yaml.fromString(
+    'field1: "Test1"\nfield2:\n  - "Test2"\n  - "Test3"',
   );
   if (result is! termite.Ok<termite.Node>) {
     return 'Failed to decode JSON string';
@@ -48,12 +48,12 @@ String? testToStringAndBack() {
     ]),
   });
 
-  final encoded = termite_json.toString(node);
+  final encoded = termite_yaml.toString(node);
   if (encoded is! termite.Ok<String>) {
     return 'Failed to encode JSON';
   }
 
-  final decoded = termite_json.fromString(encoded.value);
+  final decoded = termite_yaml.fromString(encoded.value);
   if (decoded is! termite.Ok<termite.Node>) {
     return 'Failed to decode encoded JSON';
   }
@@ -66,24 +66,24 @@ String? testToStringAndBack() {
 }
 
 String? testFileRoundtrip() {
-  final file = File('generated/json_test.json');
-  file.writeAsStringSync('{"field1":"Test1","field2":["Test2","Test3"]}');
+  final file = File('generated/yaml_test.yaml');
+  file.writeAsStringSync('field1: "Test1"\nfield2:\n  - "Test2"\n  - "Test3"');
 
-  final fileData = File('generated/json_test.json').readAsStringSync();
-  final parsed = termite_json.fromString(fileData);
+  final fileData = File('generated/yaml_test.yaml').readAsStringSync();
+  final parsed = termite_yaml.fromString(fileData);
   if (parsed is! termite.Ok<termite.Node>) {
     file.deleteSync();
     return 'Failed to parse fixture file';
   }
 
-  final serialized = termite_json.toString(parsed.value);
+  final serialized = termite_yaml.toString(parsed.value);
   if (serialized is! termite.Ok<String>) {
     file.deleteSync();
     return 'Failed to serialize parsed fixture';
   }
 
   file.writeAsStringSync(serialized.value);
-  final reparsed = termite_json.fromString(file.readAsStringSync());
+  final reparsed = termite_yaml.fromString(file.readAsStringSync());
   if (reparsed is! termite.Ok<termite.Node>) {
     file.deleteSync();
     return 'Failed to reparse runtime file';

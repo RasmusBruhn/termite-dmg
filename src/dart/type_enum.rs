@@ -219,6 +219,6 @@ mod tests {
 
     #[test]
     fn basic() {
-        run_test("type_enum/basic", true, false);
+        run_test("type_enum/basic", true, false, false);
     }
 }

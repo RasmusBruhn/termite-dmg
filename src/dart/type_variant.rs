@@ -112,6 +112,6 @@ mod tests {
 
     #[test]
     fn basic() {
-        run_test("type_variant/basic", true, false);
+        run_test("type_variant/basic", true, false, false);
     }
 }

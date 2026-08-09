@@ -132,11 +132,11 @@ mod tests {
 
     #[test]
     fn basic() {
-        run_test("type_constrained/basic", true, false);
+        run_test("type_constrained/basic", true, false, false);
     }
 
     #[test]
     fn constraints() {
-        run_test("type_constrained/constraints", true, false);
+        run_test("type_constrained/constraints", true, false, false);
     }
 }
