@@ -15,6 +15,8 @@ pub use error::{Error, ErrorCore};
 mod serialization_model;
 pub use serialization_model::{expand_macros, SerializationModel};
 
+mod sort;
+
 #[cfg(test)]
 mod tests {
     use super::*;

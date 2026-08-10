@@ -62,6 +62,9 @@ impl fmt::Display for Error {
 /// Errors for when converting generic data models into JSON schema data models
 #[derive(thiserror::Error, Debug, Clone)]
 pub enum ErrorCore {
+    /// No error
+    #[error("No error")]
+    None,
     /// Macros used recursively
     #[error("The macro \"{}\" is used recursively", .0)]
     RecursiveMacro(String),
@@ -74,4 +77,13 @@ pub enum ErrorCore {
     /// A partial macro insertion can only have a string value
     #[error("The partial macro insertion of \"{}\" in \"{}\" must be a string", .0, .1)]
     PartialMacro(String, String),
+    /// A data type is unknown
+    #[error("The data type \"{}\" is unknown", .0)]
+    UnknownDataType(String),
+    /// A data type name is invalid
+    #[error("The data type \"{}\" has an invalid name", .0)]
+    InvalidDataTypeName(String),
+    /// The data type structure is recursive
+    #[error("The data type \"{}\" is recursive", .0)]
+    RecursiveDataType(String),
 }
