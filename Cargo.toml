@@ -14,3 +14,4 @@ serde_yaml = "0.9.34"
 serde_json = "1.0.150"
 serde = { version = "1.0.228", features = ["derive"] }
 jzon = "0.12.5"
+regex = "1.13.1"

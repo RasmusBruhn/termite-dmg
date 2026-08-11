@@ -1,8 +1,8 @@
 namespace:
 - test
 data_types:
-- name: DataType
-  data: !Variant
-    data_types:
-    - integer
-    - number
+  DataType:
+    data: !Variant
+      data_types:
+      - integer
+      - number

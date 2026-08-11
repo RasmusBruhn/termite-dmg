@@ -87,10 +87,13 @@ pub fn generate<'a>(data: &DataModel, indent: usize) -> Result<String, Error> {
         "".to_string()
     };
 
-    let data_types = data
-        .data_types
+    let data_types = sort_data_types(&data.data_types)?;
+
+    let data_type_definitions = data_types
         .iter()
-        .map(|data_type| data_type::generate(data_type, indent, &data.macros))
+        .map(|(type_name, data_type)| {
+            data_type::generate(data_type, type_name, indent, &data.macros)
+        })
         .collect::<Result<Vec<String>, Error>>()?
         .join("\n\n");
 
@@ -106,7 +109,7 @@ pub fn generate<'a>(data: &DataModel, indent: usize) -> Result<String, Error> {
 
         {header}
 
-        {data_types}
+        {data_type_definitions}
 
         {footer}
         "
@@ -122,11 +125,14 @@ mod data_type {
     ///
     /// data: The data type to generate Dart source code for
     ///
+    /// name: The name of the type
+    ///
     /// indent: The number of spaces per indentation level
     ///
     /// macros: The macros defined in the data model used for expanding default values
     pub(super) fn generate<'a>(
         data: &DataType,
+        name: &str,
         indent: usize,
         macros: &'a HashMap<String, SerializationModel>,
     ) -> Result<String, Error> {
@@ -137,7 +143,7 @@ mod data_type {
 
         return Ok(format!(
             "{description}{data}",
-            data = data_type_data::generate(&data.data, &data.name, indent, macros)?
+            data = data_type_data::generate(&data.data, name, indent, macros)?
         ));
     }
 }

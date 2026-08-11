@@ -112,6 +112,9 @@ pub fn get_json_interface() -> (&'static str, &'static str) {
 ///
 /// indent: The number of spaces to use for indentation
 pub fn generate_header(data: &DataModel, name: &str, indent: usize) -> Result<String, Error> {
+    // Sort the data types
+    let data_types = sort::sort_data_types(&data.data_types)?;
+
     // Get the namespace
     let namespace = data.namespace.join("::");
     let namespace_begin = if namespace.is_empty() {
@@ -126,18 +129,20 @@ pub fn generate_header(data: &DataModel, name: &str, indent: usize) -> Result<St
     };
 
     // Get all structs
-    let data_types = data
-        .data_types
+    let data_type_definitions = data_types
         .iter()
-        .map(|data_type| data_type::generate_definition_header(data_type, indent))
+        .map(|(type_name, data_type)| {
+            data_type::generate_definition_header(data_type, type_name, indent)
+        })
         .collect::<Vec<String>>()
         .join("\n\n");
 
     // Get all parsers
-    let parsers = data
-        .data_types
+    let parsers = data_types
         .iter()
-        .map(|data_type| data_type::generate_parser_header(data_type, &data.namespace))
+        .map(|(type_name, data_type)| {
+            data_type::generate_parser_header(data_type, type_name, &data.namespace)
+        })
         .collect::<Vec<String>>()
         .join("\n\n");
 
@@ -189,7 +194,7 @@ pub fn generate_header(data: &DataModel, name: &str, indent: usize) -> Result<St
 
         {namespace_begin}
 
-        {data_types}
+        {data_type_definitions}
 
         {namespace_end}
 
@@ -216,6 +221,9 @@ pub fn generate_header(data: &DataModel, name: &str, indent: usize) -> Result<St
 ///
 /// indent: The number of spaces to use for indentation
 pub fn generate_source(data: &DataModel, name: &str, indent: usize) -> Result<String, Error> {
+    // Sort the data types
+    let data_types = sort::sort_data_types(&data.data_types)?;
+
     // Get the namespace
     let namespace = data.namespace.join("::");
     let namespace_begin = if namespace.is_empty() {
@@ -230,19 +238,19 @@ pub fn generate_source(data: &DataModel, name: &str, indent: usize) -> Result<St
     };
 
     // Get all structs
-    let data_types = data
-        .data_types
+    let data_type_definitions = data_types
         .iter()
-        .map(|data_type| data_type::generate_definition_source(data_type, &data.macros, indent))
+        .map(|(type_name, data_type)| {
+            data_type::generate_definition_source(data_type, type_name, &data.macros, indent)
+        })
         .collect::<Result<Vec<_>, _>>()?
         .join("\n\n");
 
     // Get all parsers
-    let parsers = data
-        .data_types
+    let parsers = data_types
         .iter()
-        .map(|data_type| {
-            data_type::generate_parser_source(data_type, indent, &data.namespace, &data.data_types)
+        .map(|(type_name, data_type)| {
+            data_type::generate_parser_source(data_type, type_name, indent, &data.namespace)
         })
         .collect::<Vec<String>>()
         .join("\n\n");
@@ -319,7 +327,7 @@ pub fn generate_source(data: &DataModel, name: &str, indent: usize) -> Result<St
 
         }} // namespace
 
-        {data_types}
+        {data_type_definitions}
 
         {namespace_end}
 
@@ -344,8 +352,10 @@ mod data_type {
     ///
     /// data: The data type to generate code for
     ///
+    /// name: The name of the data type
+    ///
     /// indent: The number of spaces to use for indentation
-    pub(super) fn generate_definition_header(data: &DataType, indent: usize) -> String {
+    pub(super) fn generate_definition_header(data: &DataType, name: &str, indent: usize) -> String {
         return formatdoc!(
             "
             /**
@@ -354,7 +364,7 @@ mod data_type {
              */
             {definition}",
             description = get_description(data),
-            definition = data_type_data::generate_definition_header(&data.data, &data.name, indent),
+            definition = data_type_data::generate_definition_header(&data.data, name, indent),
         );
     }
 
@@ -364,11 +374,14 @@ mod data_type {
     ///
     /// data: The data type to generate code for
     ///
+    /// name: The name of the data type
+    ///
     /// macros: A map of all macros to expand default values
     ///
     /// indent: The number of spaces to use for indentation
     pub(super) fn generate_definition_source(
         data: &DataType,
+        name: &str,
         macros: &HashMap<String, SerializationModel>,
         indent: usize,
     ) -> Result<String, Error> {
@@ -376,7 +389,7 @@ mod data_type {
             "
             {definition}",
             definition =
-                data_type_data::generate_definition_source(&data.data, &data.name, macros, indent)?,
+                data_type_data::generate_definition_source(&data.data, name, macros, indent)?,
         ));
     }
 
@@ -386,9 +399,15 @@ mod data_type {
     ///
     /// data: The data type to generate code for
     ///
+    /// name: The name of the data type
+    ///
     /// namespace: The namespace of the type
-    pub(super) fn generate_parser_header(data: &DataType, namespace: &[String]) -> String {
-        return data_type_data::generate_parser_header(&data.data, &data.name, namespace);
+    pub(super) fn generate_parser_header(
+        data: &DataType,
+        name: &str,
+        namespace: &[String],
+    ) -> String {
+        return data_type_data::generate_parser_header(&data.data, name, namespace);
     }
 
     /// Gets the source code for the parser for this type allowing it to be read from a file
@@ -397,20 +416,18 @@ mod data_type {
     ///
     /// data: The data type to generate code for
     ///
+    /// name: The name of the data type
+    ///
     /// indent: The number of spaces to use for indentation
     ///
     /// namespace: The namespace of the type
-    ///
-    /// data_types: List of all the data types defined in the data model
     pub(super) fn generate_parser_source(
         data: &DataType,
+        name: &str,
         indent: usize,
         namespace: &[String],
-        data_types: &[DataType],
     ) -> String {
-        return data_type_data::generate_parser_source(
-            &data.data, &data.name, indent, namespace, data_types,
-        );
+        return data_type_data::generate_parser_source(&data.data, name, indent, namespace);
     }
 
     /// Generates the description if it is supplied
@@ -534,30 +551,27 @@ mod data_type_data {
     /// indent: The number of spaces to use for indentation
     ///
     /// namespace: The namespace of the type
-    ///
-    /// data_types: List of all the data types defined in the data model
     pub(super) fn generate_parser_source(
         data: &DataTypeData,
         name: &str,
         indent: usize,
         namespace: &[String],
-        data_types: &[DataType],
     ) -> String {
         return match data {
             DataTypeData::Struct(data) => {
-                type_struct::generate_parser_source(data, name, indent, namespace, data_types)
+                type_struct::generate_parser_source(data, name, indent, namespace)
             }
             DataTypeData::Array(data) => {
-                type_array::generate_parser_source(data, name, indent, namespace, data_types)
+                type_array::generate_parser_source(data, name, indent, namespace)
             }
             DataTypeData::Variant(data) => {
-                type_variant::generate_parser_source(data, name, indent, namespace, data_types)
+                type_variant::generate_parser_source(data, name, indent, namespace)
             }
             DataTypeData::Enum(data) => {
-                type_enum::generate_parser_source(data, name, indent, namespace, data_types)
+                type_enum::generate_parser_source(data, name, indent, namespace)
             }
             DataTypeData::ConstrainedType(data) => {
-                type_constrained::generate_parser_source(data, name, indent, namespace, data_types)
+                type_constrained::generate_parser_source(data, name, indent, namespace)
             }
         };
     }

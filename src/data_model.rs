@@ -5,9 +5,10 @@ use std::collections::HashMap;
 /// An entire data model
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
 #[serde(default)]
+
 pub struct DataModel {
     /// List of the the data types to implement
-    pub data_types: Vec<DataType>,
+    pub data_types: HashMap<String, DataType>,
     /// List of all header data used to include external packages
     pub headers: HashMap<String, String>,
     /// List of all footer data
@@ -95,8 +96,6 @@ fn sanitize_json(value: serde_json::Value) -> serde_json::Value {
 /// Any data type (struct, variant, ect.)
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct DataType {
-    /// The name of the type
-    pub name: String,
     /// The description of the type
     pub description: Option<String>,
     /// The type specific data

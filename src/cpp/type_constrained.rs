@@ -239,14 +239,11 @@ pub(super) fn generate_parser_header(
 /// indent: The number of spaces to use for indentation
 ///
 /// namespace: The namespace of the variant
-///
-/// data_types: List of all the data types defined in the data model
 pub(super) fn generate_parser_source(
     data: &ConstrainedType,
     name: &str,
     indent: usize,
     namespace: &[String],
-    data_types: &[DataType],
 ) -> String {
     // Get the namespace name
     let namespace = namespace
@@ -257,13 +254,10 @@ pub(super) fn generate_parser_source(
     let typename = format!("{namespace}{name}");
 
     // Add possible namespace to the typename
-    let data_type = if let Some(_) = data_types
-        .iter()
-        .find(|data_type| data_type.name == data.data_type)
-    {
-        format!("{namespace}{data_type}", data_type = data.data_type)
-    } else {
+    let data_type = if is_name_builtin(&data.data_type) {
         format!("{data_type}", data_type = data.data_type)
+    } else {
+        format!("{namespace}{data_type}", data_type = data.data_type)
     };
 
     return formatdoc!(

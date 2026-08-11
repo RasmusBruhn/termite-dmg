@@ -33,7 +33,7 @@ pub fn expand_macros<'a>(
             .iter()
             .map(|(k, v)| match expand_macros(v, macros, used_macros) {
                 Ok(value) => Ok((k.clone(), value)),
-                Err(error) => Err(error.add_field(k)),
+                Err(error) => Err(error.add_field(k, true)),
             })
             .collect::<Result<HashMap<_, _>, _>>()
             .map(SerializationModel::Map),
@@ -42,7 +42,7 @@ pub fn expand_macros<'a>(
             .enumerate()
             .map(|(i, v)| match expand_macros(v, macros, used_macros) {
                 Ok(value) => Ok(value),
-                Err(error) => Err(error.add_element(i)),
+                Err(error) => Err(error.add_element(i, true)),
             })
             .collect::<Result<Vec<_>, _>>()
             .map(SerializationModel::Array),

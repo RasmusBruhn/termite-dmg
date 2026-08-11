@@ -1,9 +1,9 @@
 namespace:
 - test
 data_types:
-- name: DataType
-  data: !ConstrainedType
-    data_type: integer
-    constraints:
-    - !Arithmetic x > 0
-    - !Arithmetic x % 2 == 0
+  DataType:
+    data: !ConstrainedType
+      data_type: integer
+      constraints:
+      - !Arithmetic x > 0
+      - !Arithmetic x % 2 == 0

@@ -2,6 +2,6 @@ namespace:
 - test1
 - test2
 data_types:
-- name: DataType
-  data: !Struct
-    fields: []
+  DataType:
+    data: !Struct
+      fields: []
