@@ -42,15 +42,15 @@ structs, enums or arrays.
 The different types are:
 
 Struct: A normal struct with a number of public fields (like a rust/c++ struct).
-The "data" must include just a single field called "fields" which is a list of
-objects describing the fields of the struct. Each object must be given a "name",
-"data_type", and a "default" value description. The "default" description must
-be either "Required", "Optional" or "Default". If it is "Required" then the user
-must supply the field value when importing a settings file. If it is "Optional"
-then the internal type of the field in c++ is std::optional<"data_type"> and is
-set to std::nullopt if the field is not given by the user. If it is Default then
-it must be followed by a value which is given to the field if the user does not
-supply a value.
+The "data" must include just a single field called "fields" which is a map of
+strings (the name of the fields) to objects describing the fields of the struct.
+Each object must be given a data_type", and a "default" value description. The
+"default" description must be either "Required", "Optional" or "Default". If it
+is "Required" then the user must supply the field value when importing a
+settings file. If it is "Optional" then the internal type of the field in c++ is
+std::optional<"data_type"> and is set to std::nullopt if the field is not given
+by the user. If it is Default then it must be followed by a value which is given
+to the field if the user does not supply a value.
 
 Array: A list of objects of the same type (like a rust/c++ vector). The "data"
 must include just a single field called "data_type" which is the data type of
