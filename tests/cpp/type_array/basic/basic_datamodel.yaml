@@ -1,6 +1,6 @@
 namespace:
 - test
 data_types:
-- name: DataType
-  data: !Array
-    data_type: integer
+  DataType:
+    data: !Array
+      data_type: integer

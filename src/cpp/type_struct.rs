@@ -191,14 +191,11 @@ pub(super) fn generate_parser_header(_data: &Struct, name: &str, namespace: &[St
 /// indent: The number of spaces to use for indentation
 ///
 /// namespace: The namespace of the struct
-///
-/// data_types: List of all the data types defined in the data model
 pub(super) fn generate_parser_source(
     data: &Struct,
     name: &str,
     indent: usize,
     namespace: &[String],
-    data_types: &[DataType],
 ) -> String {
     // Get the namespace name
     let namespace = namespace
@@ -212,7 +209,7 @@ pub(super) fn generate_parser_source(
     let parsing = data
         .fields
         .iter()
-        .map(|field| struct_field::get_parsing(field, &typename, &namespace, data_types, indent))
+        .map(|field| struct_field::get_parsing(field, &typename, &namespace, indent))
         .collect::<Vec<String>>()
         .join("");
 
@@ -446,24 +443,18 @@ mod struct_field {
     ///
     /// namespace: The namespace of the struct
     ///
-    /// data_types: List of all the data types defined in the data model
-    ///
     /// indent: The indentation to use
     pub(super) fn get_parsing_required(
         data: &StructField,
         main_name: &str,
         namespace: &str,
-        data_types: &[DataType],
         indent: usize,
     ) -> String {
         // Add possible namespace to the typename
-        let typename = if let Some(_) = data_types
-            .iter()
-            .find(|data_type| data_type.name == data.data_type)
-        {
-            format!("{namespace}{data_type}", data_type = data.data_type)
-        } else {
+        let typename = if is_name_builtin(&data.data_type) {
             format!("{data_type}", data_type = data.data_type)
+        } else {
+            format!("{namespace}{data_type}", data_type = data.data_type)
         };
 
         return formatdoc!("
@@ -494,24 +485,18 @@ mod struct_field {
     ///
     /// namespace: The namespace of the struct
     ///
-    /// data_types: List of all the data types defined in the data model
-    ///
     /// indent: The indentation to use
     pub(super) fn get_parsing_optional(
         data: &StructField,
         main_name: &str,
         namespace: &str,
-        data_types: &[DataType],
         indent: usize,
     ) -> String {
         // Add possible namespace to the typename
-        let base_typename = if let Some(_) = data_types
-            .iter()
-            .find(|data_type| data_type.name == data.data_type)
-        {
-            format!("{namespace}{data_type}", data_type = data.data_type)
-        } else {
+        let base_typename = if is_name_builtin(&data.data_type) {
             format!("{data_type}", data_type = data.data_type)
+        } else {
+            format!("{namespace}{data_type}", data_type = data.data_type)
         };
 
         let typename = match &data.default {
@@ -556,21 +541,16 @@ mod struct_field {
     ///
     /// namespace: The namespace of the struct
     ///
-    /// data_types: List of all the data types defined in the data model
-    ///
     /// indent: The indentation to use
     pub(super) fn get_parsing(
         data: &StructField,
         main_name: &str,
         namespace: &str,
-        data_types: &[DataType],
         indent: usize,
     ) -> String {
         return match data.default {
-            DefaultType::Required => {
-                get_parsing_required(data, main_name, namespace, data_types, indent)
-            }
-            _ => get_parsing_optional(data, main_name, namespace, data_types, indent),
+            DefaultType::Required => get_parsing_required(data, main_name, namespace, indent),
+            _ => get_parsing_optional(data, main_name, namespace, indent),
         };
     }
 

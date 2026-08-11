@@ -15,8 +15,14 @@ impl Error {
     /// # Parameters
     ///
     /// base: The base to set in the location
-    pub fn add_field(self, base: &str) -> Error {
-        let location = format!(".{}{}", base, self.location);
+    ///
+    /// reverse: False if the base is on the current location, true if the current location is on the base
+    pub fn add_field(self, base: &str, reverse: bool) -> Error {
+        let location = if reverse {
+            format!(".{}{}", base, self.location)
+        } else {
+            format!("{}.{}", self.location, base)
+        };
 
         return Error {
             location,
@@ -29,8 +35,14 @@ impl Error {
     /// # Parameters
     ///
     /// index: The index of the field
-    pub fn add_element(self, index: usize) -> Error {
-        let location = format!("[{}]{}", index, self.location);
+    ///
+    /// reverse: False if the index is on the current location, true if the current location is on the index
+    pub fn add_element(self, index: usize, reverse: bool) -> Error {
+        let location = if reverse {
+            format!("[{}]{}", index, self.location)
+        } else {
+            format!("{}[{}]", self.location, index)
+        };
 
         return Error {
             location,
@@ -83,6 +95,9 @@ pub enum ErrorCore {
     /// A data type name is invalid
     #[error("The data type \"{}\" has an invalid name", .0)]
     InvalidDataTypeName(String),
+    /// A data type name cannot be a built-in type name
+    #[error("The data type \"{}\" cannot be a built-in type name", .0)]
+    InvalidBuiltInTypeName(String),
     /// The data type structure is recursive
     #[error("The data type \"{}\" is recursive", .0)]
     RecursiveDataType(String),

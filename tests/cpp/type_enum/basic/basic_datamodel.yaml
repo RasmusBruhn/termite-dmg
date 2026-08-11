@@ -1,16 +1,16 @@
 namespace:
 - test
 data_types:
-- name: DataType
-  data: !Enum
-    types:
-    - name: Int1
-      description: An integer
-      data_type: integer
-    - name: Int2
-      description: Another integer
-      data_type: integer
-    - name: Float
-      data_type: number
-    - name: Empty
-      description: Nothing
+  DataType:
+    data: !Enum
+      types:
+      - name: Int1
+        description: An integer
+        data_type: integer
+      - name: Int2
+        description: Another integer
+        data_type: integer
+      - name: Float
+        data_type: number
+      - name: Empty
+        description: Nothing

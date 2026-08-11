@@ -189,14 +189,11 @@ pub(super) fn generate_parser_header(_data: &Enum, name: &str, namespace: &[Stri
 /// indent: The number of spaces to use for indentation
 ///
 /// namespace: The namespace of the enum
-///
-/// data_types: List of all the data types defined in the data model
 pub(super) fn generate_parser_source(
     data: &Enum,
     name: &str,
     indent: usize,
     namespace: &[String],
-    data_types: &[DataType],
 ) -> String {
     // Get the namespace name
     let namespace = namespace
@@ -218,9 +215,7 @@ pub(super) fn generate_parser_source(
     let map_parsers = data
         .types
         .iter()
-        .map(|enum_type| {
-            enum_type::get_parser_map(enum_type, &typename, &namespace, data_types, indent)
-        })
+        .map(|enum_type| enum_type::get_parser_map(enum_type, &typename, &namespace, indent))
         .collect::<Vec<String>>()
         .join("\n");
 
@@ -500,23 +495,20 @@ mod enum_type {
     ///
     /// namespace: The namespace of the enum
     ///
-    /// data_types: List of all the data types defined in the data model
-    ///
     /// indent: The indentation to use
     pub(super) fn get_parser_map(
         data: &EnumType,
         typename: &str,
         namespace: &str,
-        data_types: &[DataType],
         indent: usize,
     ) -> String {
         let internal = match &data.data_type {
             Some(data_type) => {
                 // Add possible namespace to the typename
-                let data_type = if let Some(_) = data_types.iter().find(|new_data_type| &new_data_type.name == data_type) {
-                    format!("{namespace}{data_type}")
-                } else {
+                let data_type = if is_name_builtin(data_type) {
                     format!("{data_type}")
+                } else {
+                    format!("{namespace}{data_type}")
                 };
 
                 formatdoc!("

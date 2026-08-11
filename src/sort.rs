@@ -1,15 +1,15 @@
 use crate::*;
-use regex::regex;
 use std::collections::HashMap;
 
 /// Sorts a map of data types into an ordered list such that if a data type
-/// depends on another data type, then the dependi is located after the type it
-/// depends on, in the list
+/// depends on another data type, then the depending type is located after the
+/// type it depends on, in the list. Also makes sure that the name is valid and
+/// that there are no recursive data types, and that all dependencies exist.
 ///
 /// # Parameters
 ///
 /// data_types: The map of all the data types
-pub(super) fn sort_data_types(
+pub fn sort_data_types(
     data_types: &HashMap<String, DataType>,
 ) -> Result<Vec<(String, DataType)>, Error> {
     let mut result = Vec::new();
@@ -18,15 +18,11 @@ pub(super) fn sort_data_types(
     let mut sort_states = data_types
         .iter()
         .map(|(name, data_type)| {
-            return if !regex!(r"^[a-zA-Z_][a-zA-Z0-9_]*$").is_match(name)
-                || name == "number"
-                || name == "integer"
-                || name == "boolean"
-                || name == "string"
-            {
+            validate_name(name)?;
+            return if is_name_builtin(name) {
                 Err(Error {
                     location: "".to_string(),
-                    error: ErrorCore::InvalidDataTypeName(name.clone()),
+                    error: ErrorCore::InvalidBuiltInTypeName(name.clone()),
                 })
             } else {
                 Ok((name.clone(), (data_type.clone(), SortState::NotAdded)))
@@ -42,7 +38,7 @@ pub(super) fn sort_data_types(
             (
                 name.clone(),
                 Error {
-                    location: "".to_string(),
+                    location: name.clone(),
                     error: ErrorCore::None,
                 },
             )
@@ -91,7 +87,7 @@ pub(super) fn sort_data_types(
         };
 
         for dependency in dependencies {
-            let new_stack_trace = stack_trace.clone().add_field(&dependency);
+            let new_stack_trace = stack_trace.clone().add_field(&dependency, false);
 
             // Skip if it is a built-in type
             if dependency == "number"

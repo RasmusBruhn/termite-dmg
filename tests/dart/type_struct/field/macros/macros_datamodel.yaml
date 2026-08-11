@@ -3,12 +3,12 @@ namespace:
 macros:
   MACRO: "1"
 data_types:
-- name: DataType
-  data: !Struct
-    fields:
-    - name: field1
-      data_type: integer
-      default: !Default "$MACRO$"
-    - name: field2
-      data_type: number
-      default: !Optional
+  DataType:
+    data: !Struct
+      fields:
+      - name: field1
+        data_type: integer
+        default: !Default "$MACRO$"
+      - name: field2
+        data_type: number
+        default: !Optional

@@ -2,6 +2,6 @@ footer:
   cpp-header: "// Footer header"
   cpp-source: "// Footer source"
 data_types:
-- name: DataType
-  data: !Struct
-    fields: []
+  DataType:
+    data: !Struct
+      fields: []
