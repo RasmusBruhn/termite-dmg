@@ -168,27 +168,27 @@ fn main() {
         description: A point in 2D space
         data: !Struct
           fields:
-          - name: x
-            data_type: number
-            default: !Default 0.0
-          - name: y
-            data_type: number
-            default: !Default $DEFAULT_COORDINATE$
-          - name: id
-            data_type: integer
-            default: Optional
+            x:
+              data_type: number
+              default: !Default 0.0
+            y:
+              data_type: number
+              default: !Default $DEFAULT_COORDINATE$
+            id:
+              data_type: integer
+              default: Optional
       Size:
         description: The size of a box
         data: !Struct
           fields:
-          - name: w
-            description: The width
-            data_type: PositiveDouble
-            default: Required
-          - name: h
-            description: The height
-            data_type: PositiveDouble
-            default: Required
+            w:
+              description: The width
+              data_type: PositiveDouble
+              default: Required
+            h:
+              description: The height
+              data_type: PositiveDouble
+              default: Required
       SizeVariant:
         description: Is either a Size or just a PositiveDouble if it is a square
         data: !Variant
@@ -212,17 +212,17 @@ fn main() {
       NamedGeometry:
         data: !Struct
           fields:
-          - name: geometry
-            description: The geometry data
-            data_type: Geometry
-            default: !Default
-              Point:
-                x: 1.0
-                id: 0
-          - name: name
-            description: The name of the geometry
-            data_type: string
-            default: Required
+            geometry:
+              description: The geometry data
+              data_type: Geometry
+              default: !Default
+                Point:
+                  x: 1.0
+                  id: 0
+            name:
+              description: The name of the geometry
+              data_type: string
+              default: Required
     headers:
       cpp-header: \"// My .h Header with message: $MESSAGE$\"
       cpp-source: \"// My .cpp Header and this is a dollar sign: $$\"
@@ -347,6 +347,8 @@ name: Another name
 - Added YAML support for the Dart code generation
 - Changed the data model description to use a map from the type names to the
   type data instead of a vector
+- Changed the struct fields to be given as a map from field name to data instead
+  of as a list, fields are sorted alphabetically when an ordering is required
 
 #### Minor changes
 
