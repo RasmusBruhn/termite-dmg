@@ -123,8 +123,8 @@ pub enum DataTypeData {
 /// which holds all fields which were not captured when parsing
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Struct {
-    /// A list of all the fields of the struct
-    pub fields: Vec<StructField>,
+    /// A map of all fields in the struct, the key is the name of the field
+    pub fields: HashMap<String, StructField>,
     /// The name of a different Struct this Struct builds onto, used in Schema
     /// generation
     pub inherit: Option<String>,
@@ -133,8 +133,6 @@ pub struct Struct {
 /// The data for a single field in a struct
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub struct StructField {
-    /// The name of the field
-    pub name: String,
     /// The description of the field
     pub description: Option<String>,
     /// What type the field is, without Option<>

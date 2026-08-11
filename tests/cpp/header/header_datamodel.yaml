@@ -4,4 +4,4 @@ headers:
 data_types:
   DataType:
     data: !Struct
-      fields: []
+      fields: {}

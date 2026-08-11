@@ -19,7 +19,7 @@ mod sort;
 pub use sort::sort_data_types;
 
 mod name;
-pub use name::{validate_name, is_name_builtin};
+pub use name::{is_name_builtin, validate_name};
 
 #[cfg(test)]
 mod tests {
@@ -71,30 +71,36 @@ mod tests {
                         description: Some("A point in 2D space".to_string()),
                         data: DataTypeData::Struct(Struct {
                             inherit: None,
-                            fields: vec![
-                                StructField {
-                                    name: "x".to_string(),
-                                    description: None,
-                                    data_type: "number".to_string(),
-                                    default: DefaultType::Default(SerializationModel::Value(
-                                        "0.0".to_string(),
-                                    )),
-                                },
-                                StructField {
-                                    name: "y".to_string(),
-                                    description: None,
-                                    data_type: "number".to_string(),
-                                    default: DefaultType::Default(SerializationModel::Value(
-                                        "$DEFAULT_COORDINATE$".to_string(),
-                                    )),
-                                },
-                                StructField {
-                                    name: "id".to_string(),
-                                    description: None,
-                                    data_type: "integer".to_string(),
-                                    default: DefaultType::Optional,
-                                },
-                            ],
+                            fields: HashMap::from([
+                                (
+                                    "x".to_string(),
+                                    StructField {
+                                        description: None,
+                                        data_type: "number".to_string(),
+                                        default: DefaultType::Default(SerializationModel::Value(
+                                            "0.0".to_string(),
+                                        )),
+                                    },
+                                ),
+                                (
+                                    "y".to_string(),
+                                    StructField {
+                                        description: None,
+                                        data_type: "number".to_string(),
+                                        default: DefaultType::Default(SerializationModel::Value(
+                                            "$DEFAULT_COORDINATE$".to_string(),
+                                        )),
+                                    },
+                                ),
+                                (
+                                    "id".to_string(),
+                                    StructField {
+                                        description: None,
+                                        data_type: "integer".to_string(),
+                                        default: DefaultType::Optional,
+                                    },
+                                ),
+                            ]),
                         }),
                     },
                 ),
@@ -104,20 +110,24 @@ mod tests {
                         description: Some("The size of a box".to_string()),
                         data: DataTypeData::Struct(Struct {
                             inherit: None,
-                            fields: vec![
-                                StructField {
-                                    name: "w".to_string(),
-                                    description: Some("The width".to_string()),
-                                    data_type: "PositiveDouble".to_string(),
-                                    default: DefaultType::Required,
-                                },
-                                StructField {
-                                    name: "h".to_string(),
-                                    description: Some("The height".to_string()),
-                                    data_type: "PositiveDouble".to_string(),
-                                    default: DefaultType::Required,
-                                },
-                            ],
+                            fields: HashMap::from([
+                                (
+                                    "w".to_string(),
+                                    StructField {
+                                        description: Some("The width".to_string()),
+                                        data_type: "PositiveDouble".to_string(),
+                                        default: DefaultType::Required,
+                                    },
+                                ),
+                                (
+                                    "h".to_string(),
+                                    StructField {
+                                        description: Some("The height".to_string()),
+                                        data_type: "PositiveDouble".to_string(),
+                                        default: DefaultType::Required,
+                                    },
+                                ),
+                            ]),
                         }),
                     },
                 ),
@@ -172,34 +182,40 @@ mod tests {
                     DataType {
                         description: None,
                         data: DataTypeData::Struct(Struct {
-                            fields: vec![
-                                StructField {
-                                    name: "geometry".to_string(),
-                                    description: Some("The geometry data".to_string()),
-                                    data_type: "Geometry".to_string(),
-                                    default: DefaultType::Default(SerializationModel::Map(
-                                        HashMap::from([(
-                                            "Point".to_string(),
-                                            SerializationModel::Map(HashMap::from([
-                                                (
-                                                    "x".to_string(),
-                                                    SerializationModel::Value("1.0".to_string()),
-                                                ),
-                                                (
-                                                    "id".to_string(),
-                                                    SerializationModel::Value("0".to_string()),
-                                                ),
-                                            ])),
-                                        )]),
-                                    )),
-                                },
-                                StructField {
-                                    name: "name".to_string(),
-                                    description: Some("The name of the geometry".to_string()),
-                                    data_type: "string".to_string(),
-                                    default: DefaultType::Required,
-                                },
-                            ],
+                            fields: HashMap::from([
+                                (
+                                    "geometry".to_string(),
+                                    StructField {
+                                        description: Some("The geometry data".to_string()),
+                                        data_type: "Geometry".to_string(),
+                                        default: DefaultType::Default(SerializationModel::Map(
+                                            HashMap::from([(
+                                                "Point".to_string(),
+                                                SerializationModel::Map(HashMap::from([
+                                                    (
+                                                        "x".to_string(),
+                                                        SerializationModel::Value(
+                                                            "1.0".to_string(),
+                                                        ),
+                                                    ),
+                                                    (
+                                                        "id".to_string(),
+                                                        SerializationModel::Value("0".to_string()),
+                                                    ),
+                                                ])),
+                                            )]),
+                                        )),
+                                    },
+                                ),
+                                (
+                                    "name".to_string(),
+                                    StructField {
+                                        description: Some("The name of the geometry".to_string()),
+                                        data_type: "string".to_string(),
+                                        default: DefaultType::Required,
+                                    },
+                                ),
+                            ]),
                             inherit: None,
                         }),
                     },

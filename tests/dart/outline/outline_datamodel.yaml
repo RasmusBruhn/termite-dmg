@@ -6,8 +6,8 @@ data_types:
   DataType1:
     description: description1
     data: !Struct
-      fields: []
+      fields: {}
   DataType2:
     description: description2
     data: !Struct
-      fields: []
+      fields: {}

@@ -4,9 +4,9 @@ data_types:
   DataType:
     data: !Struct
       fields:
-      - name: field1
-        data_type: integer
-        default: !Default "1"
-      - name: field2
-        data_type: number
-        default: !Optional
+        field1:
+          data_type: integer
+          default: !Default "1"
+        field2:
+          data_type: number
+          default: !Optional

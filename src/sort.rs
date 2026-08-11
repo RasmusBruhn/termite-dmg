@@ -74,7 +74,7 @@ pub fn sort_data_types(
                         DataTypeData::Struct(value) => value
                             .fields
                             .iter()
-                            .map(|value| value.data_type.clone())
+                            .map(|(_, value)| value.data_type.clone())
                             .collect(),
                     })
                 }

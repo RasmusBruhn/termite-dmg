@@ -17,15 +17,15 @@ using namespace test::name::space;
 std::optional<std::string> test_reload() {
   // Create an instance of the data model
   VersionString version("1.0.1");
-  DefaultValues defaults(State(State::TypeFilled()),
-                         Size(SizeValue(10), SizeValue(20)));
+  DefaultValues defaults(Size(SizeValue(20), SizeValue(10)),
+                         State(State::TypeFilled()));
   GeometryList geometries({});
   geometries.values.push_back(Geometry(Rectangle(
       Point(15, -30), std::nullopt, State(State::TypeEdge(SizeValue(5))))));
   geometries.values.push_back(
       Geometry(Circle(Point(0, 0), SizeValue(7), std::nullopt)));
-  DataModel data_model(std::move(version), std::move(defaults),
-                       std::move(geometries));
+  DataModel data_model(std::move(defaults), std::move(geometries),
+                       std::move(version));
 
   // Save the data model to yaml
   termite::Node node_out = termite::Node::from_value(data_model);

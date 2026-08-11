@@ -24,14 +24,14 @@ pub(super) fn generate<'a>(
     let definitions = data
         .fields
         .iter()
-        .map(|field| struct_field::get_definition(field, indent))
+        .map(|(field_name, field)| struct_field::get_definition(field, field_name, indent))
         .collect::<Vec<_>>()
         .join(&format!("\n\n{0:indent$}", ""));
 
     let mut constructor_parameters = data
         .fields
         .iter()
-        .map(|field| struct_field::get_constructor_parameter(field))
+        .map(|(field_name, field)| struct_field::get_constructor_parameter(field, field_name))
         .collect::<Vec<_>>()
         .join(&format!("\n{0:indent$}{0:indent$}", ""));
     if !constructor_parameters.is_empty() {
@@ -44,42 +44,44 @@ pub(super) fn generate<'a>(
     let constructor = data
         .fields
         .iter()
-        .filter_map(|field| struct_field::get_constructor(field))
+        .filter_map(|(field_name, field)| struct_field::get_constructor(field, field_name))
         .collect::<Vec<_>>()
         .join(&format!("\n{0:indent$}{0:indent$}", ""));
 
     let default_constructors = data
         .fields
         .iter()
-        .filter_map(|field| struct_field::get_default_constructor(field, indent, macros))
+        .filter_map(|(field_name, field)| {
+            struct_field::get_default_constructor(field, field_name, indent, macros)
+        })
         .collect::<Result<Vec<_>, _>>()?
         .join(&format!("\n\n{0:indent$}", ""));
 
     let exports = data
         .fields
         .iter()
-        .map(|field| struct_field::get_export(field))
+        .map(|(field_name, field)| struct_field::get_export(field, field_name))
         .collect::<Vec<_>>()
         .join(&format!("\n{0:indent$}{0:indent$}{0:indent$}", ""));
 
     let printers = data
         .fields
         .iter()
-        .map(|field| struct_field::get_printer(field))
+        .map(|(field_name, _)| struct_field::get_printer(field_name))
         .collect::<Vec<_>>()
         .join(", ");
 
     let parsers = data
         .fields
         .iter()
-        .map(|field| struct_field::get_parser(field, name, indent))
+        .map(|(field_name, field)| struct_field::get_parser(field, field_name, name, indent))
         .collect::<Vec<_>>()
         .join(&format!("\n\n{0:indent$}{0:indent$}", ""));
 
     let parser_returns = data
         .fields
         .iter()
-        .map(|field| struct_field::get_parser_return(field))
+        .map(|(field_name, _)| struct_field::get_parser_return(field_name))
         .collect::<Vec<_>>()
         .join(&format!(
             "\n{0:indent$}{0:indent$}{0:indent$}{0:indent$}",
@@ -89,7 +91,7 @@ pub(super) fn generate<'a>(
     let equality = data
         .fields
         .iter()
-        .map(|field| format!("other.{name} == {name}", name = &field.name))
+        .map(|(field_name, _)| format!("other.{field_name} == {field_name}"))
         .collect::<Vec<_>>()
         .join(" && ");
     let equality = if equality.is_empty() {
@@ -102,7 +104,7 @@ pub(super) fn generate<'a>(
         &data
             .fields
             .iter()
-            .map(|field| format!("{name}", name = &field.name))
+            .map(|(field_name, _)| format!("{field_name}"))
             .collect::<Vec<_>>(),
     );
 
@@ -196,8 +198,10 @@ mod struct_field {
     ///
     /// data: The struct field to generate code for
     ///
+    /// name: The name of the struct field
+    ///
     /// indent: The number of spaces per indentation level
-    pub(super) fn get_definition(data: &StructField, indent: usize) -> String {
+    pub(super) fn get_definition(data: &StructField, name: &str, indent: usize) -> String {
         let type_name = match &data.default {
             DefaultType::Required => {
                 format!("{data_type}", data_type = &data.data_type)
@@ -215,7 +219,7 @@ mod struct_field {
             None => "".to_string(),
         };
 
-        return format!("{description}{type_name} {name};", name = &data.name);
+        return format!("{description}{type_name} {name};");
     }
 
     /// Generates the Dart source code for the constructor parameter for a single field in a struct
@@ -223,20 +227,18 @@ mod struct_field {
     /// # Parameters
     ///
     /// data: The struct field to generate code for
-    pub(super) fn get_constructor_parameter(data: &StructField) -> String {
+    ///
+    /// name: The name of the struct field
+    pub(super) fn get_constructor_parameter(data: &StructField, name: &str) -> String {
         return match &data.default {
             DefaultType::Required => {
-                format!("required this.{name},", name = &data.name)
+                format!("required this.{name},")
             }
             DefaultType::Optional => {
-                format!("this.{name},", name = &data.name)
+                format!("this.{name},")
             }
             DefaultType::Default(_) => {
-                format!(
-                    "{data_type}? {name},",
-                    data_type = &data.data_type,
-                    name = &data.name
-                )
+                format!("{data_type}? {name},", data_type = &data.data_type)
             }
         };
     }
@@ -246,12 +248,13 @@ mod struct_field {
     /// # Parameters
     ///
     /// data: The struct field to generate code for
-    pub(super) fn get_constructor(data: &StructField) -> Option<String> {
+    ///
+    /// name: The name of the struct field
+    pub(super) fn get_constructor(data: &StructField, name: &str) -> Option<String> {
         return if let DefaultType::Default(_) = &data.default {
             Some(format!(
                 "this.{name} = {name} ?? getDefault{capital_name}();",
-                name = &data.name,
-                capital_name = get_capitalized_name(data),
+                capital_name = get_capitalized_name(name),
             ))
         } else {
             None
@@ -264,11 +267,14 @@ mod struct_field {
     ///
     /// data: The struct field to generate code for
     ///
+    /// name: The name of the struct field
+    ///
     /// indent: The number of spaces per indentation level
     ///
     /// macros: The macros defined in the data model used for expanding default values
     pub(super) fn get_default_constructor<'a>(
         data: &StructField,
+        name: &str,
         indent: usize,
         macros: &'a HashMap<String, SerializationModel>,
     ) -> Option<Result<String, Error>> {
@@ -285,8 +291,7 @@ mod struct_field {
                 {0:indent$}{0:indent$}return (TermiteNodeParser{data_type}.fromNode(node) as termite.Ok<{data_type}>).value;
                 {0:indent$}}}",
                 "",
-                name = &data.name,
-                capital_name = &get_capitalized_name(data),
+                capital_name = &get_capitalized_name(name),
                 data_type = &data.data_type,
                 node = &serialization_model::generate(&expanded_default, indent, 2 * indent),
             )))
@@ -299,13 +304,13 @@ mod struct_field {
     ///
     /// # Parameters
     ///
-    /// data: The struct field to generate code for
-    pub(super) fn get_capitalized_name(data: &StructField) -> String {
-        let mut name = data.name.clone();
-        if let Some(first_char) = name.get_mut(0..1) {
+    /// name: The name of the struct field
+    pub(super) fn get_capitalized_name(name: &str) -> String {
+        let mut capitalized_name = name.to_string();
+        if let Some(first_char) = capitalized_name.get_mut(0..1) {
             first_char.make_ascii_uppercase();
         };
-        return name;
+        return capitalized_name;
     }
 
     /// Generates the Dart source code for the node export of a single field in a struct
@@ -313,11 +318,13 @@ mod struct_field {
     /// # Parameters
     ///
     /// data: The struct field to generate code for
-    pub(super) fn get_export(data: &StructField) -> String {
+    ///
+    /// name: The name of the struct field
+    pub(super) fn get_export(data: &StructField, name: &str) -> String {
         return if let DefaultType::Optional = &data.default {
-            format!("'{name}': {name}?.toNode(),", name = &data.name)
+            format!("'{name}': {name}?.toNode(),")
         } else {
-            format!("'{name}': {name}.toNode(),", name = &data.name)
+            format!("'{name}': {name}.toNode(),")
         };
     }
 
@@ -325,9 +332,9 @@ mod struct_field {
     ///
     /// # Parameters
     ///
-    /// data: The struct field to generate code for
-    pub(super) fn get_printer(data: &StructField) -> String {
-        return format!("{name}: ${name}", name = &data.name);
+    /// name: The name of the struct field
+    pub(super) fn get_printer(name: &str) -> String {
+        return format!("{name}: ${name}");
     }
 
     /// Generates the Dart source code for the parser code for a single field in a struct
@@ -336,10 +343,17 @@ mod struct_field {
     ///
     /// data: The struct field to generate code for
     ///
+    /// name: The name of the struct field
+    ///
     /// struct_name: The name of the struct containing the field
     ///
     /// indent: The number of spaces per indentation level
-    pub(super) fn get_parser(data: &StructField, struct_name: &str, indent: usize) -> String {
+    pub(super) fn get_parser(
+        data: &StructField,
+        name: &str,
+        struct_name: &str,
+        indent: usize,
+    ) -> String {
         return match &data.default {
             DefaultType::Required => {
                 formatdoc!("
@@ -353,7 +367,6 @@ mod struct_field {
                     {0:indent$}{0:indent$}}}
                     {0:indent$}{0:indent$}final {data_type} {name} = (__{name} as termite.Ok<{data_type}>).value;",
                     "",
-                    name = &data.name,
                     data_type = &data.data_type,
                 )
             }
@@ -369,7 +382,6 @@ mod struct_field {
                     {0:indent$}{0:indent$}{0:indent$}{name} = (__{name} as termite.Ok<{data_type}>).value;
                     {0:indent$}{0:indent$}}}",
                     "",
-                    name = &data.name,
                     data_type = &data.data_type,
                 )
             }
@@ -385,8 +397,7 @@ mod struct_field {
                     {0:indent$}{0:indent$}{0:indent$}{name} = (__{name} as termite.Ok<{data_type}>).value;
                     {0:indent$}{0:indent$}}}",
                     "",
-                    name = &data.name,
-                    capital_name = &get_capitalized_name(data),
+                    capital_name = &get_capitalized_name(name),
                     data_type = &data.data_type,
                 )
             }
@@ -397,9 +408,9 @@ mod struct_field {
     ///
     /// # Parameters
     ///
-    /// data: The struct field to generate code for
-    pub(super) fn get_parser_return(data: &StructField) -> String {
-        return format!("{name}: {name},", name = &data.name);
+    /// name: The name of the struct field
+    pub(super) fn get_parser_return(name: &str) -> String {
+        return format!("{name}: {name},");
     }
 }
 

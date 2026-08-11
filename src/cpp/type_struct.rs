@@ -13,44 +13,46 @@ use std::collections::{HashMap, HashSet};
 ///
 /// indent: The number of spaces to use for indentation
 pub(super) fn generate_definition_header(data: &Struct, name: &str, indent: usize) -> String {
+    let mut fields = data.fields.iter().collect::<Vec<_>>();
+    fields.sort_by(|(lhs, _), (rhs, _)| lhs.cmp(rhs));
+
     // Get the description for the constructor
-    let constructor_description = data
-        .fields
+    let constructor_description = fields
         .iter()
-        .map(|field| struct_field::get_constructor_description(field, indent))
+        .map(|(field_name, field)| {
+            struct_field::get_constructor_description(field, field_name, indent)
+        })
         .collect::<Vec<String>>()
         .join("");
 
     // Get the constructor parameters
-    let constructor_parameters = data
-        .fields
+    let constructor_parameters = fields
         .iter()
-        .map(|field| struct_field::get_constructor_parameter(field))
+        .map(|(field_name, field)| struct_field::get_constructor_parameter(field, field_name))
         .collect::<Vec<String>>()
         .join("");
 
     // Get the list of setters for the internal constructor
-    let constructor_setters = data
-        .fields
+    let constructor_setters = fields
         .iter()
-        .map(|field| struct_field::get_constructor_setter(field))
+        .map(|(field_name, _)| struct_field::get_constructor_setter(field_name))
         .collect::<Vec<String>>()
         .join("");
 
     // Get all constructors for the fields with default values
-    let default_constructors = data
-        .fields
+    let default_constructors = fields
         .iter()
-        .map(|field| struct_field::get_default_constructor_header(field, indent))
+        .map(|(field_name, field)| {
+            struct_field::get_default_constructor_header(field, field_name, indent)
+        })
         .collect::<Vec<String>>()
         .join("");
     let default_constructors = format!("\n{default_constructors}");
 
     // Get the definitions of all the fields but without any initialization
-    let field_definitions = data
-        .fields
+    let field_definitions = fields
         .iter()
-        .map(|field| struct_field::get_definition(field, indent))
+        .map(|(field_name, field)| struct_field::get_definition(field, field_name, indent))
         .collect::<Vec<String>>()
         .join("");
 
@@ -116,27 +118,29 @@ pub(super) fn generate_definition_source(
     macros: &HashMap<String, SerializationModel>,
     indent: usize,
 ) -> Result<String, Error> {
+    let mut fields = data.fields.iter().collect::<Vec<_>>();
+    fields.sort_by(|(lhs, _), (rhs, _)| lhs.cmp(rhs));
+
     // Get the equality test
-    let equality_test = data
-        .fields
+    let equality_test = fields
         .iter()
-        .map(|field| struct_field::get_equality_check(field))
+        .map(|(field_name, _)| struct_field::get_equality_check(field_name))
         .collect::<Vec<_>>()
         .join("");
 
     // Get the printout for the operator<< function
-    let printout = data
-        .fields
+    let printout = fields
         .iter()
-        .map(|field| struct_field::get_printout(field))
+        .map(|(field_name, _)| struct_field::get_printout(field_name))
         .collect::<Vec<_>>()
         .join("");
 
     // Get all constructors for the fields with default values
-    let default_constructors = data
-        .fields
+    let default_constructors = fields
         .iter()
-        .map(|field| struct_field::get_default_constructor_source(field, name, macros, indent))
+        .map(|(field_name, field)| {
+            struct_field::get_default_constructor_source(field, field_name, name, macros, indent)
+        })
         .collect::<Result<Vec<_>, _>>()?
         .join("");
 
@@ -197,6 +201,9 @@ pub(super) fn generate_parser_source(
     indent: usize,
     namespace: &[String],
 ) -> String {
+    let mut fields = data.fields.iter().collect::<Vec<_>>();
+    fields.sort_by(|(lhs, _), (rhs, _)| lhs.cmp(rhs));
+
     // Get the namespace name
     let namespace = namespace
         .iter()
@@ -206,25 +213,24 @@ pub(super) fn generate_parser_source(
     let typename = format!("{namespace}{name}");
 
     // Get the parameter parsing
-    let parsing = data
-        .fields
+    let parsing = fields
         .iter()
-        .map(|field| struct_field::get_parsing(field, &typename, &namespace, indent))
+        .map(|(field_name, field)| {
+            struct_field::get_parsing(field, field_name, &typename, &namespace, indent)
+        })
         .collect::<Vec<String>>()
         .join("");
 
-    let parsing_export = data
-        .fields
+    let parsing_export = fields
         .iter()
-        .map(|field| struct_field::get_parsing_export(field, indent))
+        .map(|(field_name, field)| struct_field::get_parsing_export(field, field_name, indent))
         .collect::<Vec<String>>()
         .join("");
 
     // Get the parameter list for when retrieving them to return at the end
-    let parameter_retrievals = data
-        .fields
+    let parameter_retrievals = fields
         .iter()
-        .map(|field| struct_field::get_parameter_retrieval(field))
+        .map(|(field_name, _)| struct_field::get_parameter_retrieval(field_name))
         .collect::<Vec<String>>()
         .join("");
 
@@ -255,12 +261,11 @@ mod struct_field {
     ///
     /// data: The struct field to generate code for
     pub(super) fn get_typename(data: &StructField) -> String {
-        let data_type =
-            if ["string", "number", "integer", "boolean"].contains(&data.data_type.as_str()) {
-                format!("termite::{data_type}", data_type = data.data_type)
-            } else {
-                data.data_type.clone()
-            };
+        let data_type = if is_name_builtin(&data.data_type) {
+            format!("termite::{data_type}", data_type = data.data_type)
+        } else {
+            data.data_type.clone()
+        };
 
         return match &data.default {
             DefaultType::Optional => {
@@ -288,12 +293,17 @@ mod struct_field {
     ///
     /// data: The struct field to generate code for
     ///
+    /// name: The name of the struct field
+    ///
     /// indent: The number of spaces to use for indentation
-    pub(super) fn get_constructor_description(data: &StructField, indent: usize) -> String {
+    pub(super) fn get_constructor_description(
+        data: &StructField,
+        name: &str,
+        indent: usize,
+    ) -> String {
         return format!(
             "\n{0:indent$} * @param {name} {description}",
             "",
-            name = data.name,
             description = get_description(data),
         );
     }
@@ -303,12 +313,10 @@ mod struct_field {
     /// # Parameters
     ///
     /// data: The struct field to generate code for
-    pub(super) fn get_constructor_parameter(data: &StructField) -> String {
-        return format!(
-            "{typename} {name}, ",
-            typename = get_typename(data),
-            name = data.name,
-        );
+    ///
+    /// name: The name of the struct field
+    pub(super) fn get_constructor_parameter(data: &StructField, name: &str) -> String {
+        return format!("{typename} {name}, ", typename = get_typename(data),);
     }
 
     /// Get the parameter definition for the constructor including default value
@@ -317,8 +325,14 @@ mod struct_field {
     ///
     /// data: The struct field to generate code for
     ///
+    /// name: The name of the struct field
+    ///
     /// indent: The number of spaces to use for indentation
-    pub(super) fn get_default_constructor_header(data: &StructField, indent: usize) -> String {
+    pub(super) fn get_default_constructor_header(
+        data: &StructField,
+        name: &str,
+        indent: usize,
+    ) -> String {
         return match &data.default {
             DefaultType::Required => format!(""),
             _ => formatdoc!(
@@ -331,7 +345,6 @@ mod struct_field {
                 {0:indent$}[[nodiscard]] static {typename} default_{name}();\n",
                 "",
                 typename = get_typename(data),
-                name = data.name,
             ),
         };
     }
@@ -342,6 +355,8 @@ mod struct_field {
     ///
     /// data: The struct field to generate code for
     ///
+    /// name: The name of the struct field
+    ///
     /// main_name: The name of the type which holds this field
     ///
     /// macros: A map of all macros to expand default values
@@ -349,6 +364,7 @@ mod struct_field {
     /// indent: The number of spaces to use for indentation
     pub(super) fn get_default_constructor_source(
         data: &StructField,
+        name: &str,
         main_name: &str,
         macros: &HashMap<String, SerializationModel>,
         indent: usize,
@@ -362,7 +378,7 @@ mod struct_field {
                 }}\n",
                 "",
                 typename = get_typename(data),
-                snake_case = ToSnakeCase::new(&mut data.name.chars()).collect::<String>(),
+                snake_case = ToSnakeCase::new(&mut name.chars()).collect::<String>(),
             ),
             DefaultType::Default(default_value) => formatdoc!(
                 "
@@ -373,7 +389,7 @@ mod struct_field {
                 }}\n",
                 "",
                 typename = get_typename(data),
-                snake_case = ToSnakeCase::new(&mut data.name.chars()).collect::<String>(),
+                snake_case = ToSnakeCase::new(&mut name.chars()).collect::<String>(),
                 default_value = serialization::generate(
                     &expand_macros(default_value, macros, &mut HashSet::new())?,
                     "default_value",
@@ -388,27 +404,27 @@ mod struct_field {
     ///
     /// # Parameters
     ///
-    /// data: The struct field to generate code for
-    pub(super) fn get_equality_check(data: &StructField) -> String {
-        return format!("this->{name} == x.{name} && ", name = data.name);
+    /// name: The name of the struct field
+    pub(super) fn get_equality_check(name: &str) -> String {
+        return format!("this->{name} == x.{name} && ");
     }
 
     /// Gets the printout of this field for the operator>> ostream function
     ///
     /// # Parameters
     ///
-    /// data: The struct field to generate code for
-    pub(super) fn get_printout(data: &StructField) -> String {
-        return format!("\"{name}: \" << x.{name} << \", \" << ", name = data.name);
+    /// name: The name of the struct field
+    pub(super) fn get_printout(name: &str) -> String {
+        return format!("\"{name}: \" << x.{name} << \", \" << ");
     }
 
     /// Get the setter for this field for the internal constructor
     ///
     /// # Parameters
     ///
-    /// data: The struct field to generate code for
-    pub(super) fn get_constructor_setter(data: &StructField) -> String {
-        return format!("{name}(std::move({name})), ", name = data.name);
+    /// name: The name of the struct field
+    pub(super) fn get_constructor_setter(name: &str) -> String {
+        return format!("{name}(std::move({name})), ");
     }
 
     /// Gets the description if it is supplied
@@ -417,8 +433,10 @@ mod struct_field {
     ///
     /// data: The struct field to generate code for
     ///
+    /// name: The name of the struct field
+    ///
     /// indent: The number of spaces to use for indentation
-    pub(super) fn get_definition(data: &StructField, indent: usize) -> String {
+    pub(super) fn get_definition(data: &StructField, name: &str, indent: usize) -> String {
         return formatdoc!(
             "
             \n{0:indent$}/**
@@ -428,7 +446,6 @@ mod struct_field {
             {0:indent$}{typename} {name};",
             "",
             typename = get_typename(data),
-            name = data.name,
             description = get_description(data),
         );
     }
@@ -439,6 +456,8 @@ mod struct_field {
     ///
     /// data: The struct field to generate code for
     ///
+    /// name: The name of the struct field
+    ///
     /// main_name: The name of the type which holds this field including namespace
     ///
     /// namespace: The namespace of the struct
@@ -446,6 +465,7 @@ mod struct_field {
     /// indent: The indentation to use
     pub(super) fn get_parsing_required(
         data: &StructField,
+        name: &str,
         main_name: &str,
         namespace: &str,
         indent: usize,
@@ -471,7 +491,6 @@ mod struct_field {
             {0:indent$}{typename} value_{name} = raw_value_{name}.get_ok();
             {0:indent$}map.erase(location_{name});\n",
             "",
-            name = data.name,
         );
     }
 
@@ -481,6 +500,8 @@ mod struct_field {
     ///
     /// data: The struct field to generate code for
     ///
+    /// name: The name of the struct field
+    ///
     /// main_name: The name of the type which holds this field including namespace
     ///
     /// namespace: The namespace of the struct
@@ -488,6 +509,7 @@ mod struct_field {
     /// indent: The indentation to use
     pub(super) fn get_parsing_optional(
         data: &StructField,
+        name: &str,
         main_name: &str,
         namespace: &str,
         indent: usize,
@@ -509,7 +531,7 @@ mod struct_field {
             DefaultType::Required => format!(""),
             _ => format!(
                 " = {main_name}::default_{snake_case}()",
-                snake_case = ToSnakeCase::new(&mut data.name.chars()).collect::<String>(),
+                snake_case = ToSnakeCase::new(&mut name.chars()).collect::<String>(),
             ),
         };
 
@@ -527,7 +549,6 @@ mod struct_field {
             {0:indent$}{0:indent$}map.erase(location_{name});
             {0:indent$}}}\n",
             "",
-            name = data.name,
         );
     }
 
@@ -537,6 +558,8 @@ mod struct_field {
     ///
     /// data: The struct field to generate code for
     ///
+    /// name: The name of the struct field
+    ///
     /// main_name: The name of the type which holds this field including namespace
     ///
     /// namespace: The namespace of the struct
@@ -544,13 +567,14 @@ mod struct_field {
     /// indent: The indentation to use
     pub(super) fn get_parsing(
         data: &StructField,
+        name: &str,
         main_name: &str,
         namespace: &str,
         indent: usize,
     ) -> String {
         return match data.default {
-            DefaultType::Required => get_parsing_required(data, main_name, namespace, indent),
-            _ => get_parsing_optional(data, main_name, namespace, indent),
+            DefaultType::Required => get_parsing_required(data, name, main_name, namespace, indent),
+            _ => get_parsing_optional(data, name, main_name, namespace, indent),
         };
     }
 
@@ -560,8 +584,10 @@ mod struct_field {
     ///
     /// data: The struct field to generate code for
     ///
+    /// name: The name of the struct field
+    ///
     /// indent: The indentation to use
-    pub(super) fn get_parsing_export(data: &StructField, indent: usize) -> String {
+    pub(super) fn get_parsing_export(data: &StructField, name: &str, indent: usize) -> String {
         return match data.default {
             DefaultType::Optional => formatdoc!(
                 "
@@ -569,13 +595,11 @@ mod struct_field {
                 {0:indent$}{0:indent$}map.insert({{\"{name}\", Node::from_value(*value.{name})}});
                 {0:indent$}}}\n",
                 "",
-                name = data.name,
             ),
             _ => formatdoc!(
                 "
                 \n{0:indent$}map.insert({{\"{name}\", Node::from_value(value.{name})}});\n",
                 "",
-                name = data.name,
             ),
         };
     }
@@ -584,9 +608,9 @@ mod struct_field {
     ///
     /// # Parameters
     ///
-    /// data: The struct field to generate code for
-    pub(super) fn get_parameter_retrieval(data: &StructField) -> String {
-        return format!("std::move(value_{name}), ", name = data.name);
+    /// name: The name of the struct field
+    pub(super) fn get_parameter_retrieval(name: &str) -> String {
+        return format!("std::move(value_{name}), ");
     }
 }
 

@@ -3,7 +3,7 @@ namespace:
 data_types:
   DataType1:
     data: !Struct
-      fields: []
+      fields: {}
   DataType2:
     data: !Struct
-      fields: []
+      fields: {}
