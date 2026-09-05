@@ -41,7 +41,7 @@ pub(super) fn generate(data: &Enum, name: &str, indent: usize) -> String {
 
         {0:indent$}/// Constructs a [{name}] from a [termite.Node].
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
-        {0:indent$}{0:indent$}return TermiteNodeParser{name}.fromNode(node);
+        {0:indent$}{0:indent$}return TermiteExtension{name}.fromNode(node);
         {0:indent$}}}
 
         {0:indent$}/// Converts the [{name}] to a [termite.Node]
@@ -50,7 +50,7 @@ pub(super) fn generate(data: &Enum, name: &str, indent: usize) -> String {
 
         {enum_types}
 
-        extension TermiteNodeParser{name} on {name} {{
+        extension TermiteExtension{name} on {name} {{
         {0:indent$}/// Constructs a [{name}] from a [termite.Node].
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
         {0:indent$}{0:indent$}String id;
@@ -203,7 +203,7 @@ mod enum_type {
                 "
                 case '{name}':
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}if (node is termite.Mapping) {{
-                {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}final result = TermiteNodeParser{data_type}.fromNode(node.map[id]!);
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}final result = TermiteExtension{data_type}.fromNode(node.map[id]!);
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}if (result is termite.Ok<{data_type}>) {{
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.ok({enum_name}.new{name}(result.value));
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}}}

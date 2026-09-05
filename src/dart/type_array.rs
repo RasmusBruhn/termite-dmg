@@ -20,7 +20,7 @@ pub(super) fn generate(data: &Array, name: &str, indent: usize) -> String {
 
         {0:indent$}/// Constructs a [{name}] from a [termite.Node].
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
-        {0:indent$}{0:indent$}return TermiteNodeParser{name}.fromNode(node);
+        {0:indent$}{0:indent$}return TermiteExtension{name}.fromNode(node);
         {0:indent$}}}
 
         {0:indent$}/// Converts the [{name}] to a [termite.Node].
@@ -41,31 +41,30 @@ pub(super) fn generate(data: &Array, name: &str, indent: usize) -> String {
         {0:indent$}int get hashCode => ListEquality().hash(values);
         }}
 
-        extension TermiteNodeParser{name} on {name} {{
+        extension TermiteExtension{name} on {name} {{
         {0:indent$}/// Constructs a [{name}] from a [termite.Node].
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
         {0:indent$}{0:indent$}if (node is! termite.Sequence) {{
         {0:indent$}{0:indent$}{0:indent$}return termite.Result.error('Unable to parse ${{node.runtimeType}} as a {name}', \"\");
         {0:indent$}{0:indent$}}}
 
-        {0:indent$}{0:indent$}termite.Result<List<{data_type}>> values = node.values
-        {0:indent$}{0:indent$}{0:indent$}.map((node) => TermiteNodeParser{data_type}.fromNode(node))
+        {0:indent$}{0:indent$}final values = node.values
+        {0:indent$}{0:indent$}{0:indent$}.map((node) => TermiteExtension{data_type}.fromNode(node))
         {0:indent$}{0:indent$}{0:indent$}.indexed
         {0:indent$}{0:indent$}{0:indent$}// ignore: prefer_const_constructors
-        {0:indent$}{0:indent$}{0:indent$}.fold(termite.Result.ok([]), (acc, result) {{
-        {0:indent$}{0:indent$}{0:indent$}{0:indent$}if (acc is termite.Error) return acc;
-        {0:indent$}{0:indent$}{0:indent$}{0:indent$}if (result.$2 is termite.Error) {{
-        {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}final newError = (result.$2 as termite.Error).addIndex('${{result.$1}}');
-        {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.error(newError.error, newError.location);
+        {0:indent$}{0:indent$}{0:indent$}.fold(termite.Result<List<{data_type}>>.ok([]), (acc, result) {{
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}if (!acc.isOk()) return acc;
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}if (!result.$2.isOk()) {{
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}return result.$2.asError().addIndex('${{result.$1}}').asNewError<List<{data_type}>>();
         {0:indent$}{0:indent$}{0:indent$}{0:indent$}}}
-        {0:indent$}{0:indent$}{0:indent$}{0:indent$}List<{data_type}> list = (acc as termite.Ok<List<{data_type}>>).value;
-        {0:indent$}{0:indent$}{0:indent$}{0:indent$}list.add((result.$2 as termite.Ok<{data_type}>).value);
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}final list = acc.asOk().value;
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}list.add(result.$2.asOk().value);
         {0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.ok(list);
         {0:indent$}{0:indent$}{0:indent$}}});
-        {0:indent$}{0:indent$}if (values is termite.Error<List<{data_type}>>) {{
-        {0:indent$}{0:indent$}{0:indent$}return termite.Result.error(values.error, values.location);
+        {0:indent$}{0:indent$}if (!values.isOk()) {{
+        {0:indent$}{0:indent$}{0:indent$}return values.asError().asNewError<{name}>();
         {0:indent$}{0:indent$}}}
-        {0:indent$}{0:indent$}return termite.Result.ok({name}((values as termite.Ok<List<{data_type}>>).value));
+        {0:indent$}{0:indent$}return termite.Result<{name}>.ok({name}(values.asOk().value));
         {0:indent$}}}
         }}",
         "",

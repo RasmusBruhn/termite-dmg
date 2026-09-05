@@ -62,6 +62,11 @@ final class Error<T> extends Result<T> {
 
   const Error._(this.error, this.location);
 
+  /// Returns a new [Error] with the same error message but a different type parameter [O].
+  Error<O> asNewError<O>() {
+    return Error<O>._(error, location);
+  }
+
   /// Adds a [field] to the error's location.
   Error<T> addField(String field) {
     return Error<T>._(error, '.$field$location');

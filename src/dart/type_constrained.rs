@@ -70,7 +70,7 @@ pub(super) fn generate(data: &ConstrainedType, name: &str, indent: usize) -> Str
         {0:indent$}/// 
         {0:indent$}/// {constraints}
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
-        {0:indent$}{0:indent$}return TermiteNodeParser{name}.fromNode(node);
+        {0:indent$}{0:indent$}return TermiteExtension{name}.fromNode(node);
         {0:indent$}}}
 
         {0:indent$}/// Converts the [{name}] to a [termite.Node].
@@ -99,16 +99,16 @@ pub(super) fn generate(data: &ConstrainedType, name: &str, indent: usize) -> Str
         {0:indent$}int get hashCode => _value.hashCode;
         }}
 
-        extension TermiteNodeParser{name} on {name} {{
+        extension TermiteExtension{name} on {name} {{
         {0:indent$}/// Constructs a [{name}] from a [termite.Node] if it fulfills the constraints:
         {0:indent$}/// 
         {0:indent$}/// {constraints}
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
-        {0:indent$}{0:indent$}final value = TermiteNodeParser{data_type}.fromNode(node);
-        {0:indent$}{0:indent$}if (value is termite.Error<{data_type}>) {{
-        {0:indent$}{0:indent$}{0:indent$}return termite.Result.error(value.error, value.location);
+        {0:indent$}{0:indent$}final value = TermiteExtension{data_type}.fromNode(node);
+        {0:indent$}{0:indent$}if (!value.isOk()) {{
+        {0:indent$}{0:indent$}{0:indent$}return value.asError().addField('{data_type}').asNewError<{name}>();
         {0:indent$}{0:indent$}}}
-        {0:indent$}{0:indent$}return {name}.fromValue((value as termite.Ok<{data_type}>).value);
+        {0:indent$}{0:indent$}return {name}.fromValue(value.asOk().value);
         {0:indent$}}}
         }}",
         "",

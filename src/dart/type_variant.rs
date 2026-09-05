@@ -66,7 +66,7 @@ pub(super) fn generate(data: &Variant, name: &str, indent: usize) -> String {
         .map(|variant_type| {
             formatdoc!(
                 "
-                termite.Result<{variant_type}> __{variant_type} = TermiteNodeParser{variant_type}.fromNode(node);
+                termite.Result<{variant_type}> __{variant_type} = TermiteExtension{variant_type}.fromNode(node);
                 {0:indent$}{0:indent$}if (__{variant_type} is termite.Ok<{variant_type}>) {{
                 {0:indent$}{0:indent$}{0:indent$}return termite.Result.ok({name}.new{variant_type}(__{variant_type}.value));
                 {0:indent$}{0:indent$}}}
@@ -93,7 +93,7 @@ pub(super) fn generate(data: &Variant, name: &str, indent: usize) -> String {
 
         {0:indent$}/// Constructs a [{name}] from a [termite.Node].
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
-        {0:indent$}{0:indent$}return TermiteNodeParser{name}.fromNode(node);
+        {0:indent$}{0:indent$}return TermiteExtension{name}.fromNode(node);
         {0:indent$}}}
 
         {0:indent$}/// Converts the [{name}] to a [termite.Node].
@@ -102,7 +102,7 @@ pub(super) fn generate(data: &Variant, name: &str, indent: usize) -> String {
 
         {variant_types}
 
-        extension TermiteNodeParser{name} on {name} {{
+        extension TermiteExtension{name} on {name} {{
         {0:indent$}/// Constructs a [{name}] from a [termite.Node].
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
         {0:indent$}{0:indent$}{parsers}

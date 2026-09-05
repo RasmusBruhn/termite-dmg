@@ -1,7 +1,7 @@
 /// @file termite-types.dart
 /// @brief The Dart Termite Data Model Generator helper code which implements JSON Schema types in Dart
-/// @version 0.7.0
-/// @date 2025-10-30
+/// @version 0.8.0
+/// @date 2026-08-12
 // ignore_for_file: file_names
 
 library;
@@ -15,14 +15,15 @@ typedef integer = int;
 typedef number = double;
 typedef string = String;
 
-extension BooleanExtension on boolean {
-  /// Converts the [boolean] to a [Node]
-  Node toNode() {
-    return Node.value(toString());
+extension TermiteExtensionboolean on boolean {
+  /// Constructs a [boolean] from an [Object]
+  static Result<boolean> fromObject(Object obj) {
+    if (obj is boolean) {
+      return Result.ok(obj);
+    }
+    return Result.error('Unable to parse ${obj.runtimeType} as a boolean', '');
   }
-}
 
-extension TermiteNodeParserboolean on boolean {
   /// Constructs a [boolean] from a [Node]
   static Result<boolean> fromNode(Node node) {
     if (node is! Value) {
@@ -44,16 +45,22 @@ extension TermiteNodeParserboolean on boolean {
     }
     return Result.ok(parsed);
   }
-}
 
-extension IntegerExtension on integer {
-  /// Converts the [integer] to a [Node]
+  /// Converts the [boolean] to a [Node]
   Node toNode() {
     return Node.value(toString());
   }
 }
 
-extension TermiteNodeParserinteger on integer {
+extension TermiteExtensioninteger on integer {
+  /// Constructs a [integer] from an [Object]
+  static Result<integer> fromObject(Object obj) {
+    if (obj is integer) {
+      return Result.ok(obj);
+    }
+    return Result.error('Unable to parse ${obj.runtimeType} as an integer', '');
+  }
+
   /// Constructs a [integer] from a [Node]
   static Result<integer> fromNode(Node node) {
     if (node is! Value) {
@@ -69,16 +76,25 @@ extension TermiteNodeParserinteger on integer {
     }
     return Result.ok(parsed);
   }
-}
 
-extension NumberExtension on number {
-  /// Converts the [number] to a [Node]
+  /// Converts the [integer] to a [Node]
   Node toNode() {
     return Node.value(toString());
   }
 }
 
-extension TermiteNodeParsernumber on number {
+extension TermiteExtensionnumber on number {
+  /// Constructs a [number] from an [Object]
+  static Result<number> fromObject(Object obj) {
+    if (obj is number) {
+      return Result.ok(obj);
+    }
+    if (obj is integer) {
+      return Result.ok(obj.toDouble());
+    }
+    return Result.error('Unable to parse ${obj.runtimeType} as a number', '');
+  }
+
   /// Constructs a [number] from a [Node]
   static Result<number> fromNode(Node node) {
     if (node is! Value) {
@@ -94,16 +110,19 @@ extension TermiteNodeParsernumber on number {
     }
     return Result.ok(parsed);
   }
-}
 
-extension StringExtension on string {
-  /// Converts the [string] to a [Node]
+  /// Converts the [number] to a [Node]
   Node toNode() {
-    return Node.value(this);
+    return Node.value(toString());
   }
 }
 
-extension TermiteNodeParserstring on string {
+extension TermiteExtensionstring on string {
+  /// Constructs a [string] from an [Object]
+  static Result<string> fromObject(Object obj) {
+    return Result.ok(obj.toString());
+  }
+
   /// Constructs a [string] from a [Node]
   static Result<string> fromNode(Node node) {
     if (node is! Value) {
@@ -114,5 +133,10 @@ extension TermiteNodeParserstring on string {
     }
 
     return Result.ok(node.value);
+  }
+
+  /// Converts the [string] to a [Node]
+  Node toNode() {
+    return Node.value(this);
   }
 }
