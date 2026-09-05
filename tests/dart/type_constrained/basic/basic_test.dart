@@ -23,8 +23,23 @@ String? testLoad() {
   if (!loaded.isOk()) {
     return 'Failed to parse constrained type';
   }
-  if (loaded.asOk() != DataType.fromValue(1).asOk()) {
-    return 'Wrong constrained value';
+
+  final okLoaded = loaded.asOk().value;
+  if (okLoaded != DataType(1)) {
+    return 'Wrong constrained value: $okLoaded';
+  }
+  return null;
+}
+
+String? testLoadObject() {
+  final loaded = DataType.fromObject(1);
+  if (!loaded.isOk()) {
+    return 'Failed to parse constrained type';
+  }
+
+  final okLoaded = loaded.asOk().value;
+  if (okLoaded != DataType(1)) {
+    return 'Wrong constrained value: $okLoaded';
   }
   return null;
 }
@@ -44,11 +59,30 @@ String? testInvalid() {
   return null;
 }
 
+String? testInvalidObject() {
+  final invalidValue = DataType.fromObject(1.0);
+  if (invalidValue.isOk()) {
+    return 'Expected value parse error';
+  }
+
+  final invalidType = DataType.fromObject([1]);
+  if (invalidType.isOk()) {
+    return 'Expected node type parse error';
+  }
+  return null;
+}
+
 String? testRoundtrip() {
-  final value = DataType.fromValue(1).asOk();
+  final value = DataType(1);
   final loaded = DataType.fromNode(value.toNode());
-  if (!loaded.isOk() || loaded.asOk() != value) {
-    return 'Failed constrained roundtrip';
+
+  if (!loaded.isOk()) {
+    return 'Failed to reload constrained type';
+  }
+
+  final okLoaded = loaded.asOk().value;
+  if (okLoaded != value) {
+    return 'Reloaded constrained value mismatch: $okLoaded';
   }
   return null;
 }
@@ -56,7 +90,9 @@ String? testRoundtrip() {
 void main() {
   final code = runTests({
     'testLoad': testLoad,
+    'testLoadObject': testLoadObject,
     'testInvalid': testInvalid,
+    'testInvalidObject': testInvalidObject,
     'testRoundtrip': testRoundtrip,
   });
   if (code != 0) {

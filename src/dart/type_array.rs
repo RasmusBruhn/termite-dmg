@@ -47,7 +47,7 @@ pub(super) fn generate(data: &Array, name: &str, indent: usize) -> String {
         }}
 
         extension TermiteExtension{name} on {name} {{
-        {0:indent$}/// Constructs a [{name}] from a [termite.Node].
+        {0:indent$}/// Constructs a [{name}] from a [Object].
         {0:indent$}static termite.Result<{name}> fromObject(Object obj) {{
         {0:indent$}{0:indent$}if (obj is! List) {{
         {0:indent$}{0:indent$}{0:indent$}return termite.Result.error('Unable to parse ${{obj.runtimeType}} as a {name}', \"\");

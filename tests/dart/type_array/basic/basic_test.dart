@@ -75,9 +75,11 @@ String? testInvalidObject() {
 String? testRoundtrip() {
   final value = DataType([1, 2]);
   final loaded = DataType.fromNode(value.toNode());
+
   if (!loaded.isOk()) {
     return 'Failed to reload array';
   }
+  
   final okValue = loaded.asOk().value;
   if (okValue != value) {
     return 'Reloaded array mismatch: $okValue';

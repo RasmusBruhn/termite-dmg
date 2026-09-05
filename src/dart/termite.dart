@@ -11,7 +11,7 @@ import 'package:collection/collection.dart';
 ///
 /// The [Error] class holds information about what error occured and where it occured.
 sealed class Result<T> {
-  const Result();Invalid
+  const Result();
 
   /// Creates a successful [Result], completed with the specified value [value].
   const factory Result.ok(T value) = Ok._;
