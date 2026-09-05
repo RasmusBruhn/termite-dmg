@@ -25,8 +25,21 @@ String? testLoad() {
   if (!loaded.isOk()) {
     return 'Failed to parse array';
   }
-  if (loaded.asOk() != DataType([1, 2])) {
-    return 'Array values mismatch';
+  final okValue = loaded.asOk().value;
+  if (okValue != DataType([1, 2])) {
+    return 'Array values mismatch: $okValue';
+  }
+  return null;
+}
+
+String? testLoadObject() {
+  final loaded = DataType.fromObject([1, 2]);
+  if (!loaded.isOk()) {
+    return 'Failed to parse array';
+  }
+  final okValue = loaded.asOk().value;
+  if (okValue != DataType([1, 2])) {
+    return 'Array values mismatch: $okValue';
   }
   return null;
 }
@@ -46,14 +59,28 @@ String? testInvalid() {
   return null;
 }
 
+String? testInvalidObject() {
+  final invalidElement = DataType.fromObject([1, 2.5]);
+  if (invalidElement.isOk()) {
+    return 'Expected element type error';
+  }
+
+  final invalidType = DataType.fromObject(1.0);
+  if (invalidType.isOk()) {
+    return 'Expected node type error';
+  }
+  return null;
+}
+
 String? testRoundtrip() {
   final value = DataType([1, 2]);
   final loaded = DataType.fromNode(value.toNode());
   if (!loaded.isOk()) {
     return 'Failed to reload array';
   }
-  if (loaded.asOk() != value) {
-    return 'Reloaded array mismatch';
+  final okValue = loaded.asOk().value;
+  if (okValue != value) {
+    return 'Reloaded array mismatch: $okValue';
   }
   return null;
 }
@@ -61,7 +88,9 @@ String? testRoundtrip() {
 void main() {
   final code = runTests({
     'testLoad': testLoad,
+    'testLoadObject': testLoadObject,
     'testInvalid': testInvalid,
+    'testInvalidObject': testInvalidObject,
     'testRoundtrip': testRoundtrip,
   });
   if (code != 0) {

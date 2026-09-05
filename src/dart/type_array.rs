@@ -18,6 +18,11 @@ pub(super) fn generate(data: &Array, name: &str, indent: usize) -> String {
 
         {0:indent$}{name}(this.values);
 
+        {0:indent$}/// Constructs a [{name}] from a [Object].
+        {0:indent$}static termite.Result<{name}> fromObject(Object obj) {{
+        {0:indent$}{0:indent$}return TermiteExtension{name}.fromObject(obj);
+        {0:indent$}}}
+
         {0:indent$}/// Constructs a [{name}] from a [termite.Node].
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
         {0:indent$}{0:indent$}return TermiteExtension{name}.fromNode(node);
@@ -43,6 +48,31 @@ pub(super) fn generate(data: &Array, name: &str, indent: usize) -> String {
 
         extension TermiteExtension{name} on {name} {{
         {0:indent$}/// Constructs a [{name}] from a [termite.Node].
+        {0:indent$}static termite.Result<{name}> fromObject(Object obj) {{
+        {0:indent$}{0:indent$}if (obj is! List) {{
+        {0:indent$}{0:indent$}{0:indent$}return termite.Result.error('Unable to parse ${{obj.runtimeType}} as a {name}', \"\");
+        {0:indent$}{0:indent$}}}
+
+        {0:indent$}{0:indent$}final values = obj
+        {0:indent$}{0:indent$}{0:indent$}.map((item) => TermiteExtension{data_type}.fromObject(item))
+        {0:indent$}{0:indent$}{0:indent$}.indexed
+        {0:indent$}{0:indent$}{0:indent$}// ignore: prefer_const_constructors
+        {0:indent$}{0:indent$}{0:indent$}.fold(termite.Result<List<{data_type}>>.ok([]), (acc, result) {{
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}if (!acc.isOk()) return acc;
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}if (!result.$2.isOk()) {{
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}return result.$2.asError().addIndex('${{result.$1}}').asNewError<List<{data_type}>>();
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}}}
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}final list = acc.asOk().value;
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}list.add(result.$2.asOk().value);
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.ok(list);
+        {0:indent$}{0:indent$}{0:indent$}}});
+        {0:indent$}{0:indent$}if (!values.isOk()) {{
+        {0:indent$}{0:indent$}{0:indent$}return values.asError().asNewError<{name}>();
+        {0:indent$}{0:indent$}}}
+        {0:indent$}{0:indent$}return values.asOk().asNewOk((list) => {name}(list));
+        {0:indent$}}}        
+
+        {0:indent$}/// Constructs a [{name}] from a [termite.Node].
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
         {0:indent$}{0:indent$}if (node is! termite.Sequence) {{
         {0:indent$}{0:indent$}{0:indent$}return termite.Result.error('Unable to parse ${{node.runtimeType}} as a {name}', \"\");
@@ -64,7 +94,7 @@ pub(super) fn generate(data: &Array, name: &str, indent: usize) -> String {
         {0:indent$}{0:indent$}if (!values.isOk()) {{
         {0:indent$}{0:indent$}{0:indent$}return values.asError().asNewError<{name}>();
         {0:indent$}{0:indent$}}}
-        {0:indent$}{0:indent$}return termite.Result<{name}>.ok({name}(values.asOk().value));
+        {0:indent$}{0:indent$}return values.asOk().asNewOk((list) => {name}(list));
         {0:indent$}}}
         }}",
         "",

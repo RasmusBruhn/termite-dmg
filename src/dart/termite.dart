@@ -2,7 +2,7 @@
 /// @brief The Dart Termite Data Model Generator code which implements errors and
 /// input output to yaml and json
 /// @version 0.8.0
-/// @date 2026-08-09
+/// @date 2026-09-05
 library;
 
 import 'package:collection/collection.dart';
@@ -11,7 +11,7 @@ import 'package:collection/collection.dart';
 ///
 /// The [Error] class holds information about what error occured and where it occured.
 sealed class Result<T> {
-  const Result();
+  const Result();Invalid
 
   /// Creates a successful [Result], completed with the specified value [value].
   const factory Result.ok(T value) = Ok._;
@@ -20,8 +20,8 @@ sealed class Result<T> {
   const factory Result.error(String error, String location) = Error._;
 
   /// Returns the [Ok] value, exeption is thrown if this is an [Error].
-  T asOk() {
-    return (this as Ok<T>).value;
+  Ok<T> asOk() {
+    return this as Ok<T>;
   }
 
   /// Returns the [Error], exeption is thrown if this is an [Ok].
@@ -39,6 +39,11 @@ final class Ok<T> extends Result<T> {
   final T value;
 
   const Ok._(this.value);
+
+  /// Returns a new [Ok] with the value converted to a different type parameter [O].
+  Ok<O> asNewOk<O>(O Function(T) converter) {
+    return Ok<O>._(converter(value));
+  }
 
   @override
   String toString() => 'Result<$T>.ok($value)';
