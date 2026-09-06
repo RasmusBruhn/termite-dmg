@@ -33,11 +33,23 @@ pub(super) fn generate(data: &Enum, name: &str, indent: usize) -> String {
         .collect::<Vec<_>>()
         .join(&format!("\n{0:indent$}{0:indent$}{0:indent$}", ""));
 
+    let parsers_object = data
+        .types
+        .iter()
+        .map(|enum_type| enum_type::get_parser_object(enum_type, name, indent))
+        .collect::<Vec<_>>()
+        .join(&format!("\n{0:indent$}{0:indent$}{0:indent$}", ""));
+
     return formatdoc!("
         sealed class {name} {{
         {0:indent$}{name}();
 
         {0:indent$}{constructors}
+
+        {0:indent$}/// Constructs a [{name}] from a [Object].
+        {0:indent$}static termite.Result<{name}> fromObject(Object obj) {{
+        {0:indent$}{0:indent$}return TermiteExtension{name}.fromObject(obj);
+        {0:indent$}}}
 
         {0:indent$}/// Constructs a [{name}] from a [termite.Node].
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
@@ -51,6 +63,30 @@ pub(super) fn generate(data: &Enum, name: &str, indent: usize) -> String {
         {enum_types}
 
         extension TermiteExtension{name} on {name} {{
+        {0:indent$}/// Constructs a [{name}] from a [Object].
+        {0:indent$}static termite.Result<{name}> fromObject(Object obj) {{
+        {0:indent$}{0:indent$}String id;
+        {0:indent$}{0:indent$}if (obj is Map) {{
+        {0:indent$}{0:indent$}{0:indent$}if (obj.length != 1) {{
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('Unable to parse a Map with more or less than 1 entry as a {name}', '');
+        {0:indent$}{0:indent$}{0:indent$}}}
+        {0:indent$}{0:indent$}{0:indent$}if (obj.keys.first is! String) {{
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('Unable to parse a Map with a non-String key as a {name}', '');
+        {0:indent$}{0:indent$}{0:indent$}}}
+        {0:indent$}{0:indent$}{0:indent$}id = obj.keys.first;
+        {0:indent$}{0:indent$}}} else if (obj is String) {{
+        {0:indent$}{0:indent$}{0:indent$}id = obj;
+        {0:indent$}{0:indent$}}} else {{
+        {0:indent$}{0:indent$}{0:indent$}return termite.Result.error('Unable to parse ${{obj.runtimeType}} as a {name}', '');
+        {0:indent$}{0:indent$}}}
+
+        {0:indent$}{0:indent$}switch (id) {{
+        {0:indent$}{0:indent$}{0:indent$}{parsers_object}
+        {0:indent$}{0:indent$}{0:indent$}default:
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.error('Unknown type ($id) for {name}', '');
+        {0:indent$}{0:indent$}}}
+        {0:indent$}}}
+
         {0:indent$}/// Constructs a [{name}] from a [termite.Node].
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
         {0:indent$}{0:indent$}String id;
@@ -204,13 +240,12 @@ mod enum_type {
                 case '{name}':
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}if (node is termite.Mapping) {{
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}final result = TermiteExtension{data_type}.fromNode(node.map[id]!);
-                {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}if (result is termite.Ok<{data_type}>) {{
-                {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.ok({enum_name}.new{name}(result.value));
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}if (result.isOk()) {{
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}return result.asOk().asNewOk((value) => {enum_name}.new{name}(value));
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}}}
-                {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}final newResult = (result as termite.Error).addField('{name}');
-                {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.error(newResult.error, newResult.location);
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}return result.asError().addField('{name}').asNewError();
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}}}
-                {0:indent$}{0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('{enum_name} type has data and cannot be constructed from a value', '.{name}');",
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('{enum_name} type has data and cannot be constructed from a Value', '.{name}');",
                 "",
                 name = data.name,
             )
@@ -221,7 +256,46 @@ mod enum_type {
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}if (node is termite.Value) {{
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.ok({enum_name}.new{name}());
                 {0:indent$}{0:indent$}{0:indent$}{0:indent$}}}
-                {0:indent$}{0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('{enum_name} type has no data and cannot be constructed from a mapping', '.{name}');",
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('{enum_name} type has no data and cannot be constructed from a Mapping', '.{name}');",
+                "",
+                name = data.name,
+            )
+        };
+    }
+
+    /// Generates the Dart serialization object parser for an enum type
+    ///
+    /// # Parameters
+    ///
+    /// data: The enum type to generate the parser for
+    ///
+    /// enum_name: The name of the parent enum
+    ///
+    /// indent: The number of spaces per indentation level
+    pub(super) fn get_parser_object(data: &EnumType, enum_name: &str, indent: usize) -> String {
+        return if let Some(data_type) = data.data_type.as_ref() {
+            formatdoc!(
+                "
+                case '{name}':
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}if (obj is Map) {{
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}final result = TermiteExtension{data_type}.fromObject(obj[id]!);
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}if (result.isOk()) {{
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}return result.asOk().asNewOk((value) => {enum_name}.new{name}(value));
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}}}
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}return result.asError().addField('{name}').asNewError();
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}}}
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('{enum_name} type has data and cannot be constructed from a Value', '.{name}');",
+                "",
+                name = data.name,
+            )
+        } else {
+            formatdoc!(
+                "
+                case '{name}':
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}if (obj is String) {{
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.ok({enum_name}.new{name}());
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}}}
+                {0:indent$}{0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('{enum_name} type has no data and cannot be constructed from a Map', '.{name}');",
                 "",
                 name = data.name,
             )
