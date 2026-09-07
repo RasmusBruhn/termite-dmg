@@ -23,8 +23,9 @@ String? testMacroDefault() {
   if (!defaults.isOk()) {
     return 'Failed to load defaults';
   }
-  if (defaults.asOk() != DataType(field1: 1)) {
-    return 'Macro default values are incorrect';
+  final defaultsOk = defaults.getOk();
+  if (defaultsOk != DataType(field1: 1)) {
+    return 'Macro default values are incorrect: $defaultsOk';
   }
   return null;
 }
@@ -35,8 +36,9 @@ String? testRoundtrip() {
   if (!reloaded.isOk()) {
     return 'Failed to reload struct';
   }
-  if (reloaded.asOk() != value) {
-    return 'Reloaded values mismatch';
+  final reloadedOk = reloaded.getOk();
+  if (reloadedOk != value) {
+    return 'Reloaded values mismatch: $reloadedOk';
   }
   return null;
 }

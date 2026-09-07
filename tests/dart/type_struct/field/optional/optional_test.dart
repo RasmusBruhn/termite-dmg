@@ -23,8 +23,9 @@ String? testDefaultsAndOptional() {
   if (!defaults.isOk()) {
     return 'Failed to load defaults';
   }
-  if (defaults.asOk() != DataType(field1: 1)) {
-    return 'Default values are incorrect';
+  final defaultsOk = defaults.getOk();
+  if (defaultsOk != DataType(field1: 1)) {
+    return 'Default values are incorrect: $defaultsOk';
   }
 
   final explicit = DataType.fromNode(
@@ -36,8 +37,9 @@ String? testDefaultsAndOptional() {
   if (!explicit.isOk()) {
     return 'Failed to load explicit values';
   }
-  if (explicit.asOk() != DataType(field1: -2, field2: 3.5)) {
-    return 'Explicit values are incorrect';
+  final explicitOk = explicit.getOk();
+  if (explicitOk != DataType(field1: -2, field2: 3.5)) {
+    return 'Explicit values are incorrect: $explicitOk';
   }
   return null;
 }
@@ -50,7 +52,7 @@ String? testInvalidType() {
     }),
   );
   if (invalidType.isOk()) {
-    return 'Expected type validation error';
+    return 'Expected type validation error: ${invalidType.asError().getMessage()}';
   }
   return null;
 }

@@ -20,21 +20,37 @@ int runTests(Map<String, TestFunction> tests) {
 
 String? testEmptyStructs() {
   final one = DataType1.fromNode(termite.Node.mapping({}));
-  final two = DataType2.fromNode(termite.Node.mapping({}));
-  if (!one.isOk() || !two.isOk()) {
-    return 'Failed to load empty structs';
+  if (!one.isOk()) {
+    return 'Failed to load empty struct for DataType1: ${one.asError().getMessage()}';
   }
 
-  final wrongOne = DataType1.fromNode(termite.Node.value('1.0'));
-  final wrongTwo = DataType2.fromNode(termite.Node.value('1.0'));
-  if (wrongOne.isOk() || wrongTwo.isOk()) {
-    return 'Expected type errors for non-mapping nodes';
+  final two = DataType2.fromNode(termite.Node.mapping({}));
+  if (!two.isOk()) {
+    return 'Failed to load empty struct for DataType2: ${two.asError().getMessage()}';
   }
+
+  return null;
+}
+
+String? testWrongStructs() {
+  final wrongOne = DataType1.fromNode(termite.Node.value('1.0'));
+  if (wrongOne.isOk()) {
+    return 'Expected type errors for non-mapping node for DataType1: ${wrongOne.getOk()}';
+  }
+
+  final wrongTwo = DataType2.fromNode(termite.Node.value('1.0'));
+  if (wrongTwo.isOk()) {
+    return 'Expected type errors for non-mapping node for DataType2: ${wrongTwo.getOk()}';
+  }
+
   return null;
 }
 
 void main() {
-  final code = runTests({'testEmptyStructs': testEmptyStructs});
+  final code = runTests({
+    'testEmptyStructs': testEmptyStructs,
+    'testWrongStructs': testWrongStructs,
+  });
   if (code != 0) {
     throw Exception('test failure code: $code');
   }

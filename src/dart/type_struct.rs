@@ -385,7 +385,7 @@ mod struct_field {
                     {0:indent$}{0:indent$}}}
                     {0:indent$}{0:indent$}final __{name} = TermiteExtension{data_type}.fromNode(node.map['{name}']!);
                     {0:indent$}{0:indent$}if (!__{name}.isOk()) {{
-                    {0:indent$}{0:indent$}{0:indent$}return __{name}.asError().addField('{name}').asError();
+                    {0:indent$}{0:indent$}{0:indent$}return __{name}.asError().addField('{name}').asNewError();
                     {0:indent$}{0:indent$}}}
                     {0:indent$}{0:indent$}final {data_type} {name} = __{name}.getOk();",
                     "",
@@ -449,7 +449,7 @@ mod struct_field {
                     {0:indent$}{0:indent$}}}
                     {0:indent$}{0:indent$}final __{name} = TermiteExtension{data_type}.fromObject(obj['{name}']!);
                     {0:indent$}{0:indent$}if (!__{name}.isOk()) {{
-                    {0:indent$}{0:indent$}{0:indent$}return __{name}.asError().addField('{name}').asError();
+                    {0:indent$}{0:indent$}{0:indent$}return __{name}.asError().addField('{name}').asNewError();
                     {0:indent$}{0:indent$}}}
                     {0:indent$}{0:indent$}final {data_type} {name} = __{name}.getOk();",
                     "",
