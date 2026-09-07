@@ -62,8 +62,8 @@ pub(super) fn generate(data: &Array, name: &str, indent: usize) -> String {
         {0:indent$}{0:indent$}{0:indent$}{0:indent$}if (!result.$2.isOk()) {{
         {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}return result.$2.asError().addIndex('${{result.$1}}').asNewError<List<{data_type}>>();
         {0:indent$}{0:indent$}{0:indent$}{0:indent$}}}
-        {0:indent$}{0:indent$}{0:indent$}{0:indent$}final list = acc.asOk().value;
-        {0:indent$}{0:indent$}{0:indent$}{0:indent$}list.add(result.$2.asOk().value);
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}final list = acc.getOk();
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}list.add(result.$2.getOk());
         {0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.ok(list);
         {0:indent$}{0:indent$}{0:indent$}}});
         {0:indent$}{0:indent$}if (!values.isOk()) {{
@@ -87,8 +87,8 @@ pub(super) fn generate(data: &Array, name: &str, indent: usize) -> String {
         {0:indent$}{0:indent$}{0:indent$}{0:indent$}if (!result.$2.isOk()) {{
         {0:indent$}{0:indent$}{0:indent$}{0:indent$}{0:indent$}return result.$2.asError().addIndex('${{result.$1}}').asNewError<List<{data_type}>>();
         {0:indent$}{0:indent$}{0:indent$}{0:indent$}}}
-        {0:indent$}{0:indent$}{0:indent$}{0:indent$}final list = acc.asOk().value;
-        {0:indent$}{0:indent$}{0:indent$}{0:indent$}list.add(result.$2.asOk().value);
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}final list = acc.getOk();
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}list.add(result.$2.getOk());
         {0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.ok(list);
         {0:indent$}{0:indent$}{0:indent$}}});
         {0:indent$}{0:indent$}if (!values.isOk()) {{

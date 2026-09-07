@@ -23,7 +23,7 @@ String? testConstraintChecks() {
   if (!ok.isOk()) {
     return 'Failed to parse valid constrained value';
   }
-  final okValue = ok.asOk().value;
+  final okValue = ok.getOk();
   if (okValue != DataType(2)) {
     return 'Failed to parse valid constrained value: $okValue';
   }
@@ -41,7 +41,7 @@ String? testConstraintChecksObject() {
   if (!ok.isOk()) {
     return 'Failed to parse valid constrained value';
   }
-  final okValue = ok.asOk().value;
+  final okValue = ok.getOk();
   if (okValue != DataType(2)) {
     return 'Failed to parse valid constrained value: $okValue';
   }
@@ -62,7 +62,7 @@ String? testRoundtrip() {
     return 'Failed to reload constrained value';
   }
 
-  final okLoaded = loaded.asOk().value;
+  final okLoaded = loaded.getOk();
   if (okLoaded != value) {
     return 'Reloaded constrained value mismatch: $okLoaded';
   }

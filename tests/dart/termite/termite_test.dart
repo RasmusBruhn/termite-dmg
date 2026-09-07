@@ -33,8 +33,11 @@ String? testErrorFormatting() {
 
 String? testResultAccessors() {
   final ok = termite.Result.ok(123);
-  if (ok.asOk() != 123) {
-    return 'Result.asOk() returned wrong value';
+  if (ok.asOk().value != 123) {
+    return 'Result.getOk() returned wrong value';
+  }
+  if (ok.getOk() != 123) {
+    return 'Result.getOk() returned wrong value';
   }
 
   final err = termite.Result<int>.error('failure', '.x');
@@ -74,7 +77,11 @@ String? testPrimitiveParsing() {
   final parsedInteger = TermiteNodeParserinteger.fromNode(
     termite.Node.value('123'),
   );
-  if (!parsedInteger.isOk() || parsedInteger.asOk() != 123) {
+  if (!parsedInteger.isOk()) {
+    return 'Failed to parse integer';
+  }
+  final 
+  if (!parsedInteger.isOk() || parsedInteger.getOk() != 123) {
     return 'Failed to parse integer';
   }
 

@@ -24,7 +24,7 @@ String? testLoad() {
     return 'Failed to parse constrained type';
   }
 
-  final okLoaded = loaded.asOk().value;
+  final okLoaded = loaded.getOk();
   if (okLoaded != DataType(1)) {
     return 'Wrong constrained value: $okLoaded';
   }
@@ -37,7 +37,7 @@ String? testLoadObject() {
     return 'Failed to parse constrained type';
   }
 
-  final okLoaded = loaded.asOk().value;
+  final okLoaded = loaded.getOk();
   if (okLoaded != DataType(1)) {
     return 'Wrong constrained value: $okLoaded';
   }
@@ -80,7 +80,7 @@ String? testRoundtrip() {
     return 'Failed to reload constrained type';
   }
 
-  final okLoaded = loaded.asOk().value;
+  final okLoaded = loaded.getOk();
   if (okLoaded != value) {
     return 'Reloaded constrained value mismatch: $okLoaded';
   }

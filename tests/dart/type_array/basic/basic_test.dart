@@ -25,7 +25,7 @@ String? testLoad() {
   if (!loaded.isOk()) {
     return 'Failed to parse array';
   }
-  final okValue = loaded.asOk().value;
+  final okValue = loaded.getOk();
   if (okValue != DataType([1, 2])) {
     return 'Array values mismatch: $okValue';
   }
@@ -37,7 +37,7 @@ String? testLoadObject() {
   if (!loaded.isOk()) {
     return 'Failed to parse array';
   }
-  final okValue = loaded.asOk().value;
+  final okValue = loaded.getOk();
   if (okValue != DataType([1, 2])) {
     return 'Array values mismatch: $okValue';
   }
@@ -80,7 +80,7 @@ String? testRoundtrip() {
     return 'Failed to reload array';
   }
   
-  final okValue = loaded.asOk().value;
+  final okValue = loaded.getOk();
   if (okValue != value) {
     return 'Reloaded array mismatch: $okValue';
   }

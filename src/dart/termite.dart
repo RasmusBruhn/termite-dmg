@@ -2,7 +2,7 @@
 /// @brief The Dart Termite Data Model Generator code which implements errors and
 /// input output to yaml and json
 /// @version 0.8.0
-/// @date 2026-09-05
+/// @date 2026-09-07
 library;
 
 import 'package:collection/collection.dart';
@@ -18,6 +18,11 @@ sealed class Result<T> {
 
   /// Creates an error [Result], completed with the specified error [error] at the location [location].
   const factory Result.error(String error, String location) = Error._;
+
+  /// Retrieves the [Ok] value, throws an exception if this is an [Error].
+  T getOk() {
+    return asOk().value;
+  }
 
   /// Returns the [Ok] value, exeption is thrown if this is an [Error].
   Ok<T> asOk() {

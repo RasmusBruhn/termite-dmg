@@ -120,7 +120,7 @@ pub(super) fn generate(data: &ConstrainedType, name: &str, indent: usize) -> Str
         {0:indent$}{0:indent$}if (!value.isOk()) {{
         {0:indent$}{0:indent$}{0:indent$}return value.asError().addField('{data_type}').asNewError<{name}>();
         {0:indent$}{0:indent$}}}
-        {0:indent$}{0:indent$}return {name}.fromValue(value.asOk().value);
+        {0:indent$}{0:indent$}return {name}.fromValue(value.getOk());
         {0:indent$}}}
 
         {0:indent$}/// Constructs a [{name}] from a [termite.Node] if it fulfills the constraints:
@@ -131,7 +131,7 @@ pub(super) fn generate(data: &ConstrainedType, name: &str, indent: usize) -> Str
         {0:indent$}{0:indent$}if (!value.isOk()) {{
         {0:indent$}{0:indent$}{0:indent$}return value.asError().addField('{data_type}').asNewError<{name}>();
         {0:indent$}{0:indent$}}}
-        {0:indent$}{0:indent$}return {name}.fromValue(value.asOk().value);
+        {0:indent$}{0:indent$}return {name}.fromValue(value.getOk());
         {0:indent$}}}
         }}",
         "",

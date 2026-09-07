@@ -25,7 +25,7 @@ String? testLoad() {
   if (!int1.isOk()) {
     return 'Failed to parse Int1';
   }
-  final okInt1 = int1.asOk().value;
+  final okInt1 = int1.getOk();
   if (okInt1 != DataType.newInt1(1)) {
     return 'Failed to parse Int1: $okInt1';
   }
@@ -36,7 +36,7 @@ String? testLoad() {
   if (!int2.isOk()) {
     return 'Failed to parse Int2';
   }
-  final okInt2 = int2.asOk().value;
+  final okInt2 = int2.getOk();
   if (okInt2 != DataType.newInt2(2)) {
     return 'Failed to parse Int2: $okInt2';
   }
@@ -47,7 +47,7 @@ String? testLoad() {
   if (!float.isOk()) {
     return 'Failed to parse Float';
   }
-  final okFloat = float.asOk().value;
+  final okFloat = float.getOk();
   if (okFloat != DataType.newFloat(3.5)) {
     return 'Failed to parse Float: $okFloat';
   }
@@ -56,7 +56,7 @@ String? testLoad() {
   if (!empty.isOk()) {
     return 'Failed to parse Empty';
   }
-  final okEmpty = empty.asOk().value;
+  final okEmpty = empty.getOk();
   if (okEmpty != DataType.newEmpty()) {
     return 'Failed to parse Empty: $okEmpty';
   }
@@ -69,7 +69,7 @@ String? testLoadObject() {
   if (!int1.isOk()) {
     return 'Failed to parse Int1';
   }
-  final okInt1 = int1.asOk().value;
+  final okInt1 = int1.getOk();
   if (okInt1 != DataType.newInt1(1)) {
     return 'Failed to parse Int1: $okInt1';
   }
@@ -78,7 +78,7 @@ String? testLoadObject() {
   if (!int2.isOk()) {
     return 'Failed to parse Int2';
   }
-  final okInt2 = int2.asOk().value;
+  final okInt2 = int2.getOk();
   if (okInt2 != DataType.newInt2(2)) {
     return 'Failed to parse Int2: $okInt2';
   }
@@ -87,7 +87,7 @@ String? testLoadObject() {
   if (!float.isOk()) {
     return 'Failed to parse Float';
   }
-  final okFloat = float.asOk().value;
+  final okFloat = float.getOk();
   if (okFloat != DataType.newFloat(3.5)) {
     return 'Failed to parse Float: $okFloat';
   }
@@ -96,7 +96,7 @@ String? testLoadObject() {
   if (!empty.isOk()) {
     return 'Failed to parse Empty';
   }
-  final okEmpty = empty.asOk().value;
+  final okEmpty = empty.getOk();
   if (okEmpty != DataType.newEmpty()) {
     return 'Failed to parse Empty: $okEmpty';
   }
@@ -154,7 +154,7 @@ String? testRoundtrip() {
     if (!loaded.isOk()) {
       return 'Failed to reload enum value: $value';
     }
-    final okLoaded = loaded.asOk().value;
+    final okLoaded = loaded.getOk();
     if (okLoaded != value) {
       return 'Reloaded enum mismatch: $value vs $okLoaded';
     }
