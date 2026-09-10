@@ -26,7 +26,7 @@ String? testFromString() {
     return 'Failed to decode YAML string';
   }
 
-  final node = result.asOk();
+  final node = result.getOk();
   if (node !=
       termite.Node.mapping({
         'field1': termite.Node.value('Test1'),
@@ -46,7 +46,7 @@ String? testFromFile() {
     return 'Failed to decode YAML string';
   }
 
-  final node = result.asOk();
+  final node = result.getOk();
   if (node !=
       termite.Node.mapping({
         'field1': termite.Node.value('Test1'),
@@ -74,12 +74,12 @@ String? testToStringAndBack() {
     return 'Failed to encode YAML';
   }
 
-  final decoded = termite_yaml.fromString(encoded.asOk());
+  final decoded = termite_yaml.fromString(encoded.getOk());
   if (!decoded.isOk()) {
     return 'Failed to decode encoded YAML';
   }
 
-  final decodedNode = decoded.asOk();
+  final decodedNode = decoded.getOk();
   if (decodedNode != node) {
     return 'Roundtrip mismatch';
   }
@@ -105,7 +105,7 @@ String? testToFileAndBack() {
     return 'Failed to decode encoded YAML';
   }
 
-  final decodedNode = decoded.asOk();
+  final decodedNode = decoded.getOk();
   if (decodedNode != node) {
     return 'Roundtrip mismatch';
   }

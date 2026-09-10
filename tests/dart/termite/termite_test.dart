@@ -33,8 +33,11 @@ String? testErrorFormatting() {
 
 String? testResultAccessors() {
   final ok = termite.Result.ok(123);
-  if (ok.asOk() != 123) {
-    return 'Result.asOk() returned wrong value';
+  if (ok.asOk().value != 123) {
+    return 'Result.getOk() returned wrong value';
+  }
+  if (ok.getOk() != 123) {
+    return 'Result.getOk() returned wrong value';
   }
 
   final err = termite.Result<int>.error('failure', '.x');
@@ -71,21 +74,25 @@ String? testNodeParse() {
 }
 
 String? testPrimitiveParsing() {
-  final parsedInteger = TermiteNodeParserinteger.fromNode(
+  final parsedInteger = TermiteExtensioninteger.fromNode(
     termite.Node.value('123'),
   );
-  if (!parsedInteger.isOk() || parsedInteger.asOk() != 123) {
+  if (!parsedInteger.isOk()) {
     return 'Failed to parse integer';
   }
+  final okParsedInteger = parsedInteger.getOk();
+  if (okParsedInteger != 123) {
+    return 'Failed to parse integer: $okParsedInteger';
+  }
 
-  final invalidInteger = TermiteNodeParserinteger.fromNode(
+  final invalidInteger = TermiteExtensioninteger.fromNode(
     termite.Node.value('12.5'),
   );
   if (invalidInteger.isOk()) {
     return 'Expected invalid integer to fail';
   }
 
-  final wrongType = TermiteNodeParserinteger.fromNode(termite.Node.mapping({}));
+  final wrongType = TermiteExtensioninteger.fromNode(termite.Node.mapping({}));
   if (wrongType.isOk()) {
     return 'Expected mapping to fail integer parsing';
   }

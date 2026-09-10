@@ -45,6 +45,11 @@ pub(super) fn generate(data: &ConstrainedType, name: &str, indent: usize) -> Str
         {0:indent$}{data_type} _value;
 
         {0:indent$}{name}._(this._value);
+        {0:indent$}{name}(this._value) {{
+        {0:indent$}{0:indent$}if (validate(_value) is termite.Error<void>) {{
+        {0:indent$}{0:indent$}{0:indent$}throw ArgumentError('Invalid value for {name}');
+        {0:indent$}{0:indent$}}}
+        {0:indent$}}}
 
         {0:indent$}{data_type} get value => _value;
         {0:indent$}set value({data_type} x) {{
@@ -66,11 +71,18 @@ pub(super) fn generate(data: &ConstrainedType, name: &str, indent: usize) -> Str
         {0:indent$}{0:indent$}return termite.Result.ok({name}._(x));
         {0:indent$}}}
 
+        {0:indent$}/// Constructs a [{name}] from a [Object] if it fulfills the constraints:
+        {0:indent$}/// 
+        {0:indent$}/// {constraints}
+        {0:indent$}static termite.Result<{name}> fromObject(Object obj) {{
+        {0:indent$}{0:indent$}return TermiteExtension{name}.fromObject(obj);
+        {0:indent$}}}
+
         {0:indent$}/// Constructs a [{name}] from a [termite.Node] if it fulfills the constraints:
         {0:indent$}/// 
         {0:indent$}/// {constraints}
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
-        {0:indent$}{0:indent$}return TermiteNodeParser{name}.fromNode(node);
+        {0:indent$}{0:indent$}return TermiteExtension{name}.fromNode(node);
         {0:indent$}}}
 
         {0:indent$}/// Converts the [{name}] to a [termite.Node].
@@ -99,16 +111,27 @@ pub(super) fn generate(data: &ConstrainedType, name: &str, indent: usize) -> Str
         {0:indent$}int get hashCode => _value.hashCode;
         }}
 
-        extension TermiteNodeParser{name} on {name} {{
+        extension TermiteExtension{name} on {name} {{
+        {0:indent$}/// Constructs a [{name}] from a [Object] if it fulfills the constraints:
+        {0:indent$}/// 
+        {0:indent$}/// {constraints}
+        {0:indent$}static termite.Result<{name}> fromObject(Object obj) {{
+        {0:indent$}{0:indent$}final value = TermiteExtension{data_type}.fromObject(obj);
+        {0:indent$}{0:indent$}if (!value.isOk()) {{
+        {0:indent$}{0:indent$}{0:indent$}return value.asError().addField('{data_type}').asNewError<{name}>();
+        {0:indent$}{0:indent$}}}
+        {0:indent$}{0:indent$}return {name}.fromValue(value.getOk());
+        {0:indent$}}}
+
         {0:indent$}/// Constructs a [{name}] from a [termite.Node] if it fulfills the constraints:
         {0:indent$}/// 
         {0:indent$}/// {constraints}
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
-        {0:indent$}{0:indent$}final value = TermiteNodeParser{data_type}.fromNode(node);
-        {0:indent$}{0:indent$}if (value is termite.Error<{data_type}>) {{
-        {0:indent$}{0:indent$}{0:indent$}return termite.Result.error(value.error, value.location);
+        {0:indent$}{0:indent$}final value = TermiteExtension{data_type}.fromNode(node);
+        {0:indent$}{0:indent$}if (!value.isOk()) {{
+        {0:indent$}{0:indent$}{0:indent$}return value.asError().addField('{data_type}').asNewError<{name}>();
         {0:indent$}{0:indent$}}}
-        {0:indent$}{0:indent$}return {name}.fromValue((value as termite.Ok<{data_type}>).value);
+        {0:indent$}{0:indent$}return {name}.fromValue(value.getOk());
         {0:indent$}}}
         }}",
         "",

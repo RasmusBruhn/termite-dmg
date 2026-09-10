@@ -78,6 +78,13 @@ pub(super) fn generate<'a>(
         .collect::<Vec<_>>()
         .join(&format!("\n\n{0:indent$}{0:indent$}", ""));
 
+    let parsers_object = data
+        .fields
+        .iter()
+        .map(|(field_name, field)| struct_field::get_parser_object(field, field_name, name, indent))
+        .collect::<Vec<_>>()
+        .join(&format!("\n\n{0:indent$}{0:indent$}", ""));
+
     let parser_returns = data
         .fields
         .iter()
@@ -120,7 +127,12 @@ pub(super) fn generate<'a>(
 
         {0:indent$}/// Constructs a [{name}] from a [termite.Node]
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
-        {0:indent$}{0:indent$}return TermiteNodeParser{name}.fromNode(node);
+        {0:indent$}{0:indent$}return TermiteExtension{name}.fromNode(node);
+        {0:indent$}}}
+
+        {0:indent$}/// Constructs a [{name}] from a [Object]
+        {0:indent$}static termite.Result<{name}> fromObject(Object obj) {{
+        {0:indent$}{0:indent$}return TermiteExtension{name}.fromObject(obj);
         {0:indent$}}}
 
         {0:indent$}/// Converts the [{name}] to a [termite.Node]
@@ -148,7 +160,22 @@ pub(super) fn generate<'a>(
         {0:indent$}int get hashCode => {hash_list};
         }}
 
-        extension TermiteNodeParser{name} on {name} {{
+        extension TermiteExtension{name} on {name} {{
+        {0:indent$}/// Constructs a [{name}] from a [Object]
+        {0:indent$}static termite.Result<{name}> fromObject(Object obj) {{
+        {0:indent$}{0:indent$}if (obj is! Map) {{
+        {0:indent$}{0:indent$}{0:indent$}return termite.Result.error('Unable to parse ${{obj.runtimeType}} as a {name}', '');
+        {0:indent$}{0:indent$}}}
+
+        {0:indent$}{0:indent$}{parsers_object}
+
+        {0:indent$}{0:indent$}return termite.Result.ok(
+        {0:indent$}{0:indent$}{0:indent$}{name}(
+        {0:indent$}{0:indent$}{0:indent$}{0:indent$}{parser_returns}
+        {0:indent$}{0:indent$}{0:indent$}),
+        {0:indent$}{0:indent$});
+        {0:indent$}}}
+
         {0:indent$}/// Constructs a [{name}] from a [termite.Node]
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
         {0:indent$}{0:indent$}if (node is! termite.Mapping) {{
@@ -284,11 +311,12 @@ mod struct_field {
                 Err(e) => return Some(Err(e)),
             };
 
-            Some(Ok(formatdoc!("
+            Some(Ok(formatdoc!(
+                "
                 /// Gets the default value for [{name}]
                 {0:indent$}static {data_type} getDefault{capital_name}() {{
                 {0:indent$}{0:indent$}final node = {node};
-                {0:indent$}{0:indent$}return (TermiteNodeParser{data_type}.fromNode(node) as termite.Ok<{data_type}>).value;
+                {0:indent$}{0:indent$}return TermiteExtension{data_type}.fromNode(node).getOk();
                 {0:indent$}}}",
                 "",
                 capital_name = &get_capitalized_name(name),
@@ -360,12 +388,11 @@ mod struct_field {
                     if (!node.map.containsKey('{name}')) {{
                     {0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('Missing field \"{name}\"', '');
                     {0:indent$}{0:indent$}}}
-                    {0:indent$}{0:indent$}final termite.Result<{data_type}> __{name} = TermiteNodeParser{data_type}.fromNode(node.map['{name}']!);
-                    {0:indent$}{0:indent$}if (__{name} is termite.Error<{data_type}>) {{
-                    {0:indent$}{0:indent$}{0:indent$}final newError = __{name}.addField('{name}');
-                    {0:indent$}{0:indent$}{0:indent$}return termite.Result.error(newError.error, newError.location);
+                    {0:indent$}{0:indent$}final __{name} = TermiteExtension{data_type}.fromNode(node.map['{name}']!);
+                    {0:indent$}{0:indent$}if (!__{name}.isOk()) {{
+                    {0:indent$}{0:indent$}{0:indent$}return __{name}.asError().addField('{name}').asNewError();
                     {0:indent$}{0:indent$}}}
-                    {0:indent$}{0:indent$}final {data_type} {name} = (__{name} as termite.Ok<{data_type}>).value;",
+                    {0:indent$}{0:indent$}final {data_type} {name} = __{name}.getOk();",
                     "",
                     data_type = &data.data_type,
                 )
@@ -374,12 +401,11 @@ mod struct_field {
                 formatdoc!("
                     {data_type}? {name};
                     {0:indent$}{0:indent$}if (node.map.containsKey('{name}')) {{
-                    {0:indent$}{0:indent$}{0:indent$}final termite.Result<{data_type}> __{name} = TermiteNodeParser{data_type}.fromNode(node.map['{name}']!);
-                    {0:indent$}{0:indent$}{0:indent$}if (__{name} is termite.Error<{data_type}>) {{
-                    {0:indent$}{0:indent$}{0:indent$}{0:indent$}final newError = __{name}.addField('{name}');
-                    {0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.error(newError.error, newError.location);
+                    {0:indent$}{0:indent$}{0:indent$}final __{name} = TermiteExtension{data_type}.fromNode(node.map['{name}']!);
+                    {0:indent$}{0:indent$}{0:indent$}if (!__{name}.isOk()) {{
+                    {0:indent$}{0:indent$}{0:indent$}{0:indent$}return __{name}.asError().addField('{name}').asNewError();
                     {0:indent$}{0:indent$}{0:indent$}}}
-                    {0:indent$}{0:indent$}{0:indent$}{name} = (__{name} as termite.Ok<{data_type}>).value;
+                    {0:indent$}{0:indent$}{0:indent$}{name} = __{name}.getOk();
                     {0:indent$}{0:indent$}}}",
                     "",
                     data_type = &data.data_type,
@@ -389,12 +415,75 @@ mod struct_field {
                 formatdoc!("
                     {data_type} {name} = {struct_name}.getDefault{capital_name}();
                     {0:indent$}{0:indent$}if (node.map.containsKey('{name}')) {{
-                    {0:indent$}{0:indent$}{0:indent$}final termite.Result<{data_type}> __{name} = TermiteNodeParser{data_type}.fromNode(node.map['{name}']!);
-                    {0:indent$}{0:indent$}{0:indent$}if (__{name} is termite.Error<{data_type}>) {{
-                    {0:indent$}{0:indent$}{0:indent$}{0:indent$}final newError = __{name}.addField('{name}');
-                    {0:indent$}{0:indent$}{0:indent$}{0:indent$}return termite.Result.error(newError.error, newError.location);
+                    {0:indent$}{0:indent$}{0:indent$}final __{name} = TermiteExtension{data_type}.fromNode(node.map['{name}']!);
+                    {0:indent$}{0:indent$}{0:indent$}if (!__{name}.isOk()) {{
+                    {0:indent$}{0:indent$}{0:indent$}{0:indent$}return __{name}.asError().addField('{name}').asNewError();
                     {0:indent$}{0:indent$}{0:indent$}}}
-                    {0:indent$}{0:indent$}{0:indent$}{name} = (__{name} as termite.Ok<{data_type}>).value;
+                    {0:indent$}{0:indent$}{0:indent$}{name} = __{name}.getOk();
+                    {0:indent$}{0:indent$}}}",
+                    "",
+                    capital_name = &get_capitalized_name(name),
+                    data_type = &data.data_type,
+                )
+            }
+        };
+    }
+
+    /// Generates the Dart source code for the object parser code for a single field in a struct
+    ///
+    /// # Parameters
+    ///
+    /// data: The struct field to generate code for
+    ///
+    /// name: The name of the struct field
+    ///
+    /// struct_name: The name of the struct containing the field
+    ///
+    /// indent: The number of spaces per indentation level
+    pub(super) fn get_parser_object(
+        data: &StructField,
+        name: &str,
+        struct_name: &str,
+        indent: usize,
+    ) -> String {
+        return match &data.default {
+            DefaultType::Required => {
+                formatdoc!("
+                    if (!obj.containsKey('{name}')) {{
+                    {0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('Missing field \"{name}\"', '');
+                    {0:indent$}{0:indent$}}}
+                    {0:indent$}{0:indent$}final __{name} = TermiteExtension{data_type}.fromObject(obj['{name}']!);
+                    {0:indent$}{0:indent$}if (!__{name}.isOk()) {{
+                    {0:indent$}{0:indent$}{0:indent$}return __{name}.asError().addField('{name}').asNewError();
+                    {0:indent$}{0:indent$}}}
+                    {0:indent$}{0:indent$}final {data_type} {name} = __{name}.getOk();",
+                    "",
+                    data_type = &data.data_type,
+                )
+            }
+            DefaultType::Optional => {
+                formatdoc!("
+                    {data_type}? {name};
+                    {0:indent$}{0:indent$}if (obj.containsKey('{name}')) {{
+                    {0:indent$}{0:indent$}{0:indent$}final __{name} = TermiteExtension{data_type}.fromObject(obj['{name}']!);
+                    {0:indent$}{0:indent$}{0:indent$}if (!__{name}.isOk()) {{
+                    {0:indent$}{0:indent$}{0:indent$}{0:indent$}return __{name}.asError().addField('{name}').asNewError();
+                    {0:indent$}{0:indent$}{0:indent$}}}
+                    {0:indent$}{0:indent$}{0:indent$}{name} = __{name}.getOk();
+                    {0:indent$}{0:indent$}}}",
+                    "",
+                    data_type = &data.data_type,
+                )
+            }
+            DefaultType::Default(_) => {
+                formatdoc!("
+                    {data_type} {name} = {struct_name}.getDefault{capital_name}();
+                    {0:indent$}{0:indent$}if (obj.containsKey('{name}')) {{
+                    {0:indent$}{0:indent$}{0:indent$}final __{name} = TermiteExtension{data_type}.fromObject(obj['{name}']!);
+                    {0:indent$}{0:indent$}{0:indent$}if (!__{name}.isOk()) {{
+                    {0:indent$}{0:indent$}{0:indent$}{0:indent$}return __{name}.asError().addField('{name}').asNewError();
+                    {0:indent$}{0:indent$}{0:indent$}}}
+                    {0:indent$}{0:indent$}{0:indent$}{name} = __{name}.getOk();
                     {0:indent$}{0:indent$}}}",
                     "",
                     capital_name = &get_capitalized_name(name),

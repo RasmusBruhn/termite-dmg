@@ -50,7 +50,7 @@ Result<void> toFile(Node node, String path) {
   }
 
   try {
-    File(path).writeAsStringSync(str.asOk());
+    File(path).writeAsStringSync(str.getOk());
     return Result.ok(null);
   } catch (e) {
     return Result.error('Failed to write YAML file: $e', '');

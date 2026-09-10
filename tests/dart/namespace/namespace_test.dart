@@ -24,8 +24,9 @@ String? testDefaultAndLoad() {
   if (!loaded.isOk()) {
     return 'Failed to parse empty mapping as DataType';
   }
-  if (empty.toString() != loaded.asOk().toString()) {
-    return 'Mismatch between default and loaded DataType';
+  final loadedOk = loaded.getOk();
+  if (empty != loadedOk) {
+    return 'Mismatch between default and loaded DataType: $loadedOk';
   }
   return null;
 }

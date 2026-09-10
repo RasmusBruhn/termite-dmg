@@ -2,7 +2,7 @@
 /// @brief The Dart Termite Data Model Generator code which implements errors and
 /// input output to yaml and json
 /// @version 0.8.0
-/// @date 2026-08-09
+/// @date 2026-09-07
 library;
 
 import 'package:collection/collection.dart';
@@ -19,9 +19,14 @@ sealed class Result<T> {
   /// Creates an error [Result], completed with the specified error [error] at the location [location].
   const factory Result.error(String error, String location) = Error._;
 
+  /// Retrieves the [Ok] value, throws an exception if this is an [Error].
+  T getOk() {
+    return asOk().value;
+  }
+
   /// Returns the [Ok] value, exeption is thrown if this is an [Error].
-  T asOk() {
-    return (this as Ok<T>).value;
+  Ok<T> asOk() {
+    return this as Ok<T>;
   }
 
   /// Returns the [Error], exeption is thrown if this is an [Ok].
@@ -39,6 +44,11 @@ final class Ok<T> extends Result<T> {
   final T value;
 
   const Ok._(this.value);
+
+  /// Returns a new [Ok] with the value converted to a different type parameter [O].
+  Ok<O> asNewOk<O>(O Function(T) converter) {
+    return Ok<O>._(converter(value));
+  }
 
   @override
   String toString() => 'Result<$T>.ok($value)';
@@ -61,6 +71,11 @@ final class Error<T> extends Result<T> {
   final String location;
 
   const Error._(this.error, this.location);
+
+  /// Returns a new [Error] with the same error message but a different type parameter [O].
+  Error<O> asNewError<O>() {
+    return Error<O>._(error, location);
+  }
 
   /// Adds a [field] to the error's location.
   Error<T> addField(String field) {
