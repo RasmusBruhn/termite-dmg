@@ -349,6 +349,8 @@ name: Another name
   type data instead of a vector
 - Changed the struct fields to be given as a map from field name to data instead
   of as a list, fields are sorted alphabetically when an ordering is required
+- Changed Dart result type asOk method and added getOk method
+- Added fromObject constructor method for generated Dart data types
 
 #### Minor changes
 
@@ -359,6 +361,7 @@ name: Another name
 - Added error types specific for both c++ and one for dart
 - Added equality checks for Dart classes
 - Modified the Variant printer in Dart to also print the variant type
+- Slightly modified some generated Dart constructors
 
 ### 0.7.0
 
