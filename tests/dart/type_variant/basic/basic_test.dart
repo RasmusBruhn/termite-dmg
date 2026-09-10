@@ -39,8 +39,37 @@ String? testLoad() {
   return null;
 }
 
+String? testLoadObject() {
+  final intValue = DataType.fromObject(1);
+  if (!intValue.isOk()) {
+    return 'Failed to parse integer variant';
+  }
+  final intValueOk = intValue.getOk();
+  if (intValueOk is! DataTypeTypeinteger) {
+    return 'Failed to parse integer variant: $intValueOk';
+  }
+
+  final floatValue = DataType.fromObject(1.5);
+  if (!floatValue.isOk()) {
+    return 'Failed to parse number variant';
+  }
+  final floatValueOk = floatValue.getOk();
+  if (floatValueOk is! DataTypeTypenumber) {
+    return 'Failed to parse number variant: $floatValueOk';
+  }
+  return null;
+}
+
 String? testError() {
   final invalidValue = DataType.fromNode(termite.Node.value('invalid'));
+  if (invalidValue.isOk()) {
+    return 'Parsed invalid variant successfully: ${invalidValue.asOk()}';
+  }
+  return null;
+}
+
+String? testErrorObject() {
+  final invalidValue = DataType.fromObject('invalid');
   if (invalidValue.isOk()) {
     return 'Parsed invalid variant successfully: ${invalidValue.asOk()}';
   }
@@ -64,7 +93,9 @@ String? testRoundtrip() {
 void main() {
   final code = runTests({
     'testLoad': testLoad,
+    'testLoadObject': testLoadObject,
     'testError': testError,
+    'testErrorObject': testErrorObject,
     'testRoundtrip': testRoundtrip,
   });
   if (code != 0) {

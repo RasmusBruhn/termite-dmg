@@ -44,6 +44,27 @@ String? testDefaultsAndOptional() {
   return null;
 }
 
+String? testDefaultsAndOptionalObject() {
+  final defaults = DataType.fromObject({});
+  if (!defaults.isOk()) {
+    return 'Failed to load defaults';
+  }
+  final defaultsOk = defaults.getOk();
+  if (defaultsOk != DataType(field1: 1)) {
+    return 'Default values are incorrect: $defaultsOk';
+  }
+
+  final explicit = DataType.fromObject({'field1': -2, 'field2': 3.5});
+  if (!explicit.isOk()) {
+    return 'Failed to load explicit values';
+  }
+  final explicitOk = explicit.getOk();
+  if (explicitOk != DataType(field1: -2, field2: 3.5)) {
+    return 'Explicit values are incorrect: $explicitOk';
+  }
+  return null;
+}
+
 String? testInvalidType() {
   final invalidType = DataType.fromNode(
     termite.Node.mapping({
@@ -57,10 +78,20 @@ String? testInvalidType() {
   return null;
 }
 
+String? testInvalidTypeObject() {
+  final invalidType = DataType.fromObject({'field1': 1.0, 'field2': 5.0});
+  if (invalidType.isOk()) {
+    return 'Expected type validation error: ${invalidType.asError().getMessage()}';
+  }
+  return null;
+}
+
 void main() {
   final code = runTests({
     'testDefaultsAndOptional': testDefaultsAndOptional,
+    'testDefaultsAndOptionalObject': testDefaultsAndOptionalObject,
     'testInvalidType': testInvalidType,
+    'testInvalidTypeObject': testInvalidTypeObject,
   });
   if (code != 0) {
     throw Exception('test failure code: $code');

@@ -30,6 +30,18 @@ String? testMacroDefault() {
   return null;
 }
 
+String? testMacroDefaultObject() {
+  final defaults = DataType.fromObject({});
+  if (!defaults.isOk()) {
+    return 'Failed to load defaults';
+  }
+  final defaultsOk = defaults.getOk();
+  if (defaultsOk != DataType(field1: 1)) {
+    return 'Macro default values are incorrect: $defaultsOk';
+  }
+  return null;
+}
+
 String? testRoundtrip() {
   final value = DataType(field1: -2, field2: 3.5);
   final reloaded = DataType.fromNode(value.toNode());
@@ -46,6 +58,7 @@ String? testRoundtrip() {
 void main() {
   final code = runTests({
     'testMacroDefault': testMacroDefault,
+    'testMacroDefaultObject': testMacroDefaultObject,
     'testRoundtrip': testRoundtrip,
   });
   if (code != 0) {

@@ -59,6 +59,11 @@ pub(super) fn generate(data: &Variant, name: &str, indent: usize) -> String {
         {0:indent$}{0:indent$}return TermiteExtension{name}.fromNode(node);
         {0:indent$}}}
 
+        {0:indent$}/// Constructs a [{name}] from a [Object].
+        {0:indent$}static termite.Result<{name}> fromObject(Object obj) {{
+        {0:indent$}{0:indent$}return TermiteExtension{name}.fromObject(obj);
+        {0:indent$}}}
+
         {0:indent$}/// Converts the [{name}] to a [termite.Node].
         {0:indent$}termite.Node toNode();
         }}

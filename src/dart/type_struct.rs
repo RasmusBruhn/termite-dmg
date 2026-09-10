@@ -130,6 +130,11 @@ pub(super) fn generate<'a>(
         {0:indent$}{0:indent$}return TermiteExtension{name}.fromNode(node);
         {0:indent$}}}
 
+        {0:indent$}/// Constructs a [{name}] from a [Object]
+        {0:indent$}static termite.Result<{name}> fromObject(Object obj) {{
+        {0:indent$}{0:indent$}return TermiteExtension{name}.fromObject(obj);
+        {0:indent$}}}
+
         {0:indent$}/// Converts the [{name}] to a [termite.Node]
         {0:indent$}termite.Node toNode() {{
         {0:indent$}{0:indent$}final Map<String, termite.Node?> __preMap = {{
@@ -158,7 +163,7 @@ pub(super) fn generate<'a>(
         extension TermiteExtension{name} on {name} {{
         {0:indent$}/// Constructs a [{name}] from a [Object]
         {0:indent$}static termite.Result<{name}> fromObject(Object obj) {{
-        {0:indent$}{0:indent$}if (obj is! Map<String, Object>) {{
+        {0:indent$}{0:indent$}if (obj is! Map) {{
         {0:indent$}{0:indent$}{0:indent$}return termite.Result.error('Unable to parse ${{obj.runtimeType}} as a {name}', '');
         {0:indent$}{0:indent$}}}
 
