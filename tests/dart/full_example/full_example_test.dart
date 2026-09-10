@@ -20,24 +20,21 @@ int runTests(Map<String, TestFunction> tests) {
 }
 
 String? testReloadThroughJson() {
-  final version = model.VersionString.fromValue('1.0.1').asOk();
-  final defaultState = model.State.newEdge(model.SizeValue.fromValue(1).asOk());
+  final version = model.VersionString('1.0.1');
+  final defaultState = model.State.newEdge(model.SizeValue(1));
   final defaults = model.DefaultValues(
     state: defaultState,
-    size: model.Size(
-      w: model.SizeValue.fromValue(10).asOk(),
-      h: model.SizeValue.fromValue(20).asOk(),
-    ),
+    size: model.Size(w: model.SizeValue(10), h: model.SizeValue(20)),
   );
 
   final rectangle = model.Rectangle(
     center: model.Point(x: 15, y: -30),
     size: null,
-    state: model.State.newEdge(model.SizeValue.fromValue(5).asOk()),
+    state: model.State.newEdge(model.SizeValue(5)),
   );
   final circle = model.Circle(
     center: model.Point(x: 0, y: 0),
-    radius: model.SizeValue.fromValue(7).asOk(),
+    radius: model.SizeValue(7),
     state: null,
   );
 
@@ -52,45 +49,42 @@ String? testReloadThroughJson() {
 
   final json = termite_json.toString(dataModel.toNode());
   if (!json.isOk()) {
-    return 'Failed to serialize full example to JSON';
+    return 'Failed to serialize full example to JSON: ${json.asError().getMessage()}';
   }
 
-  final parsedNode = termite_json.fromString(json.asOk());
+  final parsedNode = termite_json.fromString(json.getOk());
   if (!parsedNode.isOk()) {
-    return 'Failed to parse JSON string back into node';
+    return 'Failed to parse JSON string back into node: ${parsedNode.asError().getMessage()}';
   }
 
-  final loaded = model.DataModel.fromNode(parsedNode.asOk());
+  final loaded = model.DataModel.fromNode(parsedNode.getOk());
   if (!loaded.isOk()) {
-    return 'Failed to parse DataModel from node';
+    return 'Failed to parse DataModel from node: ${loaded.asError().getMessage()}';
   }
 
-  final loadedModel = loaded.asOk();
+  final loadedModel = loaded.getOk();
   if (loadedModel != dataModel) {
-    return 'Model mismatch after reload: $loadedModel != $dataModel';
+    return 'Model mismatch after reload: $loadedModel';
   }
   return null;
 }
 
 String? testReloadThroughYaml() {
-  final version = model.VersionString.fromValue('1.0.1').asOk();
-  final defaultState = model.State.newEdge(model.SizeValue.fromValue(1).asOk());
+  final version = model.VersionString('1.0.1');
+  final defaultState = model.State.newEdge(model.SizeValue(1));
   final defaults = model.DefaultValues(
     state: defaultState,
-    size: model.Size(
-      w: model.SizeValue.fromValue(10).asOk(),
-      h: model.SizeValue.fromValue(20).asOk(),
-    ),
+    size: model.Size(w: model.SizeValue(10), h: model.SizeValue(20)),
   );
 
   final rectangle = model.Rectangle(
     center: model.Point(x: 15, y: -30),
     size: null,
-    state: model.State.newEdge(model.SizeValue.fromValue(5).asOk()),
+    state: model.State.newEdge(model.SizeValue(5)),
   );
   final circle = model.Circle(
     center: model.Point(x: 0, y: 0),
-    radius: model.SizeValue.fromValue(7).asOk(),
+    radius: model.SizeValue(7),
     state: null,
   );
 
@@ -105,22 +99,22 @@ String? testReloadThroughYaml() {
 
   final yaml = termite_yaml.toString(dataModel.toNode());
   if (!yaml.isOk()) {
-    return 'Failed to serialize full example to YAML';
+    return 'Failed to serialize full example to YAML: ${yaml.asError().getMessage()}';
   }
 
-  final parsedNode = termite_yaml.fromString(yaml.asOk());
+  final parsedNode = termite_yaml.fromString(yaml.getOk());
   if (!parsedNode.isOk()) {
-    return 'Failed to parse YAML string back into node';
+    return 'Failed to parse YAML string back into node: ${parsedNode.asError().getMessage()}';
   }
 
-  final loaded = model.DataModel.fromNode(parsedNode.asOk());
+  final loaded = model.DataModel.fromNode(parsedNode.getOk());
   if (!loaded.isOk()) {
-    return 'Failed to parse DataModel from node';
+    return 'Failed to parse DataModel from node: ${loaded.asError().getMessage()}';
   }
 
-  final loadedModel = loaded.asOk();
+  final loadedModel = loaded.getOk();
   if (loadedModel != dataModel) {
-    return 'Model mismatch after reload: $loadedModel != $dataModel';
+    return 'Model mismatch after reload: $loadedModel';
   }
   return null;
 }
