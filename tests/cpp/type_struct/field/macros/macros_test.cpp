@@ -9,25 +9,18 @@
  * @return An error string on error
  */
 std::optional<std::string> test_eq_self() {
-  std::cout << "TEST-1" << std::endl;
   auto test1 = test::DataType::default_field1();
-  std::cout << "TEST-1.1" << std::endl;
   auto test2 = test::DataType::default_field2();
-  std::cout << "TEST-1.2" << std::endl;
   auto value1 = test::DataType(test::DataType::default_field1(),
                                test::DataType::default_field2());
-  std::cout << "TEST-2" << std::endl;
   if (value1 != value1) {
     return "A struct was not equal to itself";
   }
-  std::cout << "TEST-3" << std::endl;
 
   auto value2 = test::DataType(-2, 3.5);
-  std::cout << "TEST-4" << std::endl;
   if (value2 != value2) {
     return "A struct was not equal to itself";
   }
-  std::cout << "TEST-5" << std::endl;
   return std::nullopt;
 }
 
@@ -220,7 +213,6 @@ int main() {
   auto name_it = names.begin();
   for (auto function_it = functions.begin(); function_it < functions.end();
        ++function_it, ++name_it, ++progress) {
-        std::cout << "TEST: " << *name_it << std::endl;
     if (auto error = (*function_it)()) {
       std::cout << "Error occured at \"" << *name_it << "\": " << *error
                 << std::endl;
