@@ -74,10 +74,7 @@ std::optional<std::string> test_error_eq_elem_diff() {
  */
 std::optional<std::string> test_load() {
   auto value = test::DataType({1, 2});
-  std::vector<termite::Node> vector_correct;
-  vector_correct.emplace_back(termite::Node::Value("1"));
-  vector_correct.emplace_back(termite::Node::Value("2"));
-  termite::Node node_correct(termite::Node::List(std::move(vector_correct)));
+  termite::Node node_correct = termite::list{"1", "2"};
   auto value_read_correct = node_correct.to_value<test::DataType>();
   if (!value_read_correct.is_ok()) {
     std::stringstream ss;
@@ -101,10 +98,7 @@ std::optional<std::string> test_load() {
  * @return An error string on error
  */
 std::optional<std::string> test_error_load_elem() {
-  std::vector<termite::Node> vector_correct;
-  vector_correct.emplace_back(termite::Node::Value("1"));
-  vector_correct.emplace_back(termite::Node::Value("2.5"));
-  termite::Node node_correct(termite::Node::List(std::move(vector_correct)));
+  termite::Node node_correct = termite::list{"1", "2.5"};
   auto value_read_correct = node_correct.to_value<test::DataType>();
   if (value_read_correct.is_ok()) {
     return "Array was constructed from node with invalid sub elements";
@@ -118,7 +112,7 @@ std::optional<std::string> test_error_load_elem() {
  * @return An error string on error
  */
 std::optional<std::string> test_error_load() {
-  termite::Node node_wrong(termite::Node::Value("1.0"));
+  termite::Node node_wrong = "1.0";
   auto value_read_correct = node_wrong.to_value<test::DataType>();
   if (value_read_correct.is_ok()) {
     return "Array was constructed from invalid node";
