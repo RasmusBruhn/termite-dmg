@@ -1,0 +1,5 @@
+CompileFlags:
+  Add:
+    - -Isrc/cpp
+    - -Iinclude/json/include
+    - -Iinclude/yaml-cpp/include

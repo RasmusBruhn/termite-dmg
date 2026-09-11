@@ -1,0 +1,6 @@
+[submodule "src/cpp/include/json"]
+	path = src/cpp/include/json
+	url = git@github.com:nlohmann/json.git
+[submodule "src/cpp/include/yaml-cpp"]
+	path = src/cpp/include/yaml-cpp
+	url = git@github.com:jbeder/yaml-cpp.git

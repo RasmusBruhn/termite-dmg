@@ -127,11 +127,15 @@ save it as "termite.hpp" on the compiler path.
 
 To enable YAML support use the 'get_yaml_interface' function to get the strings
 of the YAML interface .h and .cpp files. These must be saved on the compiler
-path as "termite-yaml.h" and "termite-yaml.cpp" respectively.
+path as "termite-yaml.h" and "termite-yaml.cpp" respectively. These files
+require the inclusion of yaml-cpp version 0.9.0
+<https://github.com/jbeder/yaml-cpp> which is not bundled with termite.
 
 To enable JSON support use the 'get_json_interface' function to get the strings
 of the JSON interface .h and .cpp files. These must be saved on the compiler
-path as "termite-json.h" and "termite-json.cpp" respectively.
+path as "termite-json.h" and "termite-json.cpp" respectively. These files
+require the inclusion of nlohmann json version 3.12.0
+<https://github.com/nlohmann/json> which is not bundled with termite.
 
 ### Dart
 
@@ -144,7 +148,8 @@ a location the dart build system can find them.
 
 To enable YAML support use the 'get_yaml_interface' function to get the string
 of the YAML interface .dart file. It must be saved as "termite-yaml.dart" in a
-location the dart build system can find it.
+location the dart build system can find it. This file requires 'yaml' version
+3.1.1 and 'yaml_writer' version 2.1.0 which can be included in the pubspec.
 
 To enable JSON support use the 'get_json_interface' function to get the string
 of the JSON interface .dart file. It must be saved as "termite-json.dart" in a

@@ -2,8 +2,8 @@
  * @file termite.hpp
  * @brief The c++ Termite Data Model Generator code which implements errors and
  * input output to yaml and json
- * @version 0.6.0
- * @date 2025-09-28
+ * @version 0.8.0
+ * @date 2026-09-11
  *
  */
 
@@ -14,7 +14,6 @@
 #include <cstdint>
 #include <iostream>
 #include <map>
-#include <memory>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -110,7 +109,7 @@ public:
    *
    * @return The reference
    */
-  const T &get() const { return ref_; }
+  [[nodiscard]] const T &get() const { return ref_; }
 
   /**
    * @brief Checks if this value and the other value are identical
@@ -685,6 +684,8 @@ public:
   explicit Node(std::variant<Value, Map, List> value)
       : value_(std::move(value)) {}
   Node(const Node &node) = default;
+
+  //[[nodiscard]] static
 
   /**
    * @brief Retrieves the value

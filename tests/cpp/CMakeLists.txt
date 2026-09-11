@@ -35,7 +35,7 @@ include(FetchContent)
 FetchContent_Declare(
   yaml-cpp
   GIT_REPOSITORY https://github.com/jbeder/yaml-cpp.git
-  GIT_TAG 8fbf344 # Can be a tag (yaml-cpp-x.x.x), a commit hash, or a branch name (master)
+  GIT_TAG yaml-cpp-0.9.0
 )
 FetchContent_GetProperties(yaml-cpp)
 

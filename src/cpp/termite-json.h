@@ -2,8 +2,8 @@
  * @file termite_json.hpp
  * @brief The c++ Termite Data Model Generator json interface allowing for
  * converting between a nlohmann::json and a termite::Node
- * @version 0.4.0
- * @date 2025-07-16
+ * @version 0.8.0
+ * @date 2026-09-11
  *
  */
 
@@ -22,7 +22,7 @@ namespace termite {
  * @param node The node to convert
  * @return The termite node or an error if the node is not compatible
  */
-Result<Node> from_JSON(const nlohmann::json &node);
+[[nodiscard]] Result<Node> from_JSON(const nlohmann::json &node);
 /**
  * @brief Converts a JSON string to a termite::Node
  *
@@ -90,7 +90,7 @@ construct_from_JSON_file(const std::filesystem::path &path) {
  * @param node The node to convert
  * @return The json node
  */
-nlohmann::json to_JSON(const Node &node);
+[[nodiscard]] nlohmann::json to_JSON(const Node &node);
 /**
  * @brief Converts a termite::Node to a JSON string
  *
