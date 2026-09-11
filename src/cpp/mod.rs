@@ -183,12 +183,12 @@ pub fn generate_header(data: &DataModel, name: &str, indent: usize) -> Result<St
         #ifndef {name}_TERMITE_H_INCLUDED
         #define {name}_TERMITE_H_INCLUDED
 
-        #include <iostream>
-        #include <sstream>
-        #include <optional>
-        #include <variant>
-        #include <algorithm>
-        #include <termite.hpp>
+        #include <iostream>    // IWYU pragma: keep
+        #include <sstream>     // IWYU pragma: keep
+        #include <optional>    // IWYU pragma: keep
+        #include <variant>     // IWYU pragma: keep
+        #include <algorithm>   // IWYU pragma: keep
+        #include <termite.hpp> // IWYU pragma: keep
 
         {header}
 

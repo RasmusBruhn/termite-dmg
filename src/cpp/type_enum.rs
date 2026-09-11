@@ -27,6 +27,14 @@ pub(super) fn generate_definition_header(data: &Enum, name: &str, indent: usize)
         .collect::<Vec<String>>()
         .join("\n\n");
 
+    // Get the constructors
+    let constructors = data
+        .types
+        .iter()
+        .map(|enum_type| enum_type::get_constructor(enum_type, name, indent))
+        .collect::<Vec<String>>()
+        .join("\n");
+
     // Get the wrapper name list
     let wrapper_list = data
         .types
@@ -53,7 +61,8 @@ pub(super) fn generate_definition_header(data: &Enum, name: &str, indent: usize)
         {0:indent$} * 
         {0:indent$} * @param value The value of the enum
         {0:indent$} */
-        {0:indent$}explicit {name}(std::variant<{wrapper_list}> value) : value(std::move(value)) {{}}
+        {0:indent$}{name}(std::variant<{wrapper_list}> value) : value(std::move(value)) {{}}
+        {constructors}
 
         {0:indent$}/**
         {0:indent$} * @brief Returns the enum type that is stored
@@ -372,6 +381,29 @@ mod enum_type {
             {0:indent$}}};",
             "",
             name = data.name,
+        );
+    }
+
+    /// Gets the header code for the constructors
+    ///
+    /// # Parameters
+    ///
+    /// data: The enum type to generate code for
+    ///
+    /// name: The name of the enum data type
+    ///
+    /// indent: The indentation to use
+    pub(super) fn get_constructor(data: &EnumType, name: &str, indent: usize) -> String {
+        return formatdoc!(
+            "
+            {0:indent$}/**
+            {0:indent$} * @brief Constructs a new {name} object
+            {0:indent$} * 
+            {0:indent$} * @param value The value of the enum
+            {0:indent$} */
+            {0:indent$}{name}({type_name} value) : value(std::move(value)) {{}}",
+            "",
+            type_name = get_wrapper_name(data),
         );
     }
 
