@@ -44,7 +44,7 @@ pub(super) fn generate_definition_header(
             {0:indent$} * 
             {0:indent$} * @param value The value to store 
             {0:indent$} */
-            {0:indent$}explicit {name}({data_type} value) : {name}(from_value(std::move(value)).get_ok()) {{}}
+            {0:indent$}{name}({data_type} value) : {name}(from_value(std::move(value)).get_ok()) {{}}
             {0:indent$}/**
             {0:indent$} * @brief Constructs a new {name} object
             {0:indent$} * 
