@@ -356,6 +356,7 @@ name: Another name
   of as a list, fields are sorted alphabetically when an ordering is required
 - Changed Dart result type asOk method and added getOk method
 - Added fromObject constructor method for generated Dart data types
+- Modified C++ generated constructors to be much easier to use and less verbose
 
 #### Minor changes
 
@@ -394,8 +395,10 @@ name: Another name
 
 #### Minor changes
 
-- Fixed minor visual bug in the c++ code generation where a double ;; would be inserted sometimes
-- Fixed bug where all fields like namespace, footer and header must be included in the data model
+- Fixed minor visual bug in the c++ code generation where a double ;; would be
+  inserted sometimes
+- Fixed bug where all fields like namespace, footer and header must be included
+  in the data model
 - Added using statement to termite.hpp for boolean(bool), string(std::string),
   number(double), and integer(int64_t) to avoid having to add that to all
   headers
