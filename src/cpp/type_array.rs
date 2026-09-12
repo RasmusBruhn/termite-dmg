@@ -27,7 +27,7 @@ pub(super) fn generate_definition_header(data: &Array, name: &str, indent: usize
         {0:indent$} * 
         {0:indent$} * @param values The values of the array
         {0:indent$} */
-        {0:indent$}explicit {name}(std::vector<{data_type}> values) : values(std::move(values)) {{}}
+        {0:indent$}{name}(std::vector<{data_type}> values) : values(std::move(values)) {{}}
 
         {0:indent$}/**
         {0:indent$} * @brief Checks if this object and the other object are identical

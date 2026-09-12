@@ -85,7 +85,8 @@
         "random": "cpp",
         "regex": "cpp",
         "stop_token": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        ".clangd": "yaml"
     },
     "editor.tabSize": 4,
     "cmake.configureOnOpen": false,

@@ -9,9 +9,9 @@
  * @return An error string on error
  */
 std::optional<std::string> test_scalar() {
-  termite::Node correct(termite::Node::Value("Test"));
+  termite::Node correct = "Test";
   YAML::Node node("Test");
-  termite::Result<termite::Node> result = termite::from_YAML(node);
+  auto result = termite::from_YAML(node);
 
   if (!result.is_ok()) {
     std::stringstream ss;
@@ -19,7 +19,7 @@ std::optional<std::string> test_scalar() {
     return ss.str();
   }
 
-  termite::Node result_ok = result.get_ok();
+  auto result_ok = result.get_ok();
   if (result_ok != correct) {
     std::stringstream ss;
     ss << result_ok;
@@ -35,14 +35,11 @@ std::optional<std::string> test_scalar() {
  * @return An error string on error
  */
 std::optional<std::string> test_list() {
-  std::vector<termite::Node> list;
-  list.emplace_back(termite::Node::Value("Test1"));
-  list.emplace_back(termite::Node::Value("Test2"));
-  termite::Node correct(termite::Node::List(std::move(list)));
+  termite::Node correct = termite::list{"Test1", "Test2"};
   YAML::Node node;
   node.push_back(YAML::Node("Test1"));
   node.push_back(YAML::Node("Test2"));
-  termite::Result<termite::Node> result = termite::from_YAML(node);
+  auto result = termite::from_YAML(node);
 
   if (!result.is_ok()) {
     std::stringstream ss;
@@ -50,7 +47,7 @@ std::optional<std::string> test_list() {
     return ss.str();
   }
 
-  termite::Node result_ok = result.get_ok();
+  auto result_ok = result.get_ok();
   if (result_ok != correct) {
     std::stringstream ss;
     ss << result_ok;
@@ -66,16 +63,12 @@ std::optional<std::string> test_list() {
  * @return An error string on error
  */
 std::optional<std::string> test_map() {
-  std::map<std::string, termite::Node> map;
-  map.insert(
-      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
-  map.insert(
-      std::make_pair("field2", termite::Node(termite::Node::Value("Test2"))));
-  termite::Node correct(termite::Node::Map(std::move(map)));
+  termite::Node correct =
+      termite::map{{"field1", "Test1"}, {"field2", "Test2"}};
   YAML::Node node;
   node["field1"] = YAML::Node("Test1");
   node["field2"] = YAML::Node("Test2");
-  termite::Result<termite::Node> result = termite::from_YAML(node);
+  auto result = termite::from_YAML(node);
 
   if (!result.is_ok()) {
     std::stringstream ss;
@@ -83,7 +76,7 @@ std::optional<std::string> test_map() {
     return ss.str();
   }
 
-  termite::Node result_ok = result.get_ok();
+  auto result_ok = result.get_ok();
   if (result_ok != correct) {
     std::stringstream ss;
     ss << result_ok;
@@ -100,7 +93,7 @@ std::optional<std::string> test_map() {
  */
 std::optional<std::string> test_type_error() {
   YAML::Node node;
-  termite::Result<termite::Node> result = termite::from_YAML(node);
+  auto result = termite::from_YAML(node);
 
   std::cout << "TypeError: " << result << std::endl;
 
@@ -119,9 +112,7 @@ std::optional<std::string> test_type_error() {
 std::optional<std::string> test_list_error() {
   YAML::Node node;
   node.push_back(YAML::Node());
-  termite::Result<termite::Node> result = termite::from_YAML(node);
-
-  std::cout << "TypeError: " << result << std::endl;
+  auto result = termite::from_YAML(node);
 
   if (result.is_ok()) {
     return "Should be an error";
@@ -138,9 +129,7 @@ std::optional<std::string> test_list_error() {
 std::optional<std::string> test_map_error() {
   YAML::Node node;
   node["field1"] = YAML::Node();
-  termite::Result<termite::Node> result = termite::from_YAML(node);
-
-  std::cout << "TypeError: " << result << std::endl;
+  auto result = termite::from_YAML(node);
 
   if (result.is_ok()) {
     return "Should be an error";
@@ -155,8 +144,8 @@ std::optional<std::string> test_map_error() {
  * @return An error string on error
  */
 std::optional<std::string> test_to_scalar() {
-  termite::Node node(termite::Node::Value("Test"));
-  YAML::Node result = termite::to_YAML(node);
+  termite::Node node = "Test";
+  auto result = termite::to_YAML(node);
 
   if (!result.IsScalar()) {
     return "Should be a scalar";
@@ -174,11 +163,8 @@ std::optional<std::string> test_to_scalar() {
  * @return An error string on error
  */
 std::optional<std::string> test_to_list() {
-  std::vector<termite::Node> list;
-  list.emplace_back(termite::Node::Value("Test1"));
-  list.emplace_back(termite::Node::Value("Test2"));
-  termite::Node node(termite::Node::List(std::move(list)));
-  YAML::Node result = termite::to_YAML(node);
+  termite::Node node = termite::list{"Test1", "Test2"};
+  auto result = termite::to_YAML(node);
 
   if (!result.IsSequence()) {
     return "Should be a sequence";
@@ -202,13 +188,8 @@ std::optional<std::string> test_to_list() {
  * @return An error string on error
  */
 std::optional<std::string> test_to_map() {
-  std::map<std::string, termite::Node> map;
-  map.insert(
-      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
-  map.insert(
-      std::make_pair("field2", termite::Node(termite::Node::Value("Test2"))));
-  termite::Node node(termite::Node::Map(std::move(map)));
-  YAML::Node result = termite::to_YAML(node);
+  termite::Node node = termite::map{{"field1", "Test1"}, {"field2", "Test2"}};
+  auto result = termite::to_YAML(node);
 
   if (!result.IsMap()) {
     return "Should be a map";
@@ -233,15 +214,8 @@ std::optional<std::string> test_to_map() {
  */
 std::optional<std::string> test_yaml_string() {
   std::string yaml_string = "{ field1: Test1, field2: [Test2, Test3]}";
-  std::vector<termite::Node> list;
-  list.emplace_back(termite::Node::Value("Test2"));
-  list.emplace_back(termite::Node::Value("Test3"));
-  std::map<std::string, termite::Node> map;
-  map.insert(
-      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
-  map.insert(
-      std::make_pair("field2", termite::Node(termite::Node::List(std::move(list)))));
-  termite::Node correct(termite::Node::Map(std::move(map)));
+  termite::Node correct = termite::map{
+      {"field1", "Test1"}, {"field2", termite::list{"Test2", "Test3"}}};
   auto result = termite::from_YAML_string(yaml_string);
 
   if (!result.is_ok()) {
@@ -265,15 +239,8 @@ std::optional<std::string> test_yaml_string() {
  * @return An error string on error
  */
 std::optional<std::string> test_yaml_file() {
-  std::vector<termite::Node> list;
-  list.emplace_back(termite::Node::Value("Test2"));
-  list.emplace_back(termite::Node::Value("Test3"));
-  std::map<std::string, termite::Node> map;
-  map.insert(
-      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
-  map.insert(
-      std::make_pair("field2", termite::Node(termite::Node::List(std::move(list)))));
-  termite::Node correct(termite::Node::Map(std::move(map)));
+  termite::Node correct = termite::map{
+      {"field1", "Test1"}, {"field2", termite::list{"Test2", "Test3"}}};
   auto result = termite::from_YAML_file("../yaml_test.yaml");
 
   if (!result.is_ok()) {
@@ -297,16 +264,9 @@ std::optional<std::string> test_yaml_file() {
  * @return An error string on error
  */
 std::optional<std::string> test_to_yaml_string() {
-  std::vector<termite::Node> list;
-  list.emplace_back(termite::Node::Value("Test2"));
-  list.emplace_back(termite::Node::Value("Test3"));
-  std::map<std::string, termite::Node> map;
-  map.insert(
-      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
-  map.insert(
-      std::make_pair("field2", termite::Node(termite::Node::List(std::move(list)))));
-  termite::Node correct(termite::Node::Map(std::move(map)));
-  std::string yaml_string = termite::to_YAML_string(correct);
+  termite::Node correct = termite::map{
+      {"field1", "Test1"}, {"field2", termite::list{"Test2", "Test3"}}};
+  auto yaml_string = termite::to_YAML_string(correct);
   auto result = termite::from_YAML_string(yaml_string);
 
   if (!result.is_ok()) {
@@ -330,23 +290,16 @@ std::optional<std::string> test_to_yaml_string() {
  * @return An error string on error
  */
 std::optional<std::string> test_to_yaml_file() {
-  std::vector<termite::Node> list;
-  list.emplace_back(termite::Node::Value("Test2"));
-  list.emplace_back(termite::Node::Value("Test3"));
-  std::map<std::string, termite::Node> map;
-  map.insert(
-      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
-  map.insert(
-      std::make_pair("field2", termite::Node(termite::Node::List(std::move(list)))));
-  termite::Node correct(termite::Node::Map(std::move(map)));
-  
+  termite::Node correct = termite::map{
+      {"field1", "Test1"}, {"field2", termite::list{"Test2", "Test3"}}};
+
   auto write_result = termite::to_YAML_file(correct, "yaml_test.yaml");
   if (!write_result.is_ok()) {
     std::stringstream ss;
     ss << write_result.get_err();
     return ss.str();
   }
-  
+
   auto result = termite::from_YAML_file("yaml_test.yaml");
 
   if (!result.is_ok()) {
@@ -370,9 +323,8 @@ std::optional<std::string> test_to_yaml_file() {
  * @return An error string on error
  */
 std::optional<std::string> test_to_list_empty() {
-  std::vector<termite::Node> list;
-  termite::Node node(termite::Node::List(std::move(list)));
-  YAML::Node yaml_node = termite::to_YAML(node);
+  termite::Node node = termite::list{};
+  auto yaml_node = termite::to_YAML(node);
   auto result = termite::from_YAML(yaml_node);
 
   if (!result.is_ok()) {
@@ -380,7 +332,7 @@ std::optional<std::string> test_to_list_empty() {
     ss << result.get_err();
     return ss.str();
   }
-  termite::Node result_node = result.get_ok();
+  auto result_node = result.get_ok();
   if (result_node != node) {
     std::stringstream ss;
     ss << "Result does not match expected: " << result_node;
@@ -396,9 +348,8 @@ std::optional<std::string> test_to_list_empty() {
  * @return An error string on error
  */
 std::optional<std::string> test_to_map_empty() {
-  std::map<std::string, termite::Node> list;
-  termite::Node node(termite::Node::Map(std::move(list)));
-  YAML::Node yaml_node = termite::to_YAML(node);
+  termite::Node node = termite::map{};
+  auto yaml_node = termite::to_YAML(node);
   auto result = termite::from_YAML(yaml_node);
 
   if (!result.is_ok()) {
@@ -406,7 +357,7 @@ std::optional<std::string> test_to_map_empty() {
     ss << result.get_err();
     return ss.str();
   }
-  termite::Node result_node = result.get_ok();
+  auto result_node = result.get_ok();
   if (result_node != node) {
     std::stringstream ss;
     ss << "Result does not match expected: " << result_node;
@@ -418,20 +369,17 @@ std::optional<std::string> test_to_map_empty() {
 
 int main() {
   auto names = {
-      "test_scalar",     "test_list",       "test_map",
-      "test_type_error", "test_list_error", "test_map_error",
-      "test_to_scalar",  "test_to_list",    "test_to_map",
-      "test_to_list_empty", "test_to_map_empty",
-      "test_yaml_string", "test_yaml_file",
-      "test_to_yaml_string", "test_to_yaml_file",
+      "test_scalar",        "test_list",           "test_map",
+      "test_type_error",    "test_list_error",     "test_map_error",
+      "test_to_scalar",     "test_to_list",        "test_to_map",
+      "test_to_list_empty", "test_to_map_empty",   "test_yaml_string",
+      "test_yaml_file",     "test_to_yaml_string", "test_to_yaml_file",
   };
   auto functions = {
-      test_scalar,     test_list,       test_map,
-      test_type_error, test_list_error, test_map_error,
-      test_to_scalar,  test_to_list,    test_to_map,
-      test_to_list_empty, test_to_map_empty,
-      test_yaml_string, test_yaml_file,
-      test_to_yaml_string, test_to_yaml_file,
+      test_scalar,     test_list,           test_map,          test_type_error,
+      test_list_error, test_map_error,      test_to_scalar,    test_to_list,
+      test_to_map,     test_to_list_empty,  test_to_map_empty, test_yaml_string,
+      test_yaml_file,  test_to_yaml_string, test_to_yaml_file,
   };
 
   std::cout << "Running " << names.size() << " tests" << std::endl;

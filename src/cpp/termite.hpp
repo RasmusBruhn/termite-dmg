@@ -27,6 +27,17 @@ using number = double;
 using integer = int64_t;
 using boolean = bool;
 
+class Node;
+
+/**
+ * @brief Alias for a map of nodes
+ */
+using map = std::map<std::string, Node>;
+/**
+ * @brief Alias for a list of nodes
+ */
+using list = std::vector<Node>;
+
 // Helper trait to detect if T has operator<<
 template <typename T, typename = void>
 struct has_insertion_operator : std::false_type {};
@@ -387,7 +398,7 @@ public:
      *
      * @param value The value of this node
      */
-    explicit Value(std::string value) : value_(std::move(value)) {}
+    Value(std::string value) : value_(std::move(value)) {}
 
     /**
      * @brief Retrieves the value
@@ -525,7 +536,7 @@ public:
      *
      * @param map The map of this node
      */
-    explicit Map(std::map<std::string, Node> map) : map_(std::move(map)) {}
+    Map(std::map<std::string, Node> map) : map_(std::move(map)) {}
 
     /**
      * @brief Retrieves the map
@@ -609,7 +620,7 @@ public:
      *
      * @param list The list of this node
      */
-    explicit List(std::vector<Node> list) : list_(std::move(list)) {}
+    List(std::vector<Node> list) : list_(std::move(list)) {}
 
     /**
      * @brief Retrieves the list
@@ -681,11 +692,33 @@ public:
    *
    * @param value The value of the node
    */
-  explicit Node(std::variant<Value, Map, List> value)
-      : value_(std::move(value)) {}
-  Node(const Node &node) = default;
+  Node(std::variant<Value, Map, List> value) : value_(std::move(value)) {}
+  /**
+   * @brief Constructs a value node from a string
+   *
+   * @param value The string value of the node
+   */
+  Node(std::string value) : value_(Value(std::move(value))) {}
+  /**
+   * @brief Constructs a value node from a c-string
+   *
+   * @param value The c-string value of the node
+   */
+  Node(const char *value) : value_(Value(std::string(value))) {}
+  /**
+   * @brief Constructs a list node from a vector
+   *
+   * @param values The list values of the node
+   */
+  Node(list values) : value_(List(std::move(values))) {}
+  /**
+   * @brief Constructs a list node from a map
+   *
+   * @param values The map values of the node
+   */
+  Node(map values) : value_(Map(std::move(values))) {}
 
-  //[[nodiscard]] static
+  Node(const Node &node) = default;
 
   /**
    * @brief Retrieves the value

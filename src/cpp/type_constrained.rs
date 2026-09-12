@@ -15,11 +15,23 @@ pub(super) fn generate_definition_header(
     name: &str,
     indent: usize,
 ) -> String {
-    let data_type = if ["string", "number", "integer", "boolean"].contains(&data.data_type.as_str())
-    {
+    let data_type = if is_name_builtin(&data.data_type) {
         format!("termite::{data_type}", data_type = data.data_type)
     } else {
         data.data_type.clone()
+    };
+
+    let string_constructor = if data.data_type == "string" {
+        formatdoc! {"
+            {0:indent$}/**
+            {0:indent$} * @brief Constructs a new {name} object, it must be valid or an exception will be thrown
+            {0:indent$} * 
+            {0:indent$} * @param value The value to store 
+            {0:indent$} */
+            {0:indent$}{name}(const char *value) : {name}(std::string(value)) {{}}
+        ", ""}
+    } else {
+        format!("")
     };
 
     // Create the constraints description
@@ -44,7 +56,8 @@ pub(super) fn generate_definition_header(
             {0:indent$} * 
             {0:indent$} * @param value The value to store 
             {0:indent$} */
-            {0:indent$}explicit {name}({data_type} value) : {name}(from_value(std::move(value)).get_ok()) {{}}
+            {0:indent$}{name}({data_type} value) : {name}(from_value(std::move(value)).get_ok()) {{}}
+            {string_constructor}
             {0:indent$}/**
             {0:indent$} * @brief Constructs a new {name} object
             {0:indent$} * 
@@ -135,8 +148,7 @@ pub(super) fn generate_definition_source(
     name: &str,
     indent: usize,
 ) -> String {
-    let data_type = if ["string", "number", "integer", "boolean"].contains(&data.data_type.as_str())
-    {
+    let data_type = if is_name_builtin(&data.data_type) {
         format!("termite::{data_type}", data_type = data.data_type)
     } else {
         data.data_type.clone()

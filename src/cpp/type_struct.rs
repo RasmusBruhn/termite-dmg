@@ -39,6 +39,46 @@ pub(super) fn generate_definition_header(data: &Struct, name: &str, indent: usiz
         .collect::<Vec<String>>()
         .join("");
 
+    // Get the map constructor input
+    let mut field_types = fields
+        .iter()
+        .map(|(_, field)| struct_field::get_base_typename(field))
+        .collect::<HashSet<String>>()
+        .into_iter()
+        .collect::<Vec<String>>();
+    field_types.sort();
+    let map_constructor_type_list = field_types.join(", ");
+    let map_constructor_input = if fields.is_empty() {
+        String::new()
+    } else {
+        format!(
+            "std::map<std::string, std::variant<{types}>> values",
+            types = map_constructor_type_list
+        )
+    };
+
+    // Get the map constructor setters
+    let map_constructor_setters = fields
+        .iter()
+        .map(|(field_name, field)| struct_field::get_map_constructor_setter(field, field_name))
+        .collect::<Vec<String>>()
+        .join(", ");
+
+    // Get the map constructor
+    let map_constructor = if fields.is_empty() {
+        String::new()
+    } else {
+        formatdoc!("
+            {0:indent$}/**
+            {0:indent$} * @brief Constructs a new {name} object
+            {0:indent$} * 
+            {0:indent$} * @param values A map containing the values for the fields of the {name} object
+            {0:indent$} * @param extra_fields Any extra fields to attach to this struct
+            {0:indent$} */
+            {0:indent$}explicit {name}({map_constructor_input}, ::termite::Node::Map extra_fields = ::termite::Node::Map()) : {map_constructor_setters}, extra_fields(std::move(extra_fields)) {{}}
+        ", "")
+    };
+
     // Get all constructors for the fields with default values
     let default_constructors = fields
         .iter()
@@ -66,6 +106,7 @@ pub(super) fn generate_definition_header(data: &Struct, name: &str, indent: usiz
         {0:indent$} * @param extra_fields Any extra fields to attach to this struct
         {0:indent$} */
         {0:indent$}explicit {name}({constructor_parameters}::termite::Node::Map extra_fields = ::termite::Node::Map()) : {constructor_setters}extra_fields(std::move(extra_fields)) {{}}
+        {map_constructor}
         {default_constructors}
         {0:indent$}/**
         {0:indent$} * @brief Checks if this object and the other object are identical
@@ -255,17 +296,26 @@ pub(super) fn generate_parser_source(
 mod struct_field {
     use super::*;
 
+    /// Constructs the c++ base(no optional) typename of this field
+    ///
+    /// # Parameters
+    ///
+    /// data: The struct field to generate code for
+    pub(super) fn get_base_typename(data: &StructField) -> String {
+        return if is_name_builtin(&data.data_type) {
+            format!("termite::{data_type}", data_type = data.data_type)
+        } else {
+            data.data_type.clone()
+        };
+    }
+
     /// Constructs the c++ typename of this field
     ///
     /// # Parameters
     ///
     /// data: The struct field to generate code for
     pub(super) fn get_typename(data: &StructField) -> String {
-        let data_type = if is_name_builtin(&data.data_type) {
-            format!("termite::{data_type}", data_type = data.data_type)
-        } else {
-            data.data_type.clone()
-        };
+        let data_type = get_base_typename(data);
 
         return match &data.default {
             DefaultType::Optional => {
@@ -317,6 +367,23 @@ mod struct_field {
     /// name: The name of the struct field
     pub(super) fn get_constructor_parameter(data: &StructField, name: &str) -> String {
         return format!("{typename} {name}, ", typename = get_typename(data),);
+    }
+
+    /// Get the setter for the map constructor for a field
+    ///
+    /// # Parameters
+    ///
+    /// data: The struct field to generate code for
+    ///
+    /// name: The name of the struct field
+    pub(super) fn get_map_constructor_setter(data: &StructField, name: &str) -> String {
+        let data_type = get_base_typename(data);
+
+        return match &data.default {
+            DefaultType::Required => format!("{name}(std::move(std::get<{data_type}>(values.at(\"{name}\"))))"),
+            DefaultType::Optional => format!("{name}(values.count(\"{name}\") > 0 ? std::optional<{data_type}>(std::move(std::get<{data_type}>(values.at(\"{name}\")))) : std::nullopt)"),
+            DefaultType::Default(_) => format!("{name}(values.count(\"{name}\") > 0 ? std::move(std::get<{data_type}>(values.at(\"{name}\"))) : default_{name}())"),
+        };
     }
 
     /// Get the parameter definition for the constructor including default value
@@ -748,6 +815,11 @@ mod tests {
         #[test]
         fn description() {
             run_test("type_struct/field/description", true, false, false);
+        }
+
+        #[test]
+        fn identical() {
+            run_test("type_struct/field/identical", true, false, false);
         }
 
         #[test]

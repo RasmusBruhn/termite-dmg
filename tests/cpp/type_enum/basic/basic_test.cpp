@@ -9,22 +9,22 @@
  * @return An error string on error
  */
 std::optional<std::string> test_eq_self() {
-  auto value1 = test::DataType(test::DataType::TypeInt1{1});
+  test::DataType value1 = test::DataType::TypeInt1{1};
   if (value1 != value1) {
     return "An enum was not equal to itself";
   }
 
-  auto value2 = test::DataType(test::DataType::TypeInt2{1});
+  test::DataType value2 = test::DataType::TypeInt2{1};
   if (value2 != value2) {
     return "An enum was not equal to itself";
   }
 
-  auto value3 = test::DataType(test::DataType::TypeFloat{3.5});
+  test::DataType value3 = test::DataType::TypeFloat{3.5};
   if (value3 != value3) {
     return "An enum was not equal to itself";
   }
 
-  auto value4 = test::DataType(test::DataType::TypeEmpty{});
+  test::DataType value4 = test::DataType::TypeEmpty{};
   if (value4 != value4) {
     return "An enum was not equal to itself";
   }
@@ -38,10 +38,10 @@ std::optional<std::string> test_eq_self() {
  * @return An error string on error
  */
 std::optional<std::string> test_eq_diff() {
-  auto value1 = test::DataType(test::DataType::TypeInt1{1});
-  auto value2 = test::DataType(test::DataType::TypeInt2{1});
-  auto value3 = test::DataType(test::DataType::TypeFloat{3.5});
-  auto value4 = test::DataType(test::DataType::TypeEmpty{});
+  test::DataType value1 = test::DataType::TypeInt1{1};
+  test::DataType value2 = test::DataType::TypeInt2{1};
+  test::DataType value3 = test::DataType::TypeFloat{3.5};
+  test::DataType value4 = test::DataType::TypeEmpty{};
 
   if (value1 == value2) {
     std::stringstream ss;
@@ -89,7 +89,7 @@ std::optional<std::string> test_eq_diff() {
  * @return An error string on error
  */
 std::optional<std::string> test_enum_type() {
-  auto value1 = test::DataType(test::DataType::TypeInt1{1});
+  test::DataType value1 = test::DataType::TypeInt1{1};
   if (value1.enum_type() != test::DataType::Enum::kInt1) {
     std::stringstream ss;
     ss << "enum_type returned wrong value for Int1: got "
@@ -98,7 +98,7 @@ std::optional<std::string> test_enum_type() {
     return ss.str();
   }
 
-  auto value2 = test::DataType(test::DataType::TypeInt2{1});
+  test::DataType value2 = test::DataType::TypeInt2{1};
   if (value2.enum_type() != test::DataType::Enum::kInt2) {
     std::stringstream ss;
     ss << "enum_type returned wrong value for Int2: got "
@@ -107,7 +107,7 @@ std::optional<std::string> test_enum_type() {
     return ss.str();
   }
 
-  auto value3 = test::DataType(test::DataType::TypeFloat{3.5});
+  test::DataType value3 = test::DataType::TypeFloat{3.5};
   if (value3.enum_type() != test::DataType::Enum::kFloat) {
     std::stringstream ss;
     ss << "enum_type returned wrong value for Float: got "
@@ -116,7 +116,7 @@ std::optional<std::string> test_enum_type() {
     return ss.str();
   }
 
-  auto value4 = test::DataType(test::DataType::TypeEmpty{});
+  test::DataType value4 = test::DataType::TypeEmpty{};
   if (value4.enum_type() != test::DataType::Enum::kEmpty) {
     std::stringstream ss;
     ss << "enum_type returned wrong value for Empty: got "
@@ -134,10 +134,8 @@ std::optional<std::string> test_enum_type() {
  * @return An error string on error
  */
 std::optional<std::string> test_load() {
-  auto value1 = test::DataType(test::DataType::TypeInt1{1});
-  std::map<std::string, termite::Node> map1;
-  map1.insert({"Int1", termite::Node(termite::Node::Value("1"))});
-  auto node1 = termite::Node(termite::Node::Map(std::move(map1)));
+  test::DataType value1 = test::DataType::TypeInt1{1};
+  termite::Node node1 = termite::map{{"Int1", "1"}};
   auto read_value1 = node1.to_value<test::DataType>();
   if (!read_value1.is_ok()) {
     std::stringstream ss;
@@ -152,10 +150,8 @@ std::optional<std::string> test_load() {
     return ss.str();
   }
 
-  auto value2 = test::DataType(test::DataType::TypeInt2{1});
-  std::map<std::string, termite::Node> map2;
-  map2.insert({"Int2", termite::Node(termite::Node::Value("1"))});
-  auto node2 = termite::Node(termite::Node::Map(std::move(map2)));
+  test::DataType value2 = test::DataType::TypeInt2{1};
+  termite::Node node2 = termite::map{{"Int2", "1"}};
   auto read_value2 = node2.to_value<test::DataType>();
   if (!read_value2.is_ok()) {
     std::stringstream ss;
@@ -170,10 +166,8 @@ std::optional<std::string> test_load() {
     return ss.str();
   }
 
-  auto value3 = test::DataType(test::DataType::TypeFloat{3.5});
-  std::map<std::string, termite::Node> map3;
-  map3.insert({"Float", termite::Node(termite::Node::Value("3.5"))});
-  auto node3 = termite::Node(termite::Node::Map(std::move(map3)));
+  test::DataType value3 = test::DataType::TypeFloat{3.5};
+  termite::Node node3 = termite::map{{"Float", "3.5"}};
   auto read_value3 = node3.to_value<test::DataType>();
   if (!read_value3.is_ok()) {
     std::stringstream ss;
@@ -188,8 +182,8 @@ std::optional<std::string> test_load() {
     return ss.str();
   }
 
-  auto value4 = test::DataType(test::DataType::TypeEmpty{});
-  auto node4 = termite::Node(termite::Node::Value("Empty"));
+  test::DataType value4 = test::DataType::TypeEmpty{};
+  termite::Node node4 = "Empty";
   auto read_value4 = node4.to_value<test::DataType>();
   if (!read_value4.is_ok()) {
     std::stringstream ss;
@@ -231,9 +225,7 @@ std::optional<std::string> test_error_load() {
     return "An enum was constructed from invalid node (Float as string)";
   }
 
-  std::map<std::string, termite::Node> map4;
-  map4.insert({"Empty", termite::Node(termite::Node::Value("3.5"))});
-  auto wrong_node4 = termite::Node(termite::Node::Map(std::move(map4)));
+  termite::Node wrong_node4 = termite::map{{"Empty", "3.5"}};
   auto wrong_read_value4 = wrong_node4.to_value<test::DataType>();
   if (wrong_read_value4.is_ok()) {
     return "An enum was constructed from invalid node (Empty with value)";
@@ -245,9 +237,7 @@ std::optional<std::string> test_error_load() {
     return "An enum was constructed from invalid node (unknown type)";
   }
 
-  std::map<std::string, termite::Node> map_map;
-  map_map.insert({"Test", termite::Node(termite::Node::Value("3.5"))});
-  auto wrong_node_map = termite::Node(termite::Node::Map(std::move(map_map)));
+  termite::Node wrong_node_map = termite::map{{"Test", "3.5"}};
   auto wrong_read_value_map = wrong_node_map.to_value<test::DataType>();
   if (wrong_read_value_map.is_ok()) {
     return "An enum was constructed from invalid node (unknown type with "
@@ -263,8 +253,8 @@ std::optional<std::string> test_error_load() {
  * @return An error string on error
  */
 std::optional<std::string> test_reload() {
-  auto value1 = test::DataType(test::DataType::TypeInt1{1});
-  termite::Node converted_node1 = termite::Node::from_value(value1);
+  test::DataType value1 = test::DataType::TypeInt1{1};
+  auto converted_node1 = termite::Node::from_value(value1);
   auto converted_value1 = converted_node1.to_value<test::DataType>();
   if (!converted_value1.is_ok()) {
     return "Unable to reload enum (Int1)";
@@ -273,7 +263,7 @@ std::optional<std::string> test_reload() {
     return "Failed to reload enum (Int1)";
   }
 
-  auto value2 = test::DataType(test::DataType::TypeInt2{1});
+  test::DataType value2 = test::DataType::TypeInt2{1};
   termite::Node converted_node2 = termite::Node::from_value(value2);
   auto converted_value2 = converted_node2.to_value<test::DataType>();
   if (!converted_value2.is_ok()) {
@@ -283,7 +273,7 @@ std::optional<std::string> test_reload() {
     return "Failed to reload enum (Int2)";
   }
 
-  auto value3 = test::DataType(test::DataType::TypeFloat{3.5});
+  test::DataType value3 = test::DataType::TypeFloat{3.5};
   termite::Node converted_node3 = termite::Node::from_value(value3);
   auto converted_value3 = converted_node3.to_value<test::DataType>();
   if (!converted_value3.is_ok()) {
@@ -293,7 +283,7 @@ std::optional<std::string> test_reload() {
     return "Failed to reload enum (Float)";
   }
 
-  auto value4 = test::DataType(test::DataType::TypeEmpty{});
+  test::DataType value4 = test::DataType::TypeEmpty{};
   termite::Node converted_node4 = termite::Node::from_value(value4);
   auto converted_value4 = converted_node4.to_value<test::DataType>();
   if (!converted_value4.is_ok()) {

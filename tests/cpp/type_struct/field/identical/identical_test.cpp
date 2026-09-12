@@ -1,31 +1,28 @@
-#include "generated/namespace.h"
+#include "generated/identical.h"
+
 #include <iostream>
 #include <sstream>
 
 /**
- * @brief Test if DataType can be constructed correctly
+ * @brief Checks that structs with default values are equal to themselves
  *
  * @return An error string on error
  */
-std::optional<std::string> test_default() {
-  auto type = test1::test2::DataType();
-  if (type != test1::test2::DataType()) {
-    return "Error in default constructor";
-  }
-  return std::nullopt;
-}
-
-/**
- * @brief Test if DataType can be constructed from a map
- *
- * @return An error string on error
- */
-std::optional<std::string> test_from_map() {
-  termite::Node node_correct = termite::map{};
-  auto value_read_correct = node_correct.to_value<test1::test2::DataType>();
+std::optional<std::string> test_load() {
+  auto value = test::DataType({{"field1", 1}, {"field2", 2}});
+  termite::Node node_correct = termite::map{{"field1", "1"}, {"field2", "2"}};
+  auto value_read_correct = node_correct.to_value<test::DataType>();
   if (!value_read_correct.is_ok()) {
     std::stringstream ss;
-    ss << "Unable to construct from a map: " << value_read_correct.get_err();
+    ss << "Unable to convert map to struct with all fields: "
+       << value_read_correct.get_err();
+    return ss.str();
+  }
+  auto read_val = value_read_correct.get_ok();
+  if (read_val != value) {
+    std::stringstream ss;
+    ss << "Failed to convert map to struct with all fields: expected " << value
+       << ", got " << read_val;
     return ss.str();
   }
   return std::nullopt;
@@ -33,12 +30,10 @@ std::optional<std::string> test_from_map() {
 
 int main() {
   auto names = {
-      "test_default",
-      "test_from_map",
+      "test_load",
   };
   auto functions = {
-      test_default,
-      test_from_map,
+      test_load,
   };
 
   std::cout << "Running " << names.size() << " tests" << std::endl;

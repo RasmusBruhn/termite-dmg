@@ -202,7 +202,7 @@ std::optional<std::string> test_result_get() {
  * @return An error string on error
  */
 std::optional<std::string> test_node_value_parse_simple() {
-  termite::Node node(termite::Node::Value("123"));
+  termite::Node node = "123";
 
   auto value = node.to_value<int>();
   if (!value.is_ok()) {
@@ -224,7 +224,7 @@ std::optional<std::string> test_node_value_parse_simple() {
  * @return An error string on error
  */
 std::optional<std::string> test_node_value_parse_spaces() {
-  termite::Node node(termite::Node::Value(" 123 "));
+  termite::Node node = "123";
 
   auto value = node.to_value<int>();
   if (!value.is_ok()) {
@@ -246,7 +246,7 @@ std::optional<std::string> test_node_value_parse_spaces() {
  * @return An error string on error
  */
 std::optional<std::string> test_node_value_parse_error_begin() {
-  termite::Node node(termite::Node::Value(".123"));
+  termite::Node node = ".123";
 
   auto value = node.to_value<int>();
   if (value.is_ok()) {
@@ -264,7 +264,7 @@ std::optional<std::string> test_node_value_parse_error_begin() {
  * @return An error string on error
  */
 std::optional<std::string> test_node_value_parse_error_end() {
-  termite::Node node(termite::Node::Value("123."));
+  termite::Node node = "123.";
 
   auto value = node.to_value<int>();
   if (value.is_ok()) {
@@ -282,7 +282,7 @@ std::optional<std::string> test_node_value_parse_error_end() {
  * @return An error string on error
  */
 std::optional<std::string> test_node_value_parse_error_class() {
-  termite::Node node(termite::Node::Value("123"));
+  termite::Node node = "123";
 
   auto value = node.to_value<termite::Empty>();
   if (value.is_ok()) {
@@ -298,7 +298,7 @@ std::optional<std::string> test_node_value_parse_error_class() {
  * @return An error string on error
  */
 std::optional<std::string> test_node_copy() {
-  termite::Node node(termite::Node::Value("123"));
+  termite::Node node = "123";
   termite::Node node2 = node;
 
   if (node != node2) {

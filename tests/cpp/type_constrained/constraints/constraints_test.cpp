@@ -9,7 +9,7 @@
  * @return An error string on error
  */
 std::optional<std::string> test_error_eq_self() {
-  auto value = test::DataType(2);
+  test::DataType value = 2;
   if (value != value) {
     return "A constrained type was not equal to itself";
   }
@@ -22,8 +22,8 @@ std::optional<std::string> test_error_eq_self() {
  * @return An error string on error
  */
 std::optional<std::string> test_error_eq_diff() {
-  auto value = test::DataType(2);
-  auto compare = test::DataType(4);
+  test::DataType value = 2;
+  test::DataType compare = 4;
   if (value == compare) {
     std::stringstream ss;
     ss << "Two different constrained types were equal: " << value.get()
@@ -39,8 +39,8 @@ std::optional<std::string> test_error_eq_diff() {
  * @return An error string on error
  */
 std::optional<std::string> test_load() {
-  auto value = test::DataType(2);
-  termite::Node node(termite::Node::Value("2"));
+  test::DataType value = 2;
+  termite::Node node = "2";
   auto value_read = node.to_value<test::DataType>();
   if (!value_read.is_ok()) {
     std::stringstream ss;
@@ -65,7 +65,7 @@ std::optional<std::string> test_load() {
  * @return An error string on error
  */
 std::optional<std::string> test_error_constraint_1() {
-  termite::Node node(termite::Node::Value("0"));
+  termite::Node node = "0";
   auto value_read = node.to_value<test::DataType>();
   if (value_read.is_ok()) {
     std::stringstream ss;
@@ -83,7 +83,7 @@ std::optional<std::string> test_error_constraint_1() {
  * @return An error string on error
  */
 std::optional<std::string> test_error_constraint_2() {
-  termite::Node node(termite::Node::Value("1"));
+  termite::Node node = "1";
   auto value_read = node.to_value<test::DataType>();
   if (value_read.is_ok()) {
     std::stringstream ss;
@@ -101,8 +101,8 @@ std::optional<std::string> test_error_constraint_2() {
  * @return An error string on error
  */
 std::optional<std::string> test_reload() {
-  auto value = test::DataType(2);
-  termite::Node converted_node = termite::Node::from_value(value);
+  test::DataType value = 2;
+  auto converted_node = termite::Node::from_value(value);
   auto converted_value = converted_node.to_value<test::DataType>();
   if (!converted_value.is_ok()) {
     std::stringstream ss;

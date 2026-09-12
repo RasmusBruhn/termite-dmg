@@ -9,6 +9,9 @@ if (CMAKE_VERSION VERSION_GREATER_EQUAL "3.30.0")
   cmake_policy(SET CMP0169 OLD)
 endif()
 
+# Adds compile_commands.json file in build folder for clangd
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 # Set the c++ standard
 set(CMAKE_CXX_STANDARD 17)
 
