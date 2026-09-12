@@ -26,8 +26,7 @@ std::optional<std::string> test_eq_self() {
  * @return An error string on error
  */
 std::optional<std::string> test_load() {
-  std::map<std::string, termite::Node> map_correct1;
-  termite::Node node_correct1(termite::Node::Map(std::move(map_correct1)));
+  termite::Node node_correct1 = termite::map{};
   auto value_read_correct1 = node_correct1.to_value<test::DataType1>();
   if (!value_read_correct1.is_ok()) {
     std::stringstream ss;
@@ -36,8 +35,7 @@ std::optional<std::string> test_load() {
     return ss.str();
   }
 
-  std::map<std::string, termite::Node> map_correct2;
-  termite::Node node_correct2(termite::Node::Map(std::move(map_correct2)));
+  termite::Node node_correct2 = termite::map{};
   auto value_read_correct2 = node_correct2.to_value<test::DataType2>();
   if (!value_read_correct2.is_ok()) {
     std::stringstream ss;
@@ -54,9 +52,7 @@ std::optional<std::string> test_load() {
  * @return An error string on error
  */
 std::optional<std::string> test_load_extra_fields() {
-  std::map<std::string, termite::Node> map_many1;
-  map_many1.insert({"field1", termite::Node(termite::Node::Value("1"))});
-  termite::Node node_many1(termite::Node::Map(std::move(map_many1)));
+  termite::Node node_many1 = termite::map{{"field1", "1"}};
   auto value_read_many1 = node_many1.to_value<test::DataType1>();
   if (!value_read_many1.is_ok()) {
     std::stringstream ss;
@@ -65,9 +61,7 @@ std::optional<std::string> test_load_extra_fields() {
     return ss.str();
   }
 
-  std::map<std::string, termite::Node> map_many2;
-  map_many2.insert({"field1", termite::Node(termite::Node::Value("1"))});
-  termite::Node node_many2(termite::Node::Map(std::move(map_many2)));
+  termite::Node node_many2 = termite::map{{"field1", "1"}};
   auto value_read_many2 = node_many2.to_value<test::DataType2>();
   if (!value_read_many2.is_ok()) {
     std::stringstream ss;
@@ -84,13 +78,13 @@ std::optional<std::string> test_load_extra_fields() {
  * @return An error string on error
  */
 std::optional<std::string> test_error_load() {
-  termite::Node node_wrong1(termite::Node::Value("1.0"));
+  termite::Node node_wrong1 = "1.0";
   auto value_wrong_wrong1 = node_wrong1.to_value<test::DataType1>();
   if (value_wrong_wrong1.is_ok()) {
     return "A struct was constructed from invalid node type (DataType1)";
   }
 
-  termite::Node node_wrong2(termite::Node::Value("1.0"));
+  termite::Node node_wrong2 = "1.0";
   auto value_wrong_wrong2 = node_wrong2.to_value<test::DataType2>();
   if (value_wrong_wrong2.is_ok()) {
     return "A struct was constructed from invalid node type (DataType2)";
