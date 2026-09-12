@@ -10,7 +10,7 @@
  * @return An error string on error
  */
 std::optional<std::string> test_scalar() {
-  termite::Node correct(termite::Node::Value("Test"));
+  termite::Node correct = "Test";
   nlohmann::json node("Test");
   termite::Result<termite::Node> result = termite::from_JSON(node);
 
@@ -36,14 +36,11 @@ std::optional<std::string> test_scalar() {
  * @return An error string on error
  */
 std::optional<std::string> test_list() {
-  std::vector<termite::Node> list;
-  list.emplace_back(termite::Node::Value("Test1"));
-  list.emplace_back(termite::Node::Value("Test2"));
-  termite::Node correct(termite::Node::List(std::move(list)));
+  termite::Node correct = termite::list{"Test1", "Test2"};
   nlohmann::json node;
   node.push_back(nlohmann::json("Test1"));
   node.push_back(nlohmann::json("Test2"));
-  termite::Result<termite::Node> result = termite::from_JSON(node);
+  auto result = termite::from_JSON(node);
 
   if (!result.is_ok()) {
     std::stringstream ss;
@@ -51,7 +48,7 @@ std::optional<std::string> test_list() {
     return ss.str();
   }
 
-  termite::Node result_ok = result.get_ok();
+  auto result_ok = result.get_ok();
   if (result_ok != correct) {
     std::stringstream ss;
     ss << result_ok;
@@ -67,16 +64,12 @@ std::optional<std::string> test_list() {
  * @return An error string on error
  */
 std::optional<std::string> test_map() {
-  std::map<std::string, termite::Node> map;
-  map.insert(
-      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
-  map.insert(
-      std::make_pair("field2", termite::Node(termite::Node::Value("Test2"))));
-  termite::Node correct(termite::Node::Map(std::move(map)));
+  termite::Node correct =
+      termite::map{{"field1", "Test1"}, {"field2", "Test2"}};
   nlohmann::json node;
   node["field1"] = nlohmann::json("Test1");
   node["field2"] = nlohmann::json("Test2");
-  termite::Result<termite::Node> result = termite::from_JSON(node);
+  auto result = termite::from_JSON(node);
 
   if (!result.is_ok()) {
     std::stringstream ss;
@@ -84,7 +77,7 @@ std::optional<std::string> test_map() {
     return ss.str();
   }
 
-  termite::Node result_ok = result.get_ok();
+  auto result_ok = result.get_ok();
   if (result_ok != correct) {
     std::stringstream ss;
     ss << result_ok;
@@ -100,8 +93,8 @@ std::optional<std::string> test_map() {
  * @return An error string on error
  */
 std::optional<std::string> test_to_scalar() {
-  termite::Node node(termite::Node::Value("Test"));
-  nlohmann::json result = termite::to_JSON(node);
+  termite::Node node = "Test";
+  auto result = termite::to_JSON(node);
 
   if (!result.is_string()) {
     return "Should be a scalar";
@@ -119,11 +112,8 @@ std::optional<std::string> test_to_scalar() {
  * @return An error string on error
  */
 std::optional<std::string> test_to_list() {
-  std::vector<termite::Node> list;
-  list.emplace_back(termite::Node::Value("Test1"));
-  list.emplace_back(termite::Node::Value("Test2"));
-  termite::Node node(termite::Node::List(std::move(list)));
-  nlohmann::json result = termite::to_JSON(node);
+  termite::Node node = termite::list{"Test1", "Test2"};
+  auto result = termite::to_JSON(node);
 
   if (!result.is_array()) {
     return "Should be a sequence";
@@ -147,13 +137,8 @@ std::optional<std::string> test_to_list() {
  * @return An error string on error
  */
 std::optional<std::string> test_to_map() {
-  std::map<std::string, termite::Node> map;
-  map.insert(
-      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
-  map.insert(
-      std::make_pair("field2", termite::Node(termite::Node::Value("Test2"))));
-  termite::Node node(termite::Node::Map(std::move(map)));
-  nlohmann::json result = termite::to_JSON(node);
+  termite::Node node = termite::map{{"field1", "Test1"}, {"field2", "Test2"}};
+  auto result = termite::to_JSON(node);
 
   if (!result.is_structured()) {
     return "Should be a map";
@@ -177,16 +162,10 @@ std::optional<std::string> test_to_map() {
  * @return An error string on error
  */
 std::optional<std::string> test_json_string() {
-  std::string json_string = "{ \"field1\": \"Test1\", \"field2\": [\"Test2\", \"Test3\"] }";
-  std::vector<termite::Node> list;
-  list.emplace_back(termite::Node::Value("Test2"));
-  list.emplace_back(termite::Node::Value("Test3"));
-  std::map<std::string, termite::Node> map;
-  map.insert(
-      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
-  map.insert(
-      std::make_pair("field2", termite::Node(termite::Node::List(std::move(list)))));
-  termite::Node correct(termite::Node::Map(std::move(map)));
+  std::string json_string =
+      "{ \"field1\": \"Test1\", \"field2\": [\"Test2\", \"Test3\"] }";
+  termite::Node correct = termite::map{
+      {"field1", "Test1"}, {"field2", termite::list{"Test2", "Test3"}}};
   auto result = termite::from_JSON_string(json_string);
 
   if (!result.is_ok()) {
@@ -210,15 +189,8 @@ std::optional<std::string> test_json_string() {
  * @return An error string on error
  */
 std::optional<std::string> test_json_file() {
-  std::vector<termite::Node> list;
-  list.emplace_back(termite::Node::Value("Test2"));
-  list.emplace_back(termite::Node::Value("Test3"));
-  std::map<std::string, termite::Node> map;
-  map.insert(
-      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
-  map.insert(
-      std::make_pair("field2", termite::Node(termite::Node::List(std::move(list)))));
-  termite::Node correct(termite::Node::Map(std::move(map)));
+  termite::Node correct = termite::map{
+      {"field1", "Test1"}, {"field2", termite::list{"Test2", "Test3"}}};
   auto result = termite::from_JSON_file("../json_test.json");
 
   if (!result.is_ok()) {
@@ -242,15 +214,8 @@ std::optional<std::string> test_json_file() {
  * @return An error string on error
  */
 std::optional<std::string> test_to_json_string() {
-  std::vector<termite::Node> list;
-  list.emplace_back(termite::Node::Value("Test2"));
-  list.emplace_back(termite::Node::Value("Test3"));
-  std::map<std::string, termite::Node> map;
-  map.insert(
-      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
-  map.insert(
-      std::make_pair("field2", termite::Node(termite::Node::List(std::move(list)))));
-  termite::Node correct(termite::Node::Map(std::move(map)));
+  termite::Node correct = termite::map{
+      {"field1", "Test1"}, {"field2", termite::list{"Test2", "Test3"}}};
   std::string json_string = termite::to_JSON_string(correct);
   auto result = termite::from_JSON_string(json_string);
 
@@ -275,15 +240,8 @@ std::optional<std::string> test_to_json_string() {
  * @return An error string on error
  */
 std::optional<std::string> test_to_json_file() {
-  std::vector<termite::Node> list;
-  list.emplace_back(termite::Node::Value("Test2"));
-  list.emplace_back(termite::Node::Value("Test3"));
-  std::map<std::string, termite::Node> map;
-  map.insert(
-      std::make_pair("field1", termite::Node(termite::Node::Value("Test1"))));
-  map.insert(
-      std::make_pair("field2", termite::Node(termite::Node::List(std::move(list)))));
-  termite::Node correct(termite::Node::Map(std::move(map)));
+  termite::Node correct = termite::map{
+      {"field1", "Test1"}, {"field2", termite::list{"Test2", "Test3"}}};
 
   auto write_result = termite::to_JSON_file(correct, "json_test.json");
   if (!write_result.is_ok()) {
@@ -315,9 +273,8 @@ std::optional<std::string> test_to_json_file() {
  * @return An error string on error
  */
 std::optional<std::string> test_to_list_empty() {
-  std::vector<termite::Node> list;
-  termite::Node node(termite::Node::List(std::move(list)));
-  nlohmann::json json_node = termite::to_JSON(node);
+  termite::Node node = termite::list{};
+  auto json_node = termite::to_JSON(node);
   auto result = termite::from_JSON(json_node);
 
   if (!result.is_ok()) {
@@ -325,7 +282,7 @@ std::optional<std::string> test_to_list_empty() {
     ss << result.get_err();
     return ss.str();
   }
-  termite::Node result_node = result.get_ok();
+  auto result_node = result.get_ok();
   if (result_node != node) {
     std::stringstream ss;
     ss << "Result does not match expected: " << result_node;
@@ -341,9 +298,8 @@ std::optional<std::string> test_to_list_empty() {
  * @return An error string on error
  */
 std::optional<std::string> test_to_map_empty() {
-  std::map<std::string, termite::Node> list;
-  termite::Node node(termite::Node::Map(std::move(list)));
-  nlohmann::json json_node = termite::to_JSON(node);
+  termite::Node node = termite::map{};
+  auto json_node = termite::to_JSON(node);
   auto result = termite::from_JSON(json_node);
 
   if (!result.is_ok()) {
@@ -351,7 +307,7 @@ std::optional<std::string> test_to_map_empty() {
     ss << result.get_err();
     return ss.str();
   }
-  termite::Node result_node = result.get_ok();
+  auto result_node = result.get_ok();
   if (result_node != node) {
     std::stringstream ss;
     ss << "Result does not match expected: " << result_node;
@@ -363,18 +319,16 @@ std::optional<std::string> test_to_map_empty() {
 
 int main() {
   auto names = {
-      "test_scalar",    "test_list",    "test_map",
-      "test_to_scalar", "test_to_list", "test_to_map",
-      "test_to_list_empty", "test_to_map_empty",
-      "test_json_string", "test_json_file",
-      "test_to_json_string", "test_to_json_file",
+      "test_scalar",        "test_list",           "test_map",
+      "test_to_scalar",     "test_to_list",        "test_to_map",
+      "test_to_list_empty", "test_to_map_empty",   "test_json_string",
+      "test_json_file",     "test_to_json_string", "test_to_json_file",
   };
   auto functions = {
-      test_scalar,    test_list,    test_map,
-      test_to_scalar, test_to_list, test_to_map,
-      test_to_list_empty, test_to_map_empty,
-      test_json_string, test_json_file,
-      test_to_json_string, test_to_json_file,
+      test_scalar,        test_list,           test_map,
+      test_to_scalar,     test_to_list,        test_to_map,
+      test_to_list_empty, test_to_map_empty,   test_json_string,
+      test_json_file,     test_to_json_string, test_to_json_file,
   };
 
   std::cout << "Running " << names.size() << " tests" << std::endl;

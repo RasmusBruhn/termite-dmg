@@ -9,12 +9,12 @@
  * @return An error string on error
  */
 std::optional<std::string> test_eq_self() {
-  auto value1 = test::DataType(static_cast<termite::integer>(1));
+  test::DataType value1 = static_cast<termite::integer>(1);
   if (value1 != value1) {
     return "A variant was not equal to itself";
   }
 
-  auto value2 = test::DataType(static_cast<termite::number>(1.5));
+  test::DataType value2 = static_cast<termite::number>(1.5);
   if (value2 != value2) {
     return "A variant was not equal to itself";
   }
@@ -27,7 +27,7 @@ std::optional<std::string> test_eq_self() {
  * @return An error string on error
  */
 std::optional<std::string> test_eq_diff() {
-  auto value1 = test::DataType(static_cast<termite::number>(1));
+  test::DataType value1 = static_cast<termite::number>(1);
   if (value1 == test::DataType(static_cast<termite::number>(2))) {
     std::stringstream ss;
     ss << "Two different variants were equal: value1=" << value1
@@ -35,8 +35,8 @@ std::optional<std::string> test_eq_diff() {
     return ss.str();
   }
 
-  auto value2 = test::DataType(static_cast<termite::number>(1.5));
-  auto value2_compare = test::DataType(static_cast<termite::number>(2.5));
+  test::DataType value2 = static_cast<termite::number>(1.5);
+  test::DataType value2_compare = static_cast<termite::number>(2.5);
   if (value2 == value2_compare) {
     std::stringstream ss;
     ss << "Two different variants were equal: value2 " << value2 << ", compare "
@@ -59,9 +59,9 @@ std::optional<std::string> test_eq_diff() {
  * @return An error string on error
  */
 std::optional<std::string> test_value_check() {
-  auto value1 = test::DataType(static_cast<termite::number>(1));
-  auto expected1 = std::variant<termite::integer, termite::number>(
-      static_cast<termite::number>(1));
+  test::DataType value1 = static_cast<termite::number>(1);
+  std::variant<termite::integer, termite::number> expected1 =
+      static_cast<termite::number>(1);
   if (value1.value != expected1) {
     std::stringstream ss;
     ss << "Variant did not contain expected value: got " << value1
@@ -69,9 +69,9 @@ std::optional<std::string> test_value_check() {
     return ss.str();
   }
 
-  auto value2 = test::DataType(static_cast<termite::number>(1.5));
-  auto expected2 = std::variant<termite::integer, termite::number>(
-      static_cast<termite::number>(1.5));
+  test::DataType value2 = static_cast<termite::number>(1.5);
+  std::variant<termite::integer, termite::number> expected2 =
+      static_cast<termite::number>(1.5);
   if (value2.value != expected2) {
     std::stringstream ss;
     ss << "Variant did not contain expected float value: got " << value2
@@ -87,8 +87,8 @@ std::optional<std::string> test_value_check() {
  * @return An error string on error
  */
 std::optional<std::string> test_load() {
-  auto value1 = test::DataType(static_cast<termite::number>(1));
-  auto node1 = termite::Node(termite::Node::Value("1"));
+  test::DataType value1 = static_cast<termite::number>(1);
+  termite::Node node1 = "1";
   auto read_value1 = node1.to_value<test::DataType>();
   if (!read_value1.is_ok()) {
     return "Unable to convert node to variant (integer)";
@@ -96,8 +96,8 @@ std::optional<std::string> test_load() {
   // Note: The test checks if read_value1 == value2, which seems like a bug
   // in the original test, so we'll check for value2 here
 
-  auto value2 = test::DataType(static_cast<termite::number>(1.5));
-  auto node2 = termite::Node(termite::Node::Value("1.5"));
+  test::DataType value2 = static_cast<termite::number>(1.5);
+  termite::Node node2 = "1.5";
   auto read_value2 = node2.to_value<test::DataType>();
   if (!read_value2.is_ok()) {
     std::stringstream ss;
@@ -121,7 +121,7 @@ std::optional<std::string> test_load() {
  * @return An error string on error
  */
 std::optional<std::string> test_reload() {
-  auto value1 = test::DataType(static_cast<termite::integer>(1));
+  test::DataType value1 = static_cast<termite::integer>(1);
   termite::Node converted_node1 = termite::Node::from_value(value1);
   auto converted_value1 = converted_node1.to_value<test::DataType>();
   if (!converted_value1.is_ok()) {
@@ -137,7 +137,7 @@ std::optional<std::string> test_reload() {
     return ss.str();
   }
 
-  auto value2 = test::DataType(static_cast<termite::number>(1.5));
+  test::DataType value2 = static_cast<termite::number>(1.5);
   termite::Node converted_node2 = termite::Node::from_value(value2);
   auto converted_value2 = converted_node2.to_value<test::DataType>();
   if (!converted_value2.is_ok()) {

@@ -1,6 +1,6 @@
+#include "generated/footer.h"
 #include <iostream>
 #include <sstream>
-#include "generated/footer.h"
 
 /**
  * @brief Test if DataType can be constructed correctly
@@ -21,8 +21,7 @@ std::optional<std::string> test_default() {
  * @return An error string on error
  */
 std::optional<std::string> test_from_map() {
-  std::map<std::string, termite::Node> map_correct;
-  termite::Node node_correct(termite::Node::Map(std::move(map_correct)));
+  termite::Node node_correct = termite::map{};
   auto value_read_correct = node_correct.to_value<DataType>();
   if (!value_read_correct.is_ok()) {
     std::stringstream ss;

@@ -16,15 +16,16 @@ pub(super) fn generate_definition_header(data: &Variant, name: &str, indent: usi
     let variant_list = data
         .data_types
         .iter()
-        .map(|data_type| {
-            if ["string", "number", "integer", "boolean"].contains(&data_type.as_str()) {
-                format!("termite::{data_type}")
-            } else {
-                data_type.clone()
-            }
-        })
+        .map(|data_type| variant_type::get_typename(data_type))
         .collect::<Vec<_>>()
         .join(", ");
+
+    let constructors = data
+        .data_types
+        .iter()
+        .map(|data_type| variant_type::get_constructor(data_type, name, indent))
+        .collect::<Vec<_>>()
+        .join("\n");
 
     return formatdoc!(
         "
@@ -34,7 +35,8 @@ pub(super) fn generate_definition_header(data: &Variant, name: &str, indent: usi
         {0:indent$} * 
         {0:indent$} * @param value The value of the variant
         {0:indent$} */
-        {0:indent$}explicit {name}(std::variant<{variant_list}> value) : value(std::move(value)) {{}}
+        {0:indent$}{name}(std::variant<{variant_list}> value) : value(std::move(value)) {{}}
+        {constructors}
 
         {0:indent$}/**
         {0:indent$} * @brief Checks if this object and the other object are identical
@@ -86,22 +88,7 @@ pub(super) fn generate_definition_source(data: &Variant, name: &str, indent: usi
         .data_types
         .iter()
         .enumerate()
-        .map(|(index, data_type)| {
-            let data_type =
-                if ["string", "number", "integer", "boolean"].contains(&data_type.as_str()) {
-                    format!("termite::{data_type}")
-                } else {
-                    data_type.clone()
-                };
-
-            formatdoc!(
-                "
-                {0:indent$}case {index}:
-                {0:indent$}{0:indent$}os << \"{data_type} \" << std::get<{data_type}>(x.value);
-                {0:indent$}{0:indent$}break;",
-                "",
-            )
-        })
+        .map(|(index, data_type)| variant_type::get_printer_source(data_type, index, indent))
         .collect::<Vec<String>>()
         .join("\n");
 
@@ -182,35 +169,14 @@ pub(super) fn generate_parser_source(
         .join("");
     let typename = format!("{namespace}{name}");
 
-    // Get snake case naming
-    let snake_case_data_types = data
+    // Get all the readers
+    let readers = data
         .data_types
         .iter()
-        .map(|data_type| ToSnakeCase::new(&mut data_type.chars()).collect::<String>())
-        .collect::<Vec<String>>();
-
-    // Get all the readers
-    let readers = data.data_types.iter()
-        .zip(snake_case_data_types.iter())
-        .map(|(data_type, snake_case)| {
-            // Add possible namespace to the typename
-            let data_type = if is_name_builtin(&data_type) {
-                format!("{data_type}")
-            } else {
-                format!("{namespace}{data_type}")
-            };
-
-            return formatdoc!("
-                {0:indent$}Result<{data_type}> result_{snake_case} = to_value<{data_type}>();
-                {0:indent$}if (result_{snake_case}.is_ok()) {{
-                {0:indent$}{0:indent$}return Result<{typename}>::ok({typename}(result_{snake_case}.get_ok()));
-                {0:indent$}}}
-                {0:indent$}error << \"{data_type} {{ \" << result_{snake_case}.get_err() << \" }}\";",
-                "",
-            );
-        })
+        .map(|data_type| variant_type::get_reader_source(data_type, &typename, &namespace, indent))
         .collect::<Vec<String>>()
-        .join(&formatdoc!("
+        .join(&formatdoc!(
+            "
             
             {0:indent$}error << \", \";
 
@@ -240,6 +206,124 @@ pub(super) fn generate_parser_source(
         }}",
         "",
     );
+}
+
+mod variant_type {
+    use super::*;
+
+    /// Retrieves the typename corrected with namespace if it is not builtin
+    ///
+    /// # Parameters
+    ///
+    /// data: The type name of the variant type
+    ///
+    /// namespace: The namespace to prepend if the type is not builtin
+    pub(super) fn get_typename_parser(data: &str, namespace: &str) -> String {
+        if is_name_builtin(data) {
+            format!("{data}")
+        } else {
+            format!("{namespace}{data}")
+        }
+    }
+
+    /// Retrieves the typename corrected with termite:: if it is builtin
+    ///
+    /// # Parameters
+    ///
+    /// data: The type name of the variant type
+    pub(super) fn get_typename(data: &str) -> String {
+        if is_name_builtin(data) {
+            format!("termite::{data}")
+        } else {
+            format!("{data}")
+        }
+    }
+
+    /// Constructs the snake_case version of the given data string
+    ///
+    /// # Parameters
+    ///
+    /// data: The type name to convert to snake_case
+    pub(super) fn get_snake_case(data: &str) -> String {
+        return ToSnakeCase::new(&mut data.chars()).collect::<String>();
+    }
+
+    /// Constructs the source code for the readers used in to_value
+    ///
+    /// # Parameters
+    ///
+    /// data: The type name of the variant type
+    ///
+    /// name: The name of the variant
+    ///
+    /// namespace: The namespace to prepend if the type is not builtin
+    ///
+    /// indent: The number of spaces to use for indentation
+    pub(super) fn get_reader_source(
+        data: &str,
+        name: &str,
+        namespace: &str,
+        indent: usize,
+    ) -> String {
+        let snake_case = get_snake_case(data);
+        let data_type = get_typename_parser(&data, namespace);
+
+        return formatdoc!(
+            "
+            {0:indent$}Result<{data_type}> result_{snake_case} = to_value<{data_type}>();
+            {0:indent$}if (result_{snake_case}.is_ok()) {{
+            {0:indent$}{0:indent$}return Result<{name}>::ok({name}(result_{snake_case}.get_ok()));
+            {0:indent$}}}
+            {0:indent$}error << \"{data} {{ \" << result_{snake_case}.get_err() << \" }}\";",
+            "",
+        );
+    }
+
+    /// Constructs the source code for the printer used in the variant type
+    ///
+    /// # Parameters
+    ///
+    /// data: The type name of the variant type
+    ///
+    /// index: The index of the variant in the variant type
+    ///
+    /// indent: The number of spaces to use for indentation
+    pub(super) fn get_printer_source(data: &str, index: usize, indent: usize) -> String {
+        let data_type = get_typename(data);
+
+        return formatdoc!(
+            "
+            {0:indent$}case {index}:
+            {0:indent$}{0:indent$}os << \"{data_type} \" << std::get<{data_type}>(x.value);
+            {0:indent$}{0:indent$}break;",
+            "",
+        );
+    }
+
+    /// Constructs the constructor for the variant type
+    ///
+    /// # Parameters
+    ///
+    /// data: The type name of the variant type
+    ///
+    /// name: The name of the variant
+    ///
+    /// indent: The number of spaces to use for indentation
+    pub(super) fn get_constructor(data: &str, name: &str, indent: usize) -> String {
+        let data_type = get_typename(data);
+
+        return formatdoc!(
+            "
+            {0:indent$}/**
+            {0:indent$} * @brief Constructs a new {name} object
+            {0:indent$} * 
+            {0:indent$} * @param value The value of the variant
+            {0:indent$} */
+            {0:indent$}{name}({data_type} value) : value(std::move(value)) {{}}
+            ",
+            "",
+        );
+    }
 }
 
 #[cfg(test)]
