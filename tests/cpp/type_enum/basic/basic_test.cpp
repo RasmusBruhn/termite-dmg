@@ -93,8 +93,8 @@ std::optional<std::string> test_enum_type() {
   if (value1.enum_type() != test::DataType::Enum::kInt1) {
     std::stringstream ss;
     ss << "enum_type returned wrong value for Int1: got "
-       << static_cast<int>(value1.enum_type()) << ", expected "
-       << static_cast<int>(test::DataType::Enum::kInt1);
+       << value1.enum_type() << ", expected "
+       << test::DataType::Enum::kInt1;
     return ss.str();
   }
 
@@ -102,8 +102,8 @@ std::optional<std::string> test_enum_type() {
   if (value2.enum_type() != test::DataType::Enum::kInt2) {
     std::stringstream ss;
     ss << "enum_type returned wrong value for Int2: got "
-       << static_cast<int>(value2.enum_type()) << ", expected "
-       << static_cast<int>(test::DataType::Enum::kInt2);
+       << value2.enum_type() << ", expected "
+       << test::DataType::Enum::kInt2;
     return ss.str();
   }
 
@@ -111,8 +111,8 @@ std::optional<std::string> test_enum_type() {
   if (value3.enum_type() != test::DataType::Enum::kFloat) {
     std::stringstream ss;
     ss << "enum_type returned wrong value for Float: got "
-       << static_cast<int>(value3.enum_type()) << ", expected "
-       << static_cast<int>(test::DataType::Enum::kFloat);
+       << value3.enum_type() << ", expected "
+       << test::DataType::Enum::kFloat;
     return ss.str();
   }
 
@@ -120,8 +120,8 @@ std::optional<std::string> test_enum_type() {
   if (value4.enum_type() != test::DataType::Enum::kEmpty) {
     std::stringstream ss;
     ss << "enum_type returned wrong value for Empty: got "
-       << static_cast<int>(value4.enum_type()) << ", expected "
-       << static_cast<int>(test::DataType::Enum::kEmpty);
+       << value4.enum_type() << ", expected "
+       << test::DataType::Enum::kEmpty;
     return ss.str();
   }
 

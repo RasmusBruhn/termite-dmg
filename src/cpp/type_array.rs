@@ -11,8 +11,7 @@ use indoc::formatdoc;
 ///
 /// indent: The number of spaces to use for indentation
 pub(super) fn generate_definition_header(data: &Array, name: &str, indent: usize) -> String {
-    let data_type = if ["string", "number", "integer", "boolean"].contains(&data.data_type.as_str())
-    {
+    let data_type = if is_name_builtin(&data.data_type) {
         format!("termite::{data_type}", data_type = data.data_type)
     } else {
         data.data_type.clone()

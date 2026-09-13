@@ -9,12 +9,12 @@
  * @return An error string on error
  */
 std::optional<std::string> test_eq_self() {
-  auto value1 = test::DataType({{"field1", 1}, {"field2", 5.0}});
+  auto value1 = test::DataType({{"field1", 1LL}, {"field2", 5.0}});
   if (value1 != value1) {
     return "A struct was not equal to itself";
   }
 
-  auto value2 = test::DataType({{"field1", -2}, {"field2", 3.5}});
+  auto value2 = test::DataType({{"field1", -2LL}, {"field2", 3.5}});
   if (value2 != value2) {
     return "A struct was not equal to itself";
   }
@@ -27,8 +27,8 @@ std::optional<std::string> test_eq_self() {
  * @return An error string on error
  */
 std::optional<std::string> test_eq_diff() {
-  auto value1 = test::DataType({{"field1", 1}, {"field2", 5.0}});
-  auto value2 = test::DataType({{"field1", -2}, {"field2", 3.5}});
+  auto value1 = test::DataType({{"field1", 1LL}, {"field2", 5.0}});
+  auto value2 = test::DataType({{"field1", -2LL}, {"field2", 3.5}});
   if (value1 == value2) {
     std::stringstream ss;
     ss << "Two different structs were equal: " << value1 << " vs " << value2;
@@ -43,7 +43,7 @@ std::optional<std::string> test_eq_diff() {
  * @return An error string on error
  */
 std::optional<std::string> test_load() {
-  auto value = test::DataType({{"field1", 1}, {"field2", 5.0}});
+  auto value = test::DataType({{"field1", 1LL}, {"field2", 5.0}});
   termite::Node node_correct = termite::map{{"field1", "1"}, {"field2", "5.0"}};
   auto value_read_correct = node_correct.to_value<test::DataType>();
   if (!value_read_correct.is_ok()) {
@@ -68,7 +68,7 @@ std::optional<std::string> test_load() {
  * @return An error string on error
  */
 std::optional<std::string> test_load_extra_fields() {
-  auto value = test::DataType({{"field1", 1}, {"field2", 5.0}});
+  auto value = test::DataType({{"field1", 1LL}, {"field2", 5.0}});
   termite::Node node_many =
       termite::map{{"field1", "1"}, {"field2", "5.0"}, {"field3", "test"}};
   auto value_read_many = node_many.to_value<test::DataType>();
@@ -133,7 +133,7 @@ std::optional<std::string> test_error_load() {
  * @return An error string on error
  */
 std::optional<std::string> test_reload() {
-  auto value1 = test::DataType({{"field1", 1}, {"field2", 5.0}});
+  auto value1 = test::DataType({{"field1", 1LL}, {"field2", 5.0}});
   termite::Node converted_node1 = termite::Node::from_value(value1);
   auto converted_value1 = converted_node1.to_value<test::DataType>();
   if (!converted_value1.is_ok()) {
@@ -149,7 +149,7 @@ std::optional<std::string> test_reload() {
     return ss.str();
   }
 
-  auto value2 = test::DataType({{"field1", -2}, {"field2", 3.5}});
+  auto value2 = test::DataType({{"field1", -2LL}, {"field2", 3.5}});
   termite::Node converted_node2 = termite::Node::from_value(value2);
   auto converted_value2 = converted_node2.to_value<test::DataType>();
   if (!converted_value2.is_ok()) {
