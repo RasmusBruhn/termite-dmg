@@ -132,9 +132,9 @@ pub fn generate_header(data: &DataModel, name: &str, indent: usize) -> Result<St
     let data_type_definitions = data_types
         .iter()
         .map(|(type_name, data_type)| {
-            data_type::generate_definition_header(data_type, type_name, indent)
+            data_type::generate_definition_header(data_type, type_name, &data.data_types, indent)
         })
-        .collect::<Vec<String>>()
+        .collect::<Result<Vec<_>, Error>>()?
         .join("\n\n");
 
     // Get all parsers
@@ -241,7 +241,13 @@ pub fn generate_source(data: &DataModel, name: &str, indent: usize) -> Result<St
     let data_type_definitions = data_types
         .iter()
         .map(|(type_name, data_type)| {
-            data_type::generate_definition_source(data_type, type_name, &data.macros, indent)
+            data_type::generate_definition_source(
+                data_type,
+                type_name,
+                &data.data_types,
+                &data.macros,
+                indent,
+            )
         })
         .collect::<Result<Vec<_>, _>>()?
         .join("\n\n");
@@ -354,9 +360,16 @@ mod data_type {
     ///
     /// name: The name of the data type
     ///
+    /// all_types: A map of all data types available for reference
+    ///
     /// indent: The number of spaces to use for indentation
-    pub(super) fn generate_definition_header(data: &DataType, name: &str, indent: usize) -> String {
-        return formatdoc!(
+    pub(super) fn generate_definition_header(
+        data: &DataType,
+        name: &str,
+        all_types: &HashMap<String, DataType>,
+        indent: usize,
+    ) -> Result<String, Error> {
+        return Ok(formatdoc!(
             "
             /**
              * @brief {description}
@@ -364,8 +377,9 @@ mod data_type {
              */
             {definition}",
             description = get_description(data),
-            definition = data_type_data::generate_definition_header(&data.data, name, indent),
-        );
+            definition =
+                data_type_data::generate_definition_header(&data.data, name, all_types, indent)?,
+        ));
     }
 
     /// Converts the data type to a string for use in the source file
@@ -376,20 +390,24 @@ mod data_type {
     ///
     /// name: The name of the data type
     ///
+    /// all_types: A map of all data types available for reference
+    ///
     /// macros: A map of all macros to expand default values
     ///
     /// indent: The number of spaces to use for indentation
     pub(super) fn generate_definition_source(
         data: &DataType,
         name: &str,
+        all_types: &HashMap<String, DataType>,
         macros: &HashMap<String, SerializationModel>,
         indent: usize,
     ) -> Result<String, Error> {
         return Ok(formatdoc!(
             "
             {definition}",
-            definition =
-                data_type_data::generate_definition_source(&data.data, name, macros, indent)?,
+            definition = data_type_data::generate_definition_source(
+                &data.data, name, all_types, macros, indent
+            )?,
         ));
     }
 
@@ -454,23 +472,30 @@ mod data_type_data {
     ///
     /// name: The name of the data type
     ///
+    /// all_types: A map of all data types available for reference
+    ///
     /// indent: The number of spaces to use for indentation
     pub(super) fn generate_definition_header(
         data: &DataTypeData,
         name: &str,
+        all_types: &HashMap<String, DataType>,
         indent: usize,
-    ) -> String {
+    ) -> Result<String, Error> {
         return match data {
             DataTypeData::Struct(data) => {
-                type_struct::generate_definition_header(data, name, indent)
+                Ok(type_struct::generate_definition_header(data, name, indent))
             }
-            DataTypeData::Array(data) => type_array::generate_definition_header(data, name, indent),
+            DataTypeData::Array(data) => {
+                Ok(type_array::generate_definition_header(data, name, indent))
+            }
             DataTypeData::Variant(data) => {
-                type_variant::generate_definition_header(data, name, indent)
+                Ok(type_variant::generate_definition_header(data, name, indent))
             }
-            DataTypeData::Enum(data) => type_enum::generate_definition_header(data, name, indent),
+            DataTypeData::Enum(data) => {
+                Ok(type_enum::generate_definition_header(data, name, indent))
+            }
             DataTypeData::ConstrainedType(data) => {
-                type_constrained::generate_definition_header(data, name, indent)
+                type_constrained::generate_definition_header(data, name, all_types, indent)
             }
         };
     }
@@ -483,12 +508,15 @@ mod data_type_data {
     ///
     /// name: The name of the data type
     ///
+    /// all_types: A map of all data types available for reference
+    ///
     /// macros: A map of all macros to expand default values
     ///
     /// indent: The number of spaces to use for indentation
     pub(super) fn generate_definition_source(
         data: &DataTypeData,
         name: &str,
+        all_types: &HashMap<String, DataType>,
         macros: &HashMap<String, SerializationModel>,
         indent: usize,
     ) -> Result<String, Error> {
@@ -505,9 +533,9 @@ mod data_type_data {
             DataTypeData::Enum(data) => {
                 Ok(type_enum::generate_definition_source(data, name, indent))
             }
-            DataTypeData::ConstrainedType(data) => Ok(
-                type_constrained::generate_definition_source(data, name, indent),
-            ),
+            DataTypeData::ConstrainedType(data) => {
+                type_constrained::generate_definition_source(data, name, all_types, indent)
+            }
         };
     }
 

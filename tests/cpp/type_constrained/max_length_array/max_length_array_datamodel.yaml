@@ -1,0 +1,11 @@
+namespace:
+- test
+data_types:
+  InnerType:
+    data: !Array
+      data_type: integer
+  DataType:
+    data: !ConstrainedType
+      data_type: InnerType
+      constraints:
+      - !MaxLength 2

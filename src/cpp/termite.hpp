@@ -3,7 +3,7 @@
  * @brief The c++ Termite Data Model Generator code which implements errors and
  * input output to yaml and json
  * @version 0.8.0
- * @date 2026-09-11
+ * @date 2026-09-13
  *
  */
 
@@ -44,7 +44,7 @@ struct has_insertion_operator : std::false_type {};
 template <typename T>
 struct has_insertion_operator<
     T,
-    std::void_t<decltype(std::declval<std::ostream &>() << std::declval<T>())>>
+    std::void_t<decltype(std::declval<std::ostream&>() << std::declval<T>())>>
     : std::true_type {};
 template <typename T>
 constexpr bool has_insertion_operator_v = has_insertion_operator<T>::value;
@@ -54,8 +54,9 @@ template <typename T, typename = void>
 struct has_parsing_operator : std::false_type {};
 template <typename T>
 struct has_parsing_operator<
-    T, std::void_t<decltype(std::declval<std::istream &>() >>
-                            std::declval<T &>())>> : std::true_type {};
+    T,
+    std::void_t<decltype(std::declval<std::istream&>() >> std::declval<T&>())>>
+    : std::true_type {};
 template <typename T>
 constexpr bool has_parsing_operator_v = has_parsing_operator<T>::value;
 
@@ -84,14 +85,14 @@ public:
    * @param other The other value to compare with
    * @return true if they are identical, false if not
    */
-  [[nodiscard]] bool operator==(const Empty &other) const { return true; }
+  [[nodiscard]] bool operator==(const Empty& other) const { return true; }
   /**
    * @brief Checks if this value and the other value are different
    *
    * @param other The other value to compare with
    * @return true if they are different, false if not
    */
-  [[nodiscard]] bool operator!=(const Empty &other) const {
+  [[nodiscard]] bool operator!=(const Empty& other) const {
     return !(*this == other);
   }
   /**
@@ -101,26 +102,27 @@ public:
    * @param value The value to print
    * @return The same ostream
    */
-  friend std::ostream &operator<<(std::ostream &os, const Empty &value) {
+  friend std::ostream& operator<<(std::ostream& os, const Empty& value) {
     return os << "{  }";
   }
 };
 
-template <typename T> class Reference {
+template <typename T>
+class Reference {
 public:
   /**
    * @brief Constructs a new reference
    *
    * @param ref The reference to store
    */
-  explicit Reference(const T &ref) : ref_(ref) {}
+  explicit Reference(const T& ref) : ref_(ref) {}
 
   /**
    * @brief Gets the stored reference
    *
    * @return The reference
    */
-  [[nodiscard]] const T &get() const { return ref_; }
+  [[nodiscard]] const T& get() const { return ref_; }
 
   /**
    * @brief Checks if this value and the other value are identical
@@ -129,8 +131,8 @@ public:
    * @return true if they are identical, false if not
    */
   [[nodiscard]]
-  typename std::enable_if_t<has_equality_operator_v<T>, bool>
-  operator==(const Reference &other) const {
+  typename std::enable_if_t<has_equality_operator_v<T>, bool> operator==(
+      const Reference& other) const {
     return ref_ == other.ref_;
   }
   /**
@@ -140,7 +142,7 @@ public:
    * @return true if they are different, false if not
    */
   [[nodiscard]] typename std::enable_if_t<has_equality_operator_v<T>, bool>
-  operator!=(const Reference &other) const {
+  operator!=(const Reference& other) const {
     return !(*this == other);
   }
   /**
@@ -150,8 +152,8 @@ public:
    * @param value The value to print
    * @return The same ostream
    */
-  typename std::enable_if_t<has_insertion_operator_v<T>, std::ostream &> friend
-  operator<<(std::ostream &os, const Reference &value) {
+  typename std::enable_if_t<has_insertion_operator_v<T>, std::ostream&> friend
+  operator<<(std::ostream& os, const Reference& value) {
     return os << "{ " << value.ref_ << " }";
   }
 
@@ -160,7 +162,7 @@ private:
    * @brief The reference stored
    *
    */
-  const T &ref_;
+  const T& ref_;
 };
 
 /**
@@ -183,13 +185,13 @@ public:
    *
    * @return A reference to the error message
    */
-  [[nodiscard]] const std::string &get_message() const { return message_; }
+  [[nodiscard]] const std::string& get_message() const { return message_; }
   /**
    * @brief Gets the location in the data model this error occured at
    *
    * @return A reference to the location
    */
-  [[nodiscard]] const std::string &get_location() const { return location_; }
+  [[nodiscard]] const std::string& get_location() const { return location_; }
 
   /**
    * @brief Adds a field to the location such that the old location is a field
@@ -197,7 +199,7 @@ public:
    *
    * @param name The name of the new base
    */
-  Error &add_field(const std::string &name) {
+  Error& add_field(const std::string& name) {
     std::ostringstream ss;
     ss << name;
     if (!location_.empty() && location_[0] != '[') {
@@ -213,7 +215,7 @@ public:
    *
    * @param index The index of the list
    */
-  Error &add_list(size_t index) {
+  Error& add_list(size_t index) {
     std::ostringstream ss;
     ss << "[" << index << "]";
     if (!location_.empty() && location_[0] != '[') {
@@ -230,7 +232,7 @@ public:
    * @param other The other error to compare with
    * @return true if they are identical, false otherwise
    */
-  [[nodiscard]] bool operator==(const Error &other) const {
+  [[nodiscard]] bool operator==(const Error& other) const {
     return location_ == other.location_ && message_ == other.message_;
   }
   /**
@@ -239,7 +241,7 @@ public:
    * @param other The other error to compare with
    * @return true if they are not identical, false otherwise
    */
-  [[nodiscard]] bool operator!=(const Error &other) const {
+  [[nodiscard]] bool operator!=(const Error& other) const {
     return !(*this == other);
   }
 
@@ -250,7 +252,7 @@ public:
    * @param error The error to print
    * @return The same stream object
    */
-  friend std::ostream &operator<<(std::ostream &os, const Error &error) {
+  friend std::ostream& operator<<(std::ostream& os, const Error& error) {
     if (error.location_.empty()) {
       return os << error.message_;
     }
@@ -276,7 +278,8 @@ private:
  *
  * @tparam T The type of the ok value
  */
-template <typename T> class Result {
+template <typename T>
+class Result {
 public:
   /**
    * @brief Constructs an ok result
@@ -333,8 +336,8 @@ public:
    * @return true if they are identical, false otherwise
    */
   [[nodiscard]]
-  typename std::enable_if_t<has_equality_operator_v<T>, bool>
-  operator==(const Result &result) const {
+  typename std::enable_if_t<has_equality_operator_v<T>, bool> operator==(
+      const Result& result) const {
     return value_ == result.value_;
   }
   /**
@@ -344,8 +347,8 @@ public:
    * @param result The other result to compare with
    * @return true if they are not identical, false otherwise
    */
-  [[nodiscard]] std::enable_if_t<has_equality_operator_v<T>, bool>
-  operator!=(const Result &result) const {
+  [[nodiscard]] std::enable_if_t<has_equality_operator_v<T>, bool> operator!=(
+      const Result& result) const {
     return !(value_ == result.value_);
   }
 
@@ -357,8 +360,8 @@ public:
    * @param result The result to print
    * @return The same output stream
    */
-  typename std::enable_if_t<has_insertion_operator_v<T>, std::ostream &> friend
-  operator<<(std::ostream &os, const Result &result) {
+  typename std::enable_if_t<has_insertion_operator_v<T>, std::ostream&> friend
+  operator<<(std::ostream& os, const Result& result) {
     if (result.is_ok()) {
       return os << "Ok ( " << std::get<T>(result.value_) << " )";
     }
@@ -405,7 +408,7 @@ public:
      *
      * @return The value
      */
-    [[nodiscard]] const std::string &get() const { return value_; }
+    [[nodiscard]] const std::string& get() const { return value_; }
 
     /**
      * @brief Casts the node value to the given type, if operator>> is not
@@ -416,8 +419,8 @@ public:
      */
     template <typename T>
     [[nodiscard]]
-    typename std::enable_if_t<!has_parsing_operator_v<T>, Result<T>>
-    to_value() const {
+    typename std::enable_if_t<!has_parsing_operator_v<T>, Result<T>> to_value()
+        const {
       return Result<T>::err(Error("Parsing not implemented for given type"));
     }
 
@@ -429,8 +432,8 @@ public:
      */
     template <typename T>
     [[nodiscard]]
-    typename std::enable_if_t<has_parsing_operator_v<T>, Result<T>>
-    to_value() const {
+    typename std::enable_if_t<has_parsing_operator_v<T>, Result<T>> to_value()
+        const {
       // Take care of booleans seperately
       if constexpr (std::is_same_v<T, bool>) {
         if (value_ == "true" || value_ == "True" || value_ == "1") {
@@ -488,7 +491,7 @@ public:
      * @param other The other node value to compare with
      * @return true if they are identical, false if not
      */
-    [[nodiscard]] bool operator==(const Value &other) const {
+    [[nodiscard]] bool operator==(const Value& other) const {
       return value_ == other.value_;
     }
     /**
@@ -497,7 +500,7 @@ public:
      * @param other The other node value to compare with
      * @return true if they are different, false if not
      */
-    [[nodiscard]] bool operator!=(const Value &other) const {
+    [[nodiscard]] bool operator!=(const Value& other) const {
       return !(*this == other);
     }
 
@@ -508,7 +511,7 @@ public:
      * @param value The node value to print
      * @return The same output stream
      */
-    friend std::ostream &operator<<(std::ostream &os, const Value &value) {
+    friend std::ostream& operator<<(std::ostream& os, const Value& value) {
       return os << "{ value: " << value.value_ << " }";
     }
 
@@ -543,7 +546,7 @@ public:
      *
      * @return The map
      */
-    [[nodiscard]] const std::map<std::string, Node> &get() const {
+    [[nodiscard]] const std::map<std::string, Node>& get() const {
       return map_;
     }
 
@@ -554,7 +557,8 @@ public:
      * @tparam T The type to cast to
      * @return A result of the given type
      */
-    template <typename T> [[nodiscard]] Result<T> to_value() const {
+    template <typename T>
+    [[nodiscard]] Result<T> to_value() const {
       return Result<T>::err(Error("Parsing not implemented for given type"));
     }
 
@@ -564,7 +568,7 @@ public:
      * @param other The other node map to compare with
      * @return true if they are identical, false if not
      */
-    [[nodiscard]] bool operator==(const Map &other) const {
+    [[nodiscard]] bool operator==(const Map& other) const {
       return map_ == other.map_;
     }
     /**
@@ -573,7 +577,7 @@ public:
      * @param other The other node map to compare with
      * @return true if they are different, false if not
      */
-    [[nodiscard]] bool operator!=(const Map &other) const {
+    [[nodiscard]] bool operator!=(const Map& other) const {
       return !(*this == other);
     }
 
@@ -584,7 +588,7 @@ public:
      * @param value The node map to print
      * @return The same output stream
      */
-    friend std::ostream &operator<<(std::ostream &os, const Map &value) {
+    friend std::ostream& operator<<(std::ostream& os, const Map& value) {
       os << "{ map: { ";
       for (auto key_value = value.map_.cbegin(); key_value != value.map_.cend();
            ++key_value) {
@@ -627,7 +631,7 @@ public:
      *
      * @return The list
      */
-    [[nodiscard]] const std::vector<Node> &get() const { return list_; }
+    [[nodiscard]] const std::vector<Node>& get() const { return list_; }
 
     /**
      * @brief Casts the node list to the given type, if not specialized then it
@@ -636,7 +640,8 @@ public:
      * @tparam T The type to cast to
      * @return A result of the given type
      */
-    template <typename T> [[nodiscard]] Result<T> to_value() const {
+    template <typename T>
+    [[nodiscard]] Result<T> to_value() const {
       return Result<T>::err(Error("Parsing not implemented for given type"));
     }
 
@@ -646,7 +651,7 @@ public:
      * @param other The other node list to compare with
      * @return true if they are identical, false if not
      */
-    [[nodiscard]] bool operator==(const List &other) const {
+    [[nodiscard]] bool operator==(const List& other) const {
       return list_ == other.list_;
     }
     /**
@@ -655,7 +660,7 @@ public:
      * @param other The other node list to compare with
      * @return true if they are different, false if not
      */
-    [[nodiscard]] bool operator!=(const List &other) const {
+    [[nodiscard]] bool operator!=(const List& other) const {
       return !(*this == other);
     }
 
@@ -666,7 +671,7 @@ public:
      * @param value The node list to print
      * @return The same output stream
      */
-    friend std::ostream &operator<<(std::ostream &os, const List &value) {
+    friend std::ostream& operator<<(std::ostream& os, const List& value) {
       os << "{ list: [ ";
       os << "[ ";
       for (auto value_it = value.list_.cbegin(); value_it != value.list_.cend();
@@ -704,7 +709,7 @@ public:
    *
    * @param value The c-string value of the node
    */
-  Node(const char *value) : value_(Value(std::string(value))) {}
+  Node(const char* value) : value_(Value(std::string(value))) {}
   /**
    * @brief Constructs a list node from a vector
    *
@@ -718,14 +723,14 @@ public:
    */
   Node(map values) : value_(Map(std::move(values))) {}
 
-  Node(const Node &node) = default;
+  Node(const Node& node) = default;
 
   /**
    * @brief Retrieves the value
    *
    * @return The value
    */
-  [[nodiscard]] const std::variant<Value, Map, List> &get() const {
+  [[nodiscard]] const std::variant<Value, Map, List>& get() const {
     return value_;
   }
 
@@ -735,9 +740,10 @@ public:
    * @tparam T The type to cast to
    * @return A result of the given type
    */
-  template <typename T> [[nodiscard]] Result<T> to_value() const {
+  template <typename T>
+  [[nodiscard]] Result<T> to_value() const {
     return std::visit(
-        [](const auto &value) -> Result<T> {
+        [](const auto& value) -> Result<T> {
           return value.template to_value<T>();
         },
         value_);
@@ -750,7 +756,8 @@ public:
    * @param value The value to convert to a node
    * @return The node
    */
-  template <typename T> [[nodiscard]] static Node from_value(const T &value) {
+  template <typename T>
+  [[nodiscard]] static Node from_value(const T& value) {
     static_assert(has_insertion_operator_v<T>, "Type must have operator<<");
     std::stringstream ss;
     ss << value;
@@ -763,7 +770,7 @@ public:
    * @param other The other node to compare with
    * @return true if they are identical, false if not
    */
-  [[nodiscard]] bool operator==(const Node &other) const {
+  [[nodiscard]] bool operator==(const Node& other) const {
     return value_ == other.value_;
   }
   /**
@@ -772,7 +779,7 @@ public:
    * @param other The other node to compare with
    * @return true if they are different, false if not
    */
-  [[nodiscard]] bool operator!=(const Node &other) const {
+  [[nodiscard]] bool operator!=(const Node& other) const {
     return !(*this == other);
   }
 
@@ -783,7 +790,7 @@ public:
    * @param value The node to print
    * @return The same output stream
    */
-  friend std::ostream &operator<<(std::ostream &os, const Node &value) {
+  friend std::ostream& operator<<(std::ostream& os, const Node& value) {
     if (std::holds_alternative<Map>(value.value_)) {
       return os << "{ Map " << std::get<Map>(value.value_) << " }";
     }
@@ -801,6 +808,24 @@ private:
   std::variant<Value, Map, List> value_;
 };
 
-} // namespace termite
+/**
+ * @brief Counts the number of UTF-8 code points in a string
+ *
+ * @param str The string to count UTF-8 code points in
+ * @return The number of UTF-8 code points in the string
+ */
+[[nodiscard]] inline size_t utf8_code_point_count(const std::string& str) {
+  size_t count = 0;
+  for (size_t i = 0; i < str.size(); ++i) {
+    auto c = static_cast<uint8_t>(str.at(i));
+    // Count only character that does not start with the bits 10
+    if ((c & 0xC0) != 0x80) {
+      ++count;
+    }
+  }
+  return count;
+}
+
+}  // namespace termite
 
 #endif

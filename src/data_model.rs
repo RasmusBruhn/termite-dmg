@@ -2,6 +2,26 @@ use crate::*;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+/// Helper function to deserialize a `usize` from either a string or a number in the input data
+fn deserialize_usize_from_string_or_number<'de, D>(deserializer: D) -> Result<usize, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum UsizeOrString {
+        Number(usize),
+        String(String),
+    }
+
+    match UsizeOrString::deserialize(deserializer)? {
+        UsizeOrString::Number(value) => Ok(value),
+        UsizeOrString::String(value) => value
+            .parse::<usize>()
+            .map_err(|_| serde::de::Error::custom(format!("invalid usize string \"{value}\""))),
+    }
+}
+
 /// An entire data model
 #[derive(Clone, Debug, PartialEq, Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -189,10 +209,10 @@ pub struct ConstrainedType {
 pub enum Constraint {
     /// The minimum length of a string (unicode code points) or array, invalid
     /// for any other types
-    MinLength(usize),
+    MinLength(#[serde(deserialize_with = "deserialize_usize_from_string_or_number")] usize),
     /// The maximum length of a string (unicode code points) or array, invalid
     /// for any other types
-    MaxLength(usize),
+    MaxLength(#[serde(deserialize_with = "deserialize_usize_from_string_or_number")] usize),
     /// Any constraint using c-like arithmetic, must result in a boolean value
     Arithmetic(String),
     /// Name of a function to call f_name(x), must return a boolean value, the
@@ -211,4 +231,52 @@ pub enum DefaultType {
     /// The field can be supplied, if not supplied it defaults to the default
     /// value
     Default(SerializationModel),
+}
+
+/// A simplified representation of a data type. Any constrained type can be
+/// reduced to its inner type
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum SimplifiedType {
+    Boolean,
+    Integer,
+    Float,
+    String,
+    Array,
+    Struct,
+    Enum,
+    Variant,
+}
+
+/// Returns the simplified type for a given data type name
+///
+/// # Parameters
+///
+/// name: The name of the data type to simplify
+///
+/// all_types: A hashmap containing all data types by their names
+pub fn get_simplified_type(
+    name: &str,
+    all_types: &HashMap<String, DataType>,
+) -> Result<SimplifiedType, Error> {
+    return match name {
+        "boolean" => Ok(SimplifiedType::Boolean),
+        "integer" => Ok(SimplifiedType::Integer),
+        "number" => Ok(SimplifiedType::Float),
+        "string" => Ok(SimplifiedType::String),
+        _ => {
+            if let Some(data_type) = all_types.get(name) {
+                match &data_type.data {
+                    DataTypeData::Array(_) => Ok(SimplifiedType::Array),
+                    DataTypeData::Struct(_) => Ok(SimplifiedType::Struct),
+                    DataTypeData::Enum(_) => Ok(SimplifiedType::Enum),
+                    DataTypeData::Variant(_) => Ok(SimplifiedType::Variant),
+                    DataTypeData::ConstrainedType(data) => {
+                        get_simplified_type(&data.data_type, all_types)
+                    }
+                }
+            } else {
+                Err(Error::new(ErrorCore::UnknownDataType(name.to_string())))
+            }
+        }
+    };
 }

@@ -11,6 +11,18 @@ pub struct Error {
 }
 
 impl Error {
+    /// Constructs a new error with the given core error and an empty location
+    ///
+    /// # Parameters
+    ///
+    /// error: The core error to wrap in the new error
+    pub fn new(error: ErrorCore) -> Error {
+        Error {
+            location: "".to_string(),
+            error,
+        }
+    }
+
     /// Sets the current location to be the field of the given base
     ///
     /// # Parameters
@@ -72,6 +84,9 @@ pub enum ErrorCore {
     /// A footer macro insertion can only have a string value
     #[error("The macro insertion in the footer \"{}\" must be a string", .0)]
     FooterMacro(String),
+    /// An unsupported constraint was used for the given data type
+    #[error("The constraint \"{}\" is not supported for the data type \"{}\"", .0, .1)]
+    UnsupportedConstraintForType(String, String),
 }
 
 impl From<error::Error> for Error {

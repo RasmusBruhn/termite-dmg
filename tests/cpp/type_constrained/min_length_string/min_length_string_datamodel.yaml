@@ -1,0 +1,8 @@
+namespace:
+- test
+data_types:
+  DataType:
+    data: !ConstrainedType
+      data_type: string
+      constraints:
+      - !MinLength 2

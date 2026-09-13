@@ -2,7 +2,7 @@
 /// @brief The Dart Termite Data Model Generator code which implements errors and
 /// input output to yaml and json
 /// @version 0.8.0
-/// @date 2026-09-07
+/// @date 2026-09-13
 library;
 
 import 'package:collection/collection.dart';
@@ -245,4 +245,9 @@ class Mapping extends Node {
 
   @override
   int get hashCode => MapEquality().hash(map);
+}
+
+/// Counts the number of UTF-8 code points in the given [str].
+int utf8CodePointCount(String str) {
+  return str.runes.length;
 }

@@ -92,7 +92,7 @@ pub fn generate<'a>(data: &DataModel, indent: usize) -> Result<String, Error> {
     let data_type_definitions = data_types
         .iter()
         .map(|(type_name, data_type)| {
-            data_type::generate(data_type, type_name, indent, &data.macros)
+            data_type::generate(data_type, type_name, &data.data_types, &data.macros, indent)
         })
         .collect::<Result<Vec<String>, Error>>()?
         .join("\n\n");
@@ -127,14 +127,17 @@ mod data_type {
     ///
     /// name: The name of the type
     ///
-    /// indent: The number of spaces per indentation level
+    /// all_types: A map of all data types available for reference
     ///
     /// macros: The macros defined in the data model used for expanding default values
+    ///
+    /// indent: The number of spaces per indentation level
     pub(super) fn generate<'a>(
         data: &DataType,
         name: &str,
-        indent: usize,
+        all_types: &HashMap<String, DataType>,
         macros: &'a HashMap<String, SerializationModel>,
+        indent: usize,
     ) -> Result<String, Error> {
         let description = match &data.description {
             Some(description) => format!("/// {description}\n"),
@@ -143,7 +146,7 @@ mod data_type {
 
         return Ok(format!(
             "{description}{data}",
-            data = data_type_data::generate(&data.data, name, indent, macros)?
+            data = data_type_data::generate(&data.data, name, all_types, macros, indent)?
         ));
     }
 }
@@ -159,14 +162,17 @@ mod data_type_data {
     ///
     /// name: The name of the type
     ///
-    /// indent: The number of spaces per indentation level
+    /// all_types: A map of all data types available for reference
     ///
     /// macros: The macros defined in the data model used for expanding default values
+    ///
+    /// indent: The number of spaces per indentation level
     pub(super) fn generate<'a>(
         data: &DataTypeData,
         name: &str,
-        indent: usize,
+        all_types: &HashMap<String, DataType>,
         macros: &'a HashMap<String, SerializationModel>,
+        indent: usize,
     ) -> Result<String, Error> {
         return match &data {
             DataTypeData::Enum(data) => Ok(type_enum::generate(data, name, indent)),
@@ -174,7 +180,7 @@ mod data_type_data {
             DataTypeData::Variant(data) => Ok(type_variant::generate(data, name, indent)),
             DataTypeData::Array(data) => Ok(type_array::generate(data, name, indent)),
             DataTypeData::ConstrainedType(data) => {
-                Ok(type_constrained::generate(data, name, indent))
+                type_constrained::generate(data, name, all_types, indent)
             }
         };
     }

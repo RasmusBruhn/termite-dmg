@@ -10,6 +10,18 @@ pub struct Error {
 }
 
 impl Error {
+    /// Constructs a new error with the given core error and an empty location
+    ///
+    /// # Parameters
+    ///
+    /// error: The core error to wrap in the new error
+    pub fn new(error: ErrorCore) -> Error {
+        Error {
+            location: "".to_string(),
+            error,
+        }
+    }
+
     /// Sets the current location to be the field of the given base
     ///
     /// # Parameters

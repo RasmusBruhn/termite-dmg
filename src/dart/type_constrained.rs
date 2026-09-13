@@ -1,6 +1,7 @@
-use indoc::formatdoc;
-
+use super::{Error, ErrorCore};
 use crate::*;
+use indoc::formatdoc;
+use std::collections::HashMap;
 
 /// Generates the Dart source code for a constrained type
 ///
@@ -10,22 +11,28 @@ use crate::*;
 ///
 /// name: The name of the constrained type
 ///
+/// all_types: A map of all data types available for reference
+///
 /// indent: The number of spaces per indentation level
-pub(super) fn generate(data: &ConstrainedType, name: &str, indent: usize) -> String {
+pub(super) fn generate(
+    data: &ConstrainedType,
+    name: &str,
+    all_types: &HashMap<String, DataType>,
+    indent: usize,
+) -> Result<String, Error> {
     let constraints = data
         .constraints
         .iter()
-        .map(|constraint| {
-            return format!(
-                "- {constraint}",
-                constraint = constraint::generate(constraint)
-            );
-        })
+        .map(|constraint| constraint::generate(constraint, &data.data_type, all_types))
+        .collect::<Result<Vec<_>, Error>>()?;
+
+    let documentation = constraints
+        .iter()
+        .map(|constraint| return format!("- {constraint}"))
         .collect::<Vec<_>>()
         .join(&format!("\n{0:indent$}/// ", ""));
 
-    let validation = data
-        .constraints
+    let validation = constraints
         .iter()
         .map(|constraint| {
             formatdoc!(
@@ -33,14 +40,13 @@ pub(super) fn generate(data: &ConstrainedType, name: &str, indent: usize) -> Str
                 if (!({constraint})) {{
                 {0:indent$}{0:indent$}{0:indent$}return const termite.Result.error('{constraint}', '');
                 {0:indent$}{0:indent$}}}",
-                "",
-                constraint = constraint::generate(constraint),
+                ""
             )
         })
         .collect::<Vec<_>>()
         .join(&format!("\n\n{0:indent$}{0:indent$}", ""));
 
-    return formatdoc!("
+    return Ok(formatdoc!("
         class {name} {{
         {0:indent$}{data_type} _value;
 
@@ -62,7 +68,7 @@ pub(super) fn generate(data: &ConstrainedType, name: &str, indent: usize) -> Str
 
         {0:indent$}/// Constructs a [{name}] from a [{data_type}] if it fulfills the constraints:
         {0:indent$}///
-        {0:indent$}/// {constraints}
+        {0:indent$}/// {documentation}
         {0:indent$}static termite.Result<{name}> fromValue({data_type} x) {{
         {0:indent$}{0:indent$}final validation = validate(x);
         {0:indent$}{0:indent$}if (validation is termite.Error<void>) {{
@@ -73,14 +79,14 @@ pub(super) fn generate(data: &ConstrainedType, name: &str, indent: usize) -> Str
 
         {0:indent$}/// Constructs a [{name}] from a [Object] if it fulfills the constraints:
         {0:indent$}/// 
-        {0:indent$}/// {constraints}
+        {0:indent$}/// {documentation}
         {0:indent$}static termite.Result<{name}> fromObject(Object obj) {{
         {0:indent$}{0:indent$}return TermiteExtension{name}.fromObject(obj);
         {0:indent$}}}
 
         {0:indent$}/// Constructs a [{name}] from a [termite.Node] if it fulfills the constraints:
         {0:indent$}/// 
-        {0:indent$}/// {constraints}
+        {0:indent$}/// {documentation}
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
         {0:indent$}{0:indent$}return TermiteExtension{name}.fromNode(node);
         {0:indent$}}}
@@ -92,7 +98,7 @@ pub(super) fn generate(data: &ConstrainedType, name: &str, indent: usize) -> Str
 
         {0:indent$}/// Validates that [x] fullfills the constraints:
         {0:indent$}///
-        {0:indent$}/// {constraints}
+        {0:indent$}/// {documentation}
         {0:indent$}static termite.Result<void> validate({data_type} x) {{
         {0:indent$}{0:indent$}{validation}
 
@@ -114,7 +120,7 @@ pub(super) fn generate(data: &ConstrainedType, name: &str, indent: usize) -> Str
         extension TermiteExtension{name} on {name} {{
         {0:indent$}/// Constructs a [{name}] from a [Object] if it fulfills the constraints:
         {0:indent$}/// 
-        {0:indent$}/// {constraints}
+        {0:indent$}/// {documentation}
         {0:indent$}static termite.Result<{name}> fromObject(Object obj) {{
         {0:indent$}{0:indent$}final value = TermiteExtension{data_type}.fromObject(obj);
         {0:indent$}{0:indent$}if (!value.isOk()) {{
@@ -125,7 +131,7 @@ pub(super) fn generate(data: &ConstrainedType, name: &str, indent: usize) -> Str
 
         {0:indent$}/// Constructs a [{name}] from a [termite.Node] if it fulfills the constraints:
         {0:indent$}/// 
-        {0:indent$}/// {constraints}
+        {0:indent$}/// {documentation}
         {0:indent$}static termite.Result<{name}> fromNode(termite.Node node) {{
         {0:indent$}{0:indent$}final value = TermiteExtension{data_type}.fromNode(node);
         {0:indent$}{0:indent$}if (!value.isOk()) {{
@@ -136,7 +142,7 @@ pub(super) fn generate(data: &ConstrainedType, name: &str, indent: usize) -> Str
         }}",
         "",
         data_type = &data.data_type,
-    );
+    ));
 }
 
 mod constraint {
@@ -147,13 +153,99 @@ mod constraint {
     /// # Parameters
     ///
     /// data: The constraint to convert to a Dart expression
-    pub(super) fn generate(data: &Constraint) -> String {
-        match data {
-            Constraint::Arithmetic(value) => value.clone(),
-            Constraint::Function(value) => {
-                format!("{value}(x)", value = value.replace("::", "."))
-            }
-        }
+    ///
+    /// data_type: The data type of the constrained type
+    ///
+    /// all_types: A map of all data types available for reference
+    pub(super) fn generate(
+        data: &Constraint,
+        data_type: &str,
+        all_types: &HashMap<String, DataType>,
+    ) -> Result<String, Error> {
+        return match data {
+            Constraint::MinLength(value) => generate_min_length(value, data_type, all_types),
+            Constraint::MaxLength(value) => generate_max_length(value, data_type, all_types),
+            Constraint::Arithmetic(value) => generate_arithmetic(value),
+            Constraint::Function(value) => generate_function(value),
+        };
+    }
+
+    /// Generates a Dart expression for the given constraint value
+    ///
+    /// # Parameters
+    ///
+    /// value: The minimum length constraint value
+    ///
+    /// data_type: The data type of the constrained type
+    ///
+    /// all_types: A map of all data types available for reference
+    pub(super) fn generate_min_length(
+        value: &usize,
+        data_type: &str,
+        all_types: &HashMap<String, DataType>,
+    ) -> Result<String, Error> {
+        let simplified_type = get_simplified_type(data_type, all_types)?;
+
+        return match simplified_type {
+            SimplifiedType::String => Ok(format!("termite.utf8CodePointCount(x) >= {value}")),
+            SimplifiedType::Array => Ok(format!("x.values.length >= {value}")),
+            _ => Err(Error::new(ErrorCore::UnsupportedConstraintForType(
+                "MinLength".to_string(),
+                data_type.to_string(),
+            ))),
+        };
+    }
+
+    /// Generates a Dart expression for the given constraint value
+    ///
+    /// # Parameters
+    ///
+    /// value: The maximum length constraint value
+    ///
+    /// data_type: The data type of the constrained type
+    ///
+    /// all_types: A map of all data types available for reference
+    pub(super) fn generate_max_length(
+        value: &usize,
+        data_type: &str,
+        all_types: &HashMap<String, DataType>,
+    ) -> Result<String, Error> {
+        let simplified_type = get_simplified_type(data_type, all_types)?;
+
+        return match simplified_type {
+            SimplifiedType::String => Ok(format!("termite.utf8CodePointCount(x) <= {value}")),
+            SimplifiedType::Array => Ok(format!("x.values.length <= {value}")),
+            _ => Err(Error::new(ErrorCore::UnsupportedConstraintForType(
+                "MaxLength".to_string(),
+                data_type.to_string(),
+            ))),
+        };
+    }
+
+    /// Generates a Dart expression for the given constraint value
+    ///
+    /// # Parameters
+    ///
+    /// value: The arithmetic expression
+    ///
+    /// data_type: The data type of the constrained type
+    ///
+    /// all_types: A map of all data types available for reference
+    pub(super) fn generate_arithmetic(value: &str) -> Result<String, Error> {
+        return Ok(value.to_string());
+    }
+
+    /// Generates a Dart expression for the given constraint value
+    ///
+    /// # Parameters
+    ///
+    /// value: The function expression
+    ///
+    /// data_type: The data type of the constrained type
+    ///
+    /// all_types: A map of all data types available for reference
+    pub(super) fn generate_function(value: &str) -> Result<String, Error> {
+        return Ok(format!("{value}(x)", value = value.replace("::", ".")));
     }
 }
 
@@ -169,5 +261,15 @@ mod tests {
     #[test]
     fn constraints() {
         run_test("type_constrained/constraints", true, false, false);
+    }
+
+    #[test]
+    fn min_length_array() {
+        run_test("type_constrained/min_length_array", true, false, false);
+    }
+
+    #[test]
+    fn max_length_array() {
+        run_test("type_constrained/max_length_array", true, false, false);
     }
 }

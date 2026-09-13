@@ -5,8 +5,8 @@ pub mod dart;
 
 mod data_model;
 pub use data_model::{
-    Array, ConstrainedType, Constraint, DataModel, DataType, DataTypeData, DefaultType, Enum,
-    EnumType, Struct, StructField, Variant,
+    get_simplified_type, Array, ConstrainedType, Constraint, DataModel, DataType, DataTypeData,
+    DefaultType, Enum, EnumType, SimplifiedType, Struct, StructField, Variant,
 };
 
 mod error;

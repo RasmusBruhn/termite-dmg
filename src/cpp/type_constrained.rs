@@ -1,20 +1,25 @@
+use super::{Error, ErrorCore};
 use crate::*;
 use indoc::formatdoc;
+use std::collections::HashMap;
 
-/// Converts the variant to a string for use in the header file
+/// Converts the constrained type to a string for use in the header file
 ///
 /// # Parameters
 ///
 /// data: The constrained type to generate code for
 ///
-/// name: The name of the variant
+/// name: The name of the constrained type
+///
+/// all_types: A map of all data types available for reference
 ///
 /// indent: The number of spaces to use for indentation
 pub(super) fn generate_definition_header(
     data: &ConstrainedType,
     name: &str,
+    all_types: &HashMap<String, DataType>,
     indent: usize,
-) -> String {
+) -> Result<String, Error> {
     let data_type = if is_name_builtin(&data.data_type) {
         format!("termite::{data_type}", data_type = data.data_type)
     } else {
@@ -22,14 +27,14 @@ pub(super) fn generate_definition_header(
     };
 
     let string_constructor = if data.data_type == "string" {
-        formatdoc! {"
+        formatdoc!("
             {0:indent$}/**
             {0:indent$} * @brief Constructs a new {name} object, it must be valid or an exception will be thrown
             {0:indent$} * 
             {0:indent$} * @param value The value to store 
             {0:indent$} */
             {0:indent$}{name}(const char *value) : {name}(std::string(value)) {{}}
-        ", ""}
+        ", "")
     } else {
         format!("")
     };
@@ -39,16 +44,16 @@ pub(super) fn generate_definition_header(
         .constraints
         .iter()
         .map(|constraint| {
-            return format!(
+            Ok(format!(
                 "\n{0:indent$} * - {constraint}",
                 "",
-                constraint = constraint::generate(constraint)
-            );
+                constraint = constraint::generate(constraint, &data.data_type, all_types)?
+            ))
         })
-        .collect::<Vec<String>>()
+        .collect::<Result<Vec<_>, Error>>()?
         .join("");
 
-    return formatdoc!("
+    return Ok(formatdoc!("
             class {name} {{
             public:
             {0:indent$}/**
@@ -131,23 +136,26 @@ pub(super) fn generate_definition_header(
             {0:indent$}{data_type} value_;
             }};",
             "",
-        );
+        ));
 }
 
-/// Converts the variant to a string for use in the source file
+/// Converts the constrained type to a string for use in the source file
 ///
 /// # Parameters
 ///
 /// data: The constrained type to generate code for
 ///
-/// name: The name of the variant
+/// name: The name of the constrained type
+///
+/// all_types: A map of all data types available for reference
 ///
 /// indent: The number of spaces to use for indentation
 pub(super) fn generate_definition_source(
     data: &ConstrainedType,
     name: &str,
+    all_types: &HashMap<String, DataType>,
     indent: usize,
-) -> String {
+) -> Result<String, Error> {
     let data_type = if is_name_builtin(&data.data_type) {
         format!("termite::{data_type}", data_type = data.data_type)
     } else {
@@ -156,14 +164,14 @@ pub(super) fn generate_definition_source(
 
     // Create the tests
     let tests = data.constraints.iter()
-            .map(|constraint| formatdoc!("
+            .map(|constraint| Ok(formatdoc!("
                 {0:indent$}if (!({constraint})) {{
                 {0:indent$}{0:indent$}return termite::Result<termite::Empty>::err(termite::Error(\"Did not pass constraint: {constraint}\"));
                 {0:indent$}}}\n\n",
                 "",
-                constraint = constraint::generate(constraint),
-            ))
-            .collect::<Vec<String>>()
+                constraint = constraint::generate(constraint, &data.data_type, all_types)?,
+            )))
+            .collect::<Result<Vec<_>, Error>>()?
             .join("");
 
     // The name of the validation parameter, should not exist if there are no constraints
@@ -173,7 +181,7 @@ pub(super) fn generate_definition_source(
         "x".to_string()
     };
 
-    return formatdoc!("
+    return Ok(formatdoc!("
             [[nodiscard]] termite::Result<{name}> {name}::from_value({data_type} value) {{
             {0:indent$}termite::Result<termite::Empty> validate_result = validate(value);
             {0:indent$}if (!validate_result.is_ok()) {{
@@ -205,18 +213,18 @@ pub(super) fn generate_definition_source(
             {tests}{0:indent$}return termite::Result<termite::Empty>::ok(termite::Empty());
             }}",
             "",
-        );
+        ));
 }
 
-/// Gets the header code for the parser for this variant allowing it to be read from a file
+/// Gets the header code for the parser for this constrained type allowing it to be read from a file
 ///
 /// # Parameters
 ///
 /// data: The constrained type to generate code for
 ///
-/// name: The name of the variant
+/// name: The name of the constrained type
 ///
-/// namespace: The namespace of the variant
+/// namespace: The namespace of the constrained type
 pub(super) fn generate_parser_header(
     _data: &ConstrainedType,
     name: &str,
@@ -240,17 +248,17 @@ pub(super) fn generate_parser_header(
     );
 }
 
-/// Gets the source code for the parser for this variant allowing it to be read from a file
+/// Gets the source code for the parser for this constrained type allowing it to be read from a file
 ///
 /// # Parameters
 ///
 /// data: The constrained type to generate code for
 ///
-/// name: The name of the variant
+/// name: The name of the constrained type
 ///
 /// indent: The number of spaces to use for indentation
 ///
-/// namespace: The namespace of the variant
+/// namespace: The namespace of the constrained type
 pub(super) fn generate_parser_source(
     data: &ConstrainedType,
     name: &str,
@@ -300,13 +308,91 @@ mod constraint {
     /// # Parameters
     ///
     /// data: The constraint to convert to a C++ expression
-    /// 
+    ///
     /// data_type: The data type of the constrained type
-    pub(super) fn generate(data: &Constraint, data_type: &str) -> Result<String, Error> {
-        match data {
-            Constraint::Arithmetic(value) => Ok(value.clone()),
-            Constraint::Function(value) => Ok(format!("{value}(x)")),
-        }
+    ///
+    /// all_types: A map of all data types available for reference
+    pub(super) fn generate(
+        data: &Constraint,
+        data_type: &str,
+        all_types: &HashMap<String, DataType>,
+    ) -> Result<String, Error> {
+        return match data {
+            Constraint::MinLength(value) => generate_min_length(value, data_type, all_types),
+            Constraint::MaxLength(value) => generate_max_length(value, data_type, all_types),
+            Constraint::Arithmetic(value) => generate_arithmetic(value),
+            Constraint::Function(value) => generate_function(value),
+        };
+    }
+
+    /// Generates the C++ expression for a min length constraint
+    ///
+    /// # Parameters
+    ///
+    /// value: The min length constraint value to convert to a C++ expression
+    ///
+    /// data_type: The data type of the constrained type
+    ///
+    /// all_types: A map of all data types available for reference
+    fn generate_min_length(
+        value: &usize,
+        data_type: &str,
+        all_types: &HashMap<String, DataType>,
+    ) -> Result<String, Error> {
+        let simplified_type = get_simplified_type(data_type, all_types)?;
+
+        return match simplified_type {
+            SimplifiedType::String => Ok(format!("termite::utf8_code_point_count(x) >= {value}")),
+            SimplifiedType::Array => Ok(format!("x.values.size() >= {value}")),
+            _ => Err(Error::new(ErrorCore::UnsupportedConstraintForType(
+                "MinLength".to_string(),
+                data_type.to_string(),
+            ))),
+        };
+    }
+
+    /// Generates the C++ expression for a max length constraint
+    ///
+    /// # Parameters
+    ///
+    /// value: The max length constraint value to convert to a C++ expression
+    ///
+    /// data_type: The data type of the constrained type
+    ///
+    /// all_types: A map of all data types available for reference
+    fn generate_max_length(
+        value: &usize,
+        data_type: &str,
+        all_types: &HashMap<String, DataType>,
+    ) -> Result<String, Error> {
+        let simplified_type = get_simplified_type(data_type, all_types)?;
+
+        return match simplified_type {
+            SimplifiedType::String => Ok(format!("termite::utf8_code_point_count(x) <= {value}")),
+            SimplifiedType::Array => Ok(format!("x.values.size() <= {value}")),
+            _ => Err(Error::new(ErrorCore::UnsupportedConstraintForType(
+                "MaxLength".to_string(),
+                data_type.to_string(),
+            ))),
+        };
+    }
+
+    /// Generates the C++ expression for an arithmetic constraint
+    ///
+    /// # Parameters
+    ///
+    /// value: The arithmetic constraint value to convert to a C++ expression
+    fn generate_arithmetic(value: &str) -> Result<String, Error> {
+        return Ok(value.to_string());
+    }
+
+    /// Generates the C++ expression for a function constraint
+    ///
+    /// # Parameters
+    ///
+    /// value: The function constraint value to convert to a C++ expression
+    fn generate_function(value: &str) -> Result<String, Error> {
+        return Ok(format!("{value}(x)"));
     }
 }
 
@@ -322,5 +408,25 @@ mod tests {
     #[test]
     fn constraints() {
         run_test("type_constrained/constraints", true, false, false);
+    }
+
+    #[test]
+    fn min_length_array() {
+        run_test("type_constrained/min_length_array", true, false, false);
+    }
+
+    #[test]
+    fn max_length_array() {
+        run_test("type_constrained/max_length_array", true, false, false);
+    }
+
+    #[test]
+    fn min_length_string() {
+        run_test("type_constrained/min_length_string", true, false, false);
+    }
+
+    #[test]
+    fn max_length_string() {
+        run_test("type_constrained/max_length_string", true, false, false);
     }
 }
