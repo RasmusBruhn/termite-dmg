@@ -9,7 +9,7 @@
  * @return An error string on error
  */
 std::optional<std::string> test_eq_self() {
-  test::DataType value1 = 1LL;
+  test::DataType value1 = (termite::integer)1;
   if (value1 != value1) {
     return "A variant was not equal to itself";
   }
@@ -27,11 +27,11 @@ std::optional<std::string> test_eq_self() {
  * @return An error string on error
  */
 std::optional<std::string> test_eq_diff() {
-  test::DataType value1 = 1LL;
-  if (value1 == test::DataType(2LL)) {
+  test::DataType value1 = (termite::integer)1;
+  if (value1 == test::DataType((termite::integer)2)) {
     std::stringstream ss;
     ss << "Two different variants were equal: value1=" << value1
-       << ", value2=" << test::DataType(2LL);
+       << ", value2=" << test::DataType((termite::integer)2);
     return ss.str();
   }
 
@@ -59,8 +59,9 @@ std::optional<std::string> test_eq_diff() {
  * @return An error string on error
  */
 std::optional<std::string> test_value_check() {
-  test::DataType value1 = 1LL;
-  std::variant<termite::integer, termite::number> expected1 = 1LL;
+  test::DataType value1 = (termite::integer)1;
+  std::variant<termite::integer, termite::number> expected1 =
+      (termite::integer)1;
   if (value1.value != expected1) {
     std::stringstream ss;
     ss << "Variant did not contain expected value: got " << value1
@@ -85,7 +86,7 @@ std::optional<std::string> test_value_check() {
  * @return An error string on error
  */
 std::optional<std::string> test_load() {
-  test::DataType value1 = 1LL;
+  test::DataType value1 = (termite::integer)1;
   termite::Node node1 = "1";
   auto read_value1 = node1.to_value<test::DataType>();
   if (!read_value1.is_ok()) {
@@ -119,7 +120,7 @@ std::optional<std::string> test_load() {
  * @return An error string on error
  */
 std::optional<std::string> test_reload() {
-  test::DataType value1 = 1LL;
+  test::DataType value1 = (termite::integer)1;
   termite::Node converted_node1 = termite::Node::from_value(value1);
   auto converted_value1 = converted_node1.to_value<test::DataType>();
   if (!converted_value1.is_ok()) {

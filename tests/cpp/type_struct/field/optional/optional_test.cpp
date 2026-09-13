@@ -14,7 +14,8 @@ std::optional<std::string> test_eq_self() {
     return "A struct was not equal to itself";
   }
 
-  auto value2 = test::DataType({{"field1", -2LL}, {"field2", 3.5}});
+  auto value2 =
+      test::DataType({{"field1", (termite::integer)-2}, {"field2", 3.5}});
   if (value2 != value2) {
     return "A struct was not equal to itself";
   }
@@ -28,7 +29,8 @@ std::optional<std::string> test_eq_self() {
  */
 std::optional<std::string> test_eq_diff() {
   auto value1 = test::DataType({});
-  auto value2 = test::DataType({{"field1", -2LL}, {"field2", 3.5}});
+  auto value2 =
+      test::DataType({{"field1", (termite::integer)-2}, {"field2", 3.5}});
   if (value1 == value2) {
     std::stringstream ss;
     ss << "Two different structs were equal: " << value1 << " vs " << value2;
@@ -68,7 +70,8 @@ std::optional<std::string> test_load_defaults() {
  * @return An error string on error
  */
 std::optional<std::string> test_load() {
-  auto value = test::DataType({{"field1", -2LL}, {"field2", 3.5}});
+  auto value =
+      test::DataType({{"field1", (termite::integer)-2}, {"field2", 3.5}});
   termite::Node node_correct =
       termite::map{{"field1", "-2"}, {"field2", "3.5"}};
   auto value_read_correct = node_correct.to_value<test::DataType>();
@@ -160,7 +163,8 @@ std::optional<std::string> test_reload() {
     return ss.str();
   }
 
-  auto value2 = test::DataType({{"field1", -2LL}, {"field2", 3.5}});
+  auto value2 =
+      test::DataType({{"field1", (termite::integer)-2}, {"field2", 3.5}});
   termite::Node converted_node2 = termite::Node::from_value(value2);
   auto converted_value2 = converted_node2.to_value<test::DataType>();
   if (!converted_value2.is_ok()) {
