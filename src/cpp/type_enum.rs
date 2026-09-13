@@ -54,6 +54,15 @@ pub(super) fn generate_definition_header(data: &Enum, name: &str, indent: usize)
         {type_definition}
         {0:indent$}}};
 
+        {0:indent$}/**
+        {0:indent$} * @brief Prints the object onto the output stream
+        {0:indent$} * 
+        {0:indent$} * @param os The output stream to print to
+        {0:indent$} * @param x The object to print
+        {0:indent$} * @return The output stream
+        {0:indent$} */
+        {0:indent$}friend std::ostream &operator<<(std::ostream &os, const Enum &x);
+
         {type_wrappers}
 
         {0:indent$}/**
@@ -134,9 +143,27 @@ pub(super) fn generate_definition_source(data: &Enum, name: &str, indent: usize)
         .collect::<Vec<String>>()
         .join("\n");
 
+    // Get the enum printers
+    let enum_printers = data
+        .types
+        .iter()
+        .map(|enum_type| enum_type::get_enum_printer(enum_type, name, indent))
+        .collect::<Vec<String>>()
+        .join("\n");
+
     return formatdoc!(
         "
         {type_wrappers}
+
+        std::ostream &operator<<(std::ostream &os, const {name}::Enum &x) {{
+        {0:indent$}switch (x) {{
+        {enum_printers}
+        {0:indent$}default:
+        {0:indent$}{0:indent$}os << \"Unknown (\" << static_cast<int>(x) << \")\";
+        {0:indent$}{0:indent$}break;
+        {0:indent$}}}
+        {0:indent$}return os;
+        }}
 
         [[nodiscard]] bool {name}::operator==(const {name} &x) const {{
         {0:indent$}return value == x.value;
@@ -320,12 +347,11 @@ mod enum_type {
         // Get the definition of the type
         let type_definition = match &data.data_type {
             Some(data_type) => {
-                let data_type =
-                    if ["string", "number", "integer", "boolean"].contains(&data_type.as_str()) {
-                        format!("termite::{data_type}")
-                    } else {
-                        data_type.clone()
-                    };
+                let data_type = if is_name_builtin(data_type) {
+                    format!("termite::{data_type}")
+                } else {
+                    data_type.clone()
+                };
 
                 formatdoc!(
                     "
@@ -473,13 +499,33 @@ mod enum_type {
                 "\"{name}(\" << std::get<{main_name}::Type{name}>(x.value).value << \")\"",
                 name = data.name
             ),
-            None => "\"Empty\"".to_string(),
+            None => format!("\"{name}\"", name = data.name),
         };
 
         return formatdoc!(
             "
             {0:indent$}case {main_name}::Enum::k{name}:
             {0:indent$}{0:indent$}os << {printer};
+            {0:indent$}{0:indent$}break;",
+            "",
+            name = data.name,
+        );
+    }
+
+    /// Gets the printer of this enum type specifier
+    ///
+    /// # Parameters
+    ///
+    /// data: The enum type to generate code for
+    ///
+    /// main_name: The name of the main enum
+    ///
+    /// indent: The indentation to use
+    pub(super) fn get_enum_printer(data: &EnumType, main_name: &str, indent: usize) -> String {
+        return formatdoc!(
+            "
+            {0:indent$}case {main_name}::Enum::k{name}:
+            {0:indent$}{0:indent$}os << \"{name}\";
             {0:indent$}{0:indent$}break;",
             "",
             name = data.name,
