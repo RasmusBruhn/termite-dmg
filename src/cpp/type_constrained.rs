@@ -300,10 +300,12 @@ mod constraint {
     /// # Parameters
     ///
     /// data: The constraint to convert to a C++ expression
-    pub(super) fn generate(data: &Constraint) -> String {
+    /// 
+    /// data_type: The data type of the constrained type
+    pub(super) fn generate(data: &Constraint, data_type: &str) -> Result<String, Error> {
         match data {
-            Constraint::Arithmetic(value) => value.clone(),
-            Constraint::Function(value) => format!("{value}(x)"),
+            Constraint::Arithmetic(value) => Ok(value.clone()),
+            Constraint::Function(value) => Ok(format!("{value}(x)")),
         }
     }
 }

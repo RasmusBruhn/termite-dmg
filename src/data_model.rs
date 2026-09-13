@@ -187,6 +187,12 @@ pub struct ConstrainedType {
 /// Defines a single constraint
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Constraint {
+    /// The minimum length of a string (unicode code points) or array, invalid
+    /// for any other types
+    MinLength(usize),
+    /// The maximum length of a string (unicode code points) or array, invalid
+    /// for any other types
+    MaxLength(usize),
     /// Any constraint using c-like arithmetic, must result in a boolean value
     Arithmetic(String),
     /// Name of a function to call f_name(x), must return a boolean value, the
